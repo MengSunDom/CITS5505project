@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+*.venv
+venv/
+env/
+*.log
+
+# macOS/Linux
+.DS_Store
+
+# VSCode/IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+package-lock.json
+
+# Flask 缓存
+instance/
+# *.db
+*.sqlite3
+
+# Selenium test cache
+selenium-screenshots/
