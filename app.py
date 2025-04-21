@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, session, jsonify, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3, os, secrets
 
@@ -21,7 +21,6 @@ def init_db():
             )
         ''')
 
-        
         for role in ['admin', 'reviewer', 'worker']:
             try:
                 hashed_pw = generate_password_hash(role + "_salt")  
@@ -46,9 +45,25 @@ def get_user(username):
 
 @app.route('/')
 def index():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('home.html')
+
+@app.route('/login')
+def login_page():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
     csrf_token = secrets.token_hex(16)
     session['csrf_token'] = csrf_token
-    return render_template('introductory.html', csrf_token=csrf_token)
+    return render_template('login.html', csrf_token=csrf_token)
+
+@app.route('/register')
+def register_page():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    csrf_token = secrets.token_hex(16)
+    session['csrf_token'] = csrf_token
+    return render_template('register.html', csrf_token=csrf_token)
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -85,6 +100,17 @@ def login():
         session['user'] = {'username': user[1], 'role': user[3], 'permission': user[4]}
         return jsonify({'message': f"Welcome {user[1]}, Role: {user[3]}！"})
     return jsonify({'error': 'Wrong account or password'}), 401
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('dashboard.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     if not os.path.exists(DATABASE):
