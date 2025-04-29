@@ -3,133 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Data Analysis Platform</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Dashboard - Expense Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/dashboard">Data Analysis Platform</a>
+            <a class="navbar-brand" href="/dashboard">Expense Tracker</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="/dashboard">
-                            <i class="bi bi-house-door"></i> Dashboard
-                        </a>
+                        <a class="nav-link active" href="/dashboard">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" id="uploadDataBtn">
-                            <i class="bi bi-upload"></i> Upload Data
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="visualizeDataBtn">
-                            <i class="bi bi-graph-up"></i> Visualize Data
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="shareDataBtn">
-                            <i class="bi bi-share"></i> Share Data
-                        </a>
+                        <a class="nav-link" href="/expenses">Expenses</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ session.user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container-fluid mt-4">
+    <div class="container mt-4">
         <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Quick Actions</h5>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        <a href="#" class="list-group-item list-group-item-action" id="newUploadBtn">
-                            <i class="bi bi-plus-circle"></i> New Upload
-                        </a>
-                        <a href="#" class="list-group-item list-group-item-action" id="recentFilesBtn">
-                            <i class="bi bi-clock-history"></i> Recent Files
-                        </a>
-                        <a href="#" class="list-group-item list-group-item-action" id="sharedWithMeBtn">
-                            <i class="bi bi-people"></i> Shared with Me
-                        </a>
+                    <div class="card-body">
+                        <h5 class="card-title">Welcome, <span id="username"></span>!</h5>
+                        <p class="card-text">Track your expenses and manage your budget effectively.</p>
+                        <a href="/expenses" class="btn btn-primary">Go to Expenses</a>
                     </div>
                 </div>
             </div>
-
-            <!-- Main Dashboard Area -->
-            <div class="col-md-9">
-                <!-- Welcome Section -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h4 class="card-title">Welcome, {{ session.user.username }}!</h4>
-                        <p class="card-text">You are logged in as a {{ session.user.role }}.</p>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="card mb-4">
+            <div class="col-md-8">
+                <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">Recent Activity</h5>
+                        <h5 class="card-title mb-0">Expense Summary</h5>
                     </div>
                     <div class="card-body">
-                        <div class="list-group">
-                            <div class="list-group-item">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">No recent activity</h6>
-                                    <small class="text-muted">Just now</small>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Total Expenses</h6>
+                                        <h3 class="card-text" id="totalExpenses">$0.00</h3>
+                                    </div>
                                 </div>
-                                <p class="mb-1">Start by uploading your first dataset!</p>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <h6 class="card-title">This Month</h6>
+                                        <h3 class="card-text" id="monthlyExpenses">$0.00</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Top Category</h6>
+                                        <h3 class="card-text" id="topCategory">-</h3>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Quick Stats -->
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="card text-white bg-primary mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Datasets</h5>
-                                <p class="card-text display-4">0</p>
-                            </div>
-                        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Recent Expenses</h5>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-success mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Visualizations</h5>
-                                <p class="card-text display-4">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-info mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Shared Items</h5>
-                                <p class="card-text display-4">0</p>
-                            </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentExpensesTable">
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -137,7 +108,72 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/dashboard.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Load user data
+            $.get('/api/expenses', function(expenses) {
+                updateDashboard(expenses);
+            });
+        });
+
+        function updateDashboard(expenses) {
+            // Update username
+            $('#username').text('{{ session.user.username }}');
+
+            // Calculate totals
+            let total = 0;
+            let monthlyTotal = 0;
+            const categories = {};
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+
+            expenses.forEach(expense => {
+                total += expense.amount;
+                const expenseDate = new Date(expense.date);
+                if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
+                    monthlyTotal += expense.amount;
+                }
+                categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
+            });
+
+            // Update summary cards
+            $('#totalExpenses').text('$' + total.toFixed(2));
+            $('#monthlyExpenses').text('$' + monthlyTotal.toFixed(2));
+
+            // Find top category
+            let topCategory = '-';
+            let maxAmount = 0;
+            for (const [category, amount] of Object.entries(categories)) {
+                if (amount > maxAmount) {
+                    maxAmount = amount;
+                    topCategory = category;
+                }
+            }
+            $('#topCategory').text(topCategory);
+
+            // Update recent expenses table
+            const tbody = $('#recentExpensesTable');
+            tbody.empty();
+
+            // Sort expenses by date and take the 5 most recent
+            const recentExpenses = expenses
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 5);
+
+            recentExpenses.forEach(expense => {
+                const row = `
+                    <tr>
+                        <td>${expense.date}</td>
+                        <td>${expense.category}</td>
+                        <td>${expense.description}</td>
+                        <td>$${expense.amount.toFixed(2)}</td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+    </script>
 </body>
 </html> 

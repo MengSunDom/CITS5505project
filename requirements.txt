@@ -3,3 +3,7 @@ flask-socketio
 eventlet
 pytest
 selenium
+flask-sqlalchemy
+plotly
+pandas
+numpy

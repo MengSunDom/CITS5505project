@@ -27,3 +27,4 @@ instance/
 
 # Selenium test cache
 selenium-screenshots/
+users.db
