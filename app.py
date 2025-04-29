@@ -168,6 +168,57 @@ def add_expense():
         }
     })
 
+@app.route('/api/expenses/bulk', methods=['POST'])
+def add_expenses_bulk():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data_list = request.get_json()
+    new_expenses = []
+
+    for data in data_list:
+        new_expense = Expense(
+            amount=float(data['amount']),
+            category=data['category'],
+            description=data.get('description', ''),
+            user_id=session['user']['id']
+        )
+        db.session.add(new_expense)
+        new_expenses.append(new_expense)
+
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Expenses added successfully',
+        'expenses': [
+            {
+                'id': e.id,
+                'amount': e.amount,
+                'category': e.category,
+                'description': e.description,
+                'date': e.date.strftime('%Y-%m-%d %H:%M:%S')
+            } for e in new_expenses
+        ]
+    })
+
+
+@app.route('/api/expenses/delete', methods=['POST'])
+def delete_expense():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    expense_id = data.get('id')
+    
+    expense = Expense.query.filter_by(id=expense_id, user_id=session['user']['id']).first()
+    if not expense:
+        return jsonify({'error': 'Expense not found'}), 404
+    
+    db.session.delete(expense)
+    db.session.commit()
+
+    return jsonify({'message': 'Expense deleted successfully'})
+
 @app.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
 def share_expense(expense_id):
     if 'user' not in session:
@@ -216,6 +267,18 @@ def get_shared_expenses():
             })
     
     return jsonify(expenses)
+
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    users = User.query.all()
+    return jsonify([{
+        'id': u.id,
+        'username': u.username
+    } for u in users])
+
 
 @app.route('/logout')
 def logout():
