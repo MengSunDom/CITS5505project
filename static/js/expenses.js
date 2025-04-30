@@ -1,4 +1,17 @@
 $(document).ready(function () {
+    // Set max datetime to current time and default value
+    const datetimeInput = document.getElementById('datetime');
+    function setCurrentDatetime() {
+        const now = new Date();
+        const formattedNow = now.toISOString().slice(0, 16); // Format as "YYYY-MM-DDTHH:mm"
+        datetimeInput.setAttribute('max', formattedNow);
+        datetimeInput.value = formattedNow; // Set default value to current time
+    }
+    setCurrentDatetime();
+
+    // Reset datetime to current time on form reset
+    $('#expenseForm').on('reset', setCurrentDatetime);
+
     // Load expenses on page load
     loadExpenses();
 
@@ -8,10 +21,12 @@ $(document).ready(function () {
         const amount = $('#amount').val();
         const category = $('#category').val();
         const description = $('#description').val();
+        const datetime = $('#datetime').val();
         let data = {
             amount: amount,
             category: category,
-            description: description
+            description: description,
+            date: datetime
         };
         $.ajax({
             url: '/api/expenses',
@@ -21,6 +36,7 @@ $(document).ready(function () {
             success: function (response) {
                 $('#expenseForm')[0].reset();
                 loadExpenses();
+                setCurrentDatetime();
             },
             error: function (xhr) {
                 alert('Error adding expense: ' + xhr.responseJSON.error);

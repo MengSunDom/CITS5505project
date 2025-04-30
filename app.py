@@ -171,9 +171,18 @@ def add_expense():
         return jsonify({'error': 'Not authenticated'}), 401
 
     data = request.get_json()
+    try:
+        date = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M')
+    except ValueError:
+        return jsonify({'error': 'Invalid date format'}), 400
+
+    if date > datetime.now():
+        return jsonify({'error': 'Date cannot be in the future'}), 400
+
     new_expense = Expense(amount=float(data['amount']),
                           category=data['category'],
                           description=data.get('description', ''),
+                          date=date,
                           user_id=session['user']['id'])
 
     db.session.add(new_expense)

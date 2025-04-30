@@ -63,6 +63,10 @@
                                 <label for="description" class="form-label">Description</label>
                                 <input type="text" class="form-control" id="description">
                             </div>
+                            <div class="mb-3">
+                                <label for="datetime" class="form-label">Date and Time</label>
+                                <input type="datetime-local" class="form-control" id="datetime" required max="">
+                            </div>
                             <button type="submit" class="btn btn-primary">Add Expense</button>
                         </form>
                         <div class="mt-2">
@@ -154,6 +158,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/static/js/expenses.js"></script>
+    <script src="/static/js/datetime.js"></script>
 </body>
 
 </html>
