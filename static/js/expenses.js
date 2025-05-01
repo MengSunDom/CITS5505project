@@ -3,7 +3,12 @@ $(document).ready(function () {
     const datetimeInput = document.getElementById('datetime');
     function setCurrentDatetime() {
         const now = new Date();
-        const formattedNow = now.toISOString().slice(0, 16); // Format as "YYYY-MM-DDTHH:mm"
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // 月份从0开始
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // 格式化为 "YYYY-MM-DDTHH:mm"
         datetimeInput.setAttribute('max', formattedNow);
         datetimeInput.value = formattedNow; // Set default value to current time
     }
