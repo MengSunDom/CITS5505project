@@ -62,6 +62,12 @@
             const username = $('#username').val();
             const password = $('#password').val();
             const rememberMe = $('#rememberMe').is(':checked');
+            const csrfToken = $('input[name="csrf_token"]').val();
+
+            // Show loading state
+            const submitButton = $(this).find('button[type="submit"]');
+            const originalText = submitButton.text();
+            submitButton.prop('disabled', true).text('Logging in...');
 
             $.ajax({
                 url: '/login',
@@ -69,7 +75,8 @@
                 contentType: 'application/json',
                 data: JSON.stringify({
                     username: username,
-                    password: password
+                    password: password,
+                    csrf_token: csrfToken
                 }),
                 success: function(response) {
                     if (rememberMe) {
@@ -82,7 +89,21 @@
                     window.location.href = '/dashboard';
                 },
                 error: function(xhr) {
-                    alert('Login failed: ' + xhr.responseJSON.error);
+                    submitButton.prop('disabled', false).text(originalText);
+                    
+                    let errorMessage = 'Login failed: ';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage += xhr.responseJSON.error;
+                    } else if (xhr.status === 401) {
+                        errorMessage += 'Invalid username or password';
+                    } else if (xhr.status === 403) {
+                        errorMessage += 'CSRF token validation failed';
+                    } else {
+                        errorMessage += 'Server error occurred';
+                    }
+                    
+                    alert(errorMessage);
+                    console.error('Login error:', xhr);
                 }
             });
         });
