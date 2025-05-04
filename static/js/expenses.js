@@ -163,6 +163,10 @@ function openShareModal(expenseId) {
 }
 
 function deleteLine(expenseId) {
+    if (!confirm("Are you sure you want to delete this expense?")) {
+        return; // If the user cancels, exit the function
+    }
+
     $.ajax({
         url: '/api/expenses/delete',
         method: 'POST',
@@ -175,7 +179,7 @@ function deleteLine(expenseId) {
             loadExpenses();
         },
         error: function (xhr) {
-            alert('Error adding expense: ' + xhr.responseJSON.error);
+            alert('Error deleting expense: ' + xhr.responseJSON.error);
         }
     });
 }

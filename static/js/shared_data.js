@@ -73,6 +73,10 @@ function populateSharedWithMeTable(expenses) {
 }
 
 function cancelSharedExpense(sharedExpenseId) {
+    if (!confirm("Are you sure you want to cancel this shared expense?")) {
+        return;
+    }
+
     fetch('/api/shared-expenses/cancel', {
         method: 'POST',
         headers: {
