@@ -3,7 +3,12 @@ $(document).ready(function () {
     const datetimeInput = document.getElementById('datetime');
     function setCurrentDatetime() {
         const now = new Date();
-        const formattedNow = now.toISOString().slice(0, 16); // Format as "YYYY-MM-DDTHH:mm"
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // 月份从0开始
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // 格式化为 "YYYY-MM-DDTHH:mm"
         datetimeInput.setAttribute('max', formattedNow);
         datetimeInput.value = formattedNow; // Set default value to current time
     }
@@ -158,6 +163,10 @@ function openShareModal(expenseId) {
 }
 
 function deleteLine(expenseId) {
+    if (!confirm("Are you sure you want to delete this expense?")) {
+        return; // If the user cancels, exit the function
+    }
+
     $.ajax({
         url: '/api/expenses/delete',
         method: 'POST',
@@ -170,7 +179,7 @@ function deleteLine(expenseId) {
             loadExpenses();
         },
         error: function (xhr) {
-            alert('Error adding expense: ' + xhr.responseJSON.error);
+            alert('Error deleting expense: ' + xhr.responseJSON.error);
         }
     });
 }

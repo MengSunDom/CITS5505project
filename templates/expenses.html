@@ -1,164 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/dashboard">Expense Tracker</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/dashboard">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/expenses">Expenses</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/logout">Logout</a>
-                    </li>
-                </ul>
+{% extends "base.html" %} {% block title %}Expenses - Expense Tracker{% endblock %} {% block
+extra_head %}
+<link rel="stylesheet" href="/static/css/expenses.css" />
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+{% endblock %} {% block navbar_right %}
+<li class="nav-item">
+    <a class="nav-link" href="/logout">Logout</a>
+</li>
+{% endblock %} {% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Add New Expense</h5>
             </div>
-        </div>
-    </nav>
+            <div class="card-body">
+                <form id="expenseForm">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input
+                            type="number"
+                            class="form-control"
+                            id="amount"
+                            step="0.01"
+                            required
+                        />
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" required>
+                            <option value="Food">Food</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="datetime" class="form-label">Date and Time</label>
+                        <input
+                            type="datetime-local"
+                            class="form-control"
+                            id="datetime"
+                            required
+                            max=""
+                        />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </form>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-primary" id="downloadTemplate">
+                        Download Template
+                    </button>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Add New Expense</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="expenseForm">
-                            <div class="mb-3">
-                                <label for="amount" class="form-label">Amount</label>
-                                <input type="number" class="form-control" id="amount" step="0.01" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="category" class="form-label">Category</label>
-                                <select class="form-select" id="category" required>
-                                    <option value="Food">Food</option>
-                                    <option value="Transportation">Transportation</option>
-                                    <option value="Entertainment">Entertainment</option>
-                                    <option value="Shopping">Shopping</option>
-                                    <option value="Bills">Bills</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <input type="text" class="form-control" id="description">
-                            </div>
-                            <div class="mb-3">
-                                <label for="datetime" class="form-label">Date and Time</label>
-                                <input type="datetime-local" class="form-control" id="datetime" required max="">
-                            </div>
-                            <button type="submit" class="btn btn-primary">Add Expense</button>
-                        </form>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-primary" id="downloadTemplate">Download
-                                Template</button>
-
-                            <label class="btn btn-primary mb-0">
-                                Upload Template
-                                <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Expense Analysis</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="chartType" class="form-label">Select Chart Type</label>
-                            <select id="chartType" class="form-select">
-                                <option value="pie">Pie Chart</option>
-                                <option value="bar">Bar Chart</option>
-                                <option value="line">Line Chart</option>
-                            </select>
-                        </div>
-                        <div id="expenseChart"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Expense History</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Category</th>
-                                        <th>Description</th>
-                                        <th>Amount</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="expenseTableBody">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <label class="btn btn-primary mb-0">
+                        Upload Template
+                        <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
+                    </label>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Share Modal -->
-    <div class="modal fade" id="shareModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Share Expense</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Expense Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="chartType" class="form-label">Select Chart Type</label>
+                    <select id="chartType" class="form-select">
+                        <option value="pie">Pie Chart</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                    </select>
                 </div>
-                <div class="modal-body">
-                    <form id="shareForm">
-                        <div class="mb-3">
-                            <label for="shareUsername" class="form-label">Username to share with</label>
-                            <select class="form-select" id="shareUsername" required>
-                        </div>
-                        <input type="hidden" id="expenseIdToShare">
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="shareButton">Share</button>
+                <div id="expenseChart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Expense History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="/static/js/expenses.js"></script>
-    <script src="/static/js/datetime.js"></script>
-</body>
-
-</html>
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareForm">
+                    <div class="mb-3">
+                        <label for="shareUsername" class="form-label">Username to share with</label>
+                        <select class="form-select" id="shareUsername" required>
+                    </div>
+                    <input type="hidden" id="expenseIdToShare">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="shareButton">Share</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block extra_scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="/static/js/expenses.js"></script>
+{% endblock %}
