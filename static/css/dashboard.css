@@ -1,0 +1,13 @@
+/* Stats cards */
+.card.text-white {
+    transition: transform 0.2s;
+}
+
+.card.text-white:hover {
+    transform: translateY(-5px);
+}
+
+/* Recent expenses table */
+#recentExpensesTable tr:hover {
+    background-color: #f8f9fa;
+}
