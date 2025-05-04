@@ -132,8 +132,40 @@ def share_expense(expense_id):
     return jsonify({'message': 'Expense shared successfully'})
 
 
-@expense_bp.route('/api/shared-expenses', methods=['GET'])
-def get_shared_expenses():
+@expense_bp.route('/api/shared-expenses/by-me', methods=['GET'])
+def get_shared_by_me_expenses():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    shared_expenses = SharedExpense.query.join(Expense).filter(
+        Expense.user_id == user_id).all()
+    expenses = []
+    print("SHAREDATA:________", shared_expenses)
+
+    for se in shared_expenses:
+        shared_with_user = User.query.get(se.shared_with_id)
+        expense = Expense.query.get(se.expense_id)
+        if expense:
+            expenses.append({
+                'id':
+                se.expense_id,
+                'amount':
+                expense.amount,
+                'category':
+                expense.category,
+                'description':
+                expense.description,
+                'date':
+                expense.date.astimezone().strftime('%Y-%m-%d %H:%M:%S'),
+                'shared_with':
+                shared_with_user.username
+            })
+    return jsonify(expenses)
+
+
+@expense_bp.route('/api/shared-expenses/with-me', methods=['GET'])
+def get_shared_with_me_expenses():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
@@ -148,16 +180,16 @@ def get_shared_expenses():
             expenses.append({
                 'id':
                 expense.id,
-                'amount':
-                expense.amount,
+                'shared_by':
+                user.username,
+                'date':
+                expense.date.astimezone().strftime('%Y-%m-%d %H:%M:%S'),
                 'category':
                 expense.category,
                 'description':
                 expense.description,
-                'date':
-                expense.date.astimezone().strftime('%Y-%m-%d %H:%M:%S'),
-                'shared_by':
-                user.username
+                'amount':
+                expense.amount
             })
 
     return jsonify(expenses)

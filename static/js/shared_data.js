@@ -1,22 +1,52 @@
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Shared Data page loaded.");
-    fetchSharedExpenses();
+    fetchSharedByMeExpenses();
+    fetchSharedWithMeExpenses();
 });
 
-function fetchSharedExpenses() {
-    fetch('/api/shared-expenses')
+function fetchSharedByMeExpenses() {
+    fetch('/api/shared-expenses/by-me')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Failed to fetch shared expenses');
+                throw new Error('Failed to fetch shared by me expenses');
             }
             return response.json();
         })
-        .then(data => populateExpenseTable(data))
+        .then(data => populateSharedByMeTable(data))
         .catch(error => console.error('Error:', error));
 }
 
-function populateExpenseTable(expenses) {
-    const tableBody = document.getElementById('expenseTableBody');
+function fetchSharedWithMeExpenses() {
+    fetch('/api/shared-expenses/with-me')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch shared with me expenses');
+            }
+            return response.json();
+        })
+        .then(data => populateSharedWithMeTable(data))
+        .catch(error => console.error('Error:', error));
+}
+
+function populateSharedByMeTable(expenses) {
+    const tableBody = document.getElementById('sharedByMeTableBody');
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    expenses.forEach(expense => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${expense.shared_with}</td>
+            <td>${expense.date}</td>
+            <td>${expense.category}</td>
+            <td>${expense.description}</td>
+            <td>${expense.amount.toFixed(2)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+function populateSharedWithMeTable(expenses) {
+    const tableBody = document.getElementById('sharedWithMeTableBody');
     tableBody.innerHTML = ''; // Clear existing rows
 
     expenses.forEach(expense => {
@@ -27,9 +57,6 @@ function populateExpenseTable(expenses) {
             <td>${expense.category}</td>
             <td>${expense.description}</td>
             <td>${expense.amount.toFixed(2)}</td>
-            <td>
-                <button class="btn btn-sm btn-primary">View</button>
-            </td>
         `;
         tableBody.appendChild(row);
     });

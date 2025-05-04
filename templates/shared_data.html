@@ -5,7 +5,32 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Expense History</h5>
+                <h5 class="card-title mb-0">Shared By Me</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Shared With</th>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sharedByMeTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Shared With Me</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -17,10 +42,9 @@
                                 <th>Category</th>
                                 <th>Description</th>
                                 <th>Amount</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="expenseTableBody"></tbody>
+                        <tbody id="sharedWithMeTableBody"></tbody>
                     </table>
                 </div>
             </div>
