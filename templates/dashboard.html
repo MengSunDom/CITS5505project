@@ -1,12 +1,9 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - Expense Tracker{% endblock %}
-
-{% block extra_css %}
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Dashboard - Expense Tracker{% endblock %} {% block
+navbar_right %}
+<li class="nav-item">
+    <a class="nav-link" href="/logout">Logout</a>
+</li>
+{% endblock %} {% block content %}
 <div class="row">
     <div class="col-md-4">
         <div class="card">
@@ -53,7 +50,6 @@
         </div>
     </div>
 </div>
-
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
@@ -71,28 +67,25 @@
                                 <th>Amount</th>
                             </tr>
                         </thead>
-                        <tbody id="recentExpensesTable">
-                        </tbody>
+                        <tbody id="recentExpensesTable"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
+{% endblock %} {% block extra_scripts %}
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
         // Load user data
-        $.get('/api/expenses', function(expenses) {
+        $.get("/api/expenses", function (expenses) {
             updateDashboard(expenses);
         });
     });
 
     function updateDashboard(expenses) {
         // Update username
-        $('#username').text('{{ session.user.username }}');
+        $("#username").text("{{ session.user.username }}");
 
         // Calculate totals
         let total = 0;
@@ -101,21 +94,24 @@
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
-        expenses.forEach(expense => {
+        expenses.forEach((expense) => {
             total += expense.amount;
             const expenseDate = new Date(expense.date);
-            if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
+            if (
+                expenseDate.getMonth() === currentMonth &&
+                expenseDate.getFullYear() === currentYear
+            ) {
                 monthlyTotal += expense.amount;
             }
             categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
         });
 
         // Update summary cards
-        $('#totalExpenses').text('$' + total.toFixed(2));
-        $('#monthlyExpenses').text('$' + monthlyTotal.toFixed(2));
+        $("#totalExpenses").text("$" + total.toFixed(2));
+        $("#monthlyExpenses").text("$" + monthlyTotal.toFixed(2));
 
         // Find top category
-        let topCategory = '-';
+        let topCategory = "-";
         let maxAmount = 0;
         for (const [category, amount] of Object.entries(categories)) {
             if (amount > maxAmount) {
@@ -123,10 +119,10 @@
                 topCategory = category;
             }
         }
-        $('#topCategory').text(topCategory);
+        $("#topCategory").text(topCategory);
 
         // Update recent expenses table
-        const tbody = $('#recentExpensesTable');
+        const tbody = $("#recentExpensesTable");
         tbody.empty();
 
         // Sort expenses by date and take the 5 most recent
@@ -134,7 +130,7 @@
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .slice(0, 5);
 
-        recentExpenses.forEach(expense => {
+        recentExpenses.forEach((expense) => {
             const row = `
                 <tr>
                     <td>${expense.date}</td>
@@ -147,4 +143,6 @@
         });
     }
 </script>
-{% endblock %} 
+{% endblock %} {% block extra_head %}
+<link rel="stylesheet" href="/static/css/dashboard.css" />
+{% endblock %}

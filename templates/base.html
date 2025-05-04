@@ -28,20 +28,19 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    {% if session.user %}
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="/dashboard">Dashboard</a>
+                            <a class="nav-link" href="/dashboard">Dashboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'expenses' %}active{% endif %}" href="/expenses">Expenses</a>
+                            <a class="nav-link" href="/expenses">Expenses</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/shared-data">Shared Data</a>
                         </li>
                     </ul>
                     <ul class="navbar-nav">
-<<<<<<< Updated upstream
-=======
                         {% if session.user %}
->>>>>>> Stashed changes
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user"></i> {{ session.user.username }}
@@ -50,8 +49,6 @@
                                 <li><a class="dropdown-item" href="/logout">Logout</a></li>
                             </ul>
                         </li>
-<<<<<<< Updated upstream
-=======
                         {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="/login">Login</a>
@@ -60,18 +57,7 @@
                             <a class="nav-link" href="/register">Register</a>
                         </li>
                         {% endif %}
->>>>>>> Stashed changes
                     </ul>
-                    {% else %}
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'login_page' %}active{% endif %}" href="/login">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint == 'register_page' %}active{% endif %}" href="/register">Register</a>
-                        </li>
-                    </ul>
-                    {% endif %}
                 </div>
             </div>
         </nav>
