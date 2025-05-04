@@ -44,3 +44,12 @@ def login():
         }
         return jsonify({'message': f"Welcome {user.username}!"})
     return jsonify({'error': 'Wrong account or password'}), 401
+
+
+@auth_bp.route('/api/users', methods=['GET'])
+def get_users():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    users = User.query.all()
+    return jsonify([{'id': u.id, 'username': u.username} for u in users])

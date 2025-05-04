@@ -38,12 +38,19 @@ def logout():
 @page_bp.route('/dashboard')
 def dashboard():
     if 'user' not in session:
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('page.login_page'))
     return render_template('dashboard.html')
 
 
 @page_bp.route('/expenses')
 def expenses():
     if 'user' not in session:
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('page.login_page'))
     return render_template('expenses.html')
+
+
+@page_bp.route('/shared-data')
+def shared_data():
+    if 'user' not in session:
+        return redirect(url_for('page.login_page'))
+    return render_template('shared_data.html')
