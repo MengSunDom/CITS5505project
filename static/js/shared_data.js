@@ -40,6 +40,11 @@ function populateSharedByMeTable(expenses) {
             <td>${expense.category}</td>
             <td>${expense.description}</td>
             <td>${expense.amount.toFixed(2)}</td>
+            <td>
+                <button class="btn btn-sm btn-danger cancel-share-btn" onclick="cancelSharedExpense(${expense.shared_id})">
+                    Cancel Share
+                </button>
+            </td>
         `;
         tableBody.appendChild(row);
     });
@@ -57,7 +62,36 @@ function populateSharedWithMeTable(expenses) {
             <td>${expense.category}</td>
             <td>${expense.description}</td>
             <td>${expense.amount.toFixed(2)}</td>
+            <td>
+                <button class="btn btn-sm btn-danger cancel-share-btn" onclick="cancelSharedExpense(${expense.shared_id})">
+                    Cancel Share
+                </button>
+            </td>
         `;
         tableBody.appendChild(row);
     });
+}
+
+function cancelSharedExpense(sharedExpenseId) {
+    fetch('/api/shared-expenses/cancel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: sharedExpenseId }),
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Unknown error occurred');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data.message);
+            fetchSharedByMeExpenses();
+            fetchSharedWithMeExpenses();
+        })
+        .catch(error => console.error(error));
 }

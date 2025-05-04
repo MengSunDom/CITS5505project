@@ -141,7 +141,6 @@ def get_shared_by_me_expenses():
     shared_expenses = SharedExpense.query.join(Expense).filter(
         Expense.user_id == user_id).all()
     expenses = []
-    print("SHAREDATA:________", shared_expenses)
 
     for se in shared_expenses:
         shared_with_user = User.query.get(se.shared_with_id)
@@ -159,7 +158,9 @@ def get_shared_by_me_expenses():
                 'date':
                 expense.date.astimezone().strftime('%Y-%m-%d %H:%M:%S'),
                 'shared_with':
-                shared_with_user.username
+                shared_with_user.username,
+                'shared_id':
+                se.id
             })
     return jsonify(expenses)
 
@@ -189,7 +190,37 @@ def get_shared_with_me_expenses():
                 'description':
                 expense.description,
                 'amount':
-                expense.amount
+                expense.amount,
+                'shared_id':
+                se.id
             })
 
     return jsonify(expenses)
+
+
+@expense_bp.route('/api/shared-expenses/cancel', methods=['POST'])
+def cancel_shared_expense():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    shared_expense_id = data.get('id')
+    print(shared_expense_id)
+
+    shared_expense = SharedExpense.query.get(shared_expense_id)
+    print(shared_expense)
+    if not shared_expense:
+        return jsonify({'error': 'Shared expense not found'}), 400
+
+    user_id = session['user']['id']
+    expense = Expense.query.get(shared_expense.expense_id)
+
+    # Check if the user is either the sharer or the recipient
+    if expense.user_id != user_id and shared_expense.shared_with_id != user_id:
+        return jsonify({'error':
+                        'Unauthorized to cancel this shared expense'}), 400
+
+    db.session.delete(shared_expense)
+    db.session.commit()
+
+    return jsonify({'message': 'Shared expense canceled successfully'})
