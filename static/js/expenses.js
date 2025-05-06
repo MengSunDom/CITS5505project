@@ -84,6 +84,9 @@ function updateExpenseTable(expenses) {
     const tbody = $('#expenseTableBody');
     tbody.empty();
 
+    // Sort expenses by date in descending order
+    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
     expenses.forEach(expense => {
         const row = `
             <tr>

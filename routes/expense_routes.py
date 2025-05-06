@@ -12,7 +12,8 @@ def get_expenses():
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
-    expenses = Expense.query.filter_by(user_id=user_id).all()
+    expenses = Expense.query.filter_by(user_id=user_id).order_by(
+        Expense.date.desc()).all()
     return jsonify([{
         'id': e.id,
         'amount': e.amount,
