@@ -42,11 +42,18 @@ def dashboard():
     return render_template('dashboard.html')
 
 
-@page_bp.route('/expenses')
-def expenses():
+@page_bp.route('/expenses/upload')
+def expense_upload():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
-    return render_template('expenses.html')
+    return render_template('expense_upload.html')
+
+
+@page_bp.route('/expenses/analysis')
+def expense_analysis():
+    if 'user' not in session:
+        return redirect(url_for('page.login_page'))
+    return render_template('expense_analysis.html')
 
 
 @page_bp.route('/shared-data')
