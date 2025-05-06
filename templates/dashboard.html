@@ -8,7 +8,7 @@ navbar_right %}
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Welcome, <span id="username"></span>!</h5>
+                <h5 class="card-title">Welcome, {{ session['user']['username'] }}!</h5>
                 <p class="card-text">Track your expenses and manage your budget effectively.</p>
                 <a href="/expenses" class="btn btn-primary">Go to Expenses</a>
             </div>
@@ -75,74 +75,7 @@ navbar_right %}
     </div>
 </div>
 {% endblock %} {% block extra_scripts %}
-<script>
-    $(document).ready(function () {
-        // Load user data
-        $.get("/api/expenses", function (expenses) {
-            updateDashboard(expenses);
-        });
-    });
-
-    function updateDashboard(expenses) {
-        // Update username
-        $("#username").text("{{ session.user.username }}");
-
-        // Calculate totals
-        let total = 0;
-        let monthlyTotal = 0;
-        const categories = {};
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-
-        expenses.forEach((expense) => {
-            total += expense.amount;
-            const expenseDate = new Date(expense.date);
-            if (
-                expenseDate.getMonth() === currentMonth &&
-                expenseDate.getFullYear() === currentYear
-            ) {
-                monthlyTotal += expense.amount;
-            }
-            categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
-        });
-
-        // Update summary cards
-        $("#totalExpenses").text("$" + total.toFixed(2));
-        $("#monthlyExpenses").text("$" + monthlyTotal.toFixed(2));
-
-        // Find top category
-        let topCategory = "-";
-        let maxAmount = 0;
-        for (const [category, amount] of Object.entries(categories)) {
-            if (amount > maxAmount) {
-                maxAmount = amount;
-                topCategory = category;
-            }
-        }
-        $("#topCategory").text(topCategory);
-
-        // Update recent expenses table
-        const tbody = $("#recentExpensesTable");
-        tbody.empty();
-
-        // Sort expenses by date and take the 5 most recent
-        const recentExpenses = expenses
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .slice(0, 5);
-
-        recentExpenses.forEach((expense) => {
-            const row = `
-                <tr>
-                    <td>${expense.date}</td>
-                    <td>${expense.category}</td>
-                    <td>${expense.description}</td>
-                    <td>$${expense.amount.toFixed(2)}</td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
-</script>
+<script src="/static/js/dashboard.js"></script>
 {% endblock %} {% block extra_head %}
 <link rel="stylesheet" href="/static/css/dashboard.css" />
 {% endblock %}

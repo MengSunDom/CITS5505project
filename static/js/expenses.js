@@ -4,11 +4,11 @@ $(document).ready(function () {
     function setCurrentDatetime() {
         const now = new Date();
         const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0'); // 月份从0开始
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Month starts from 0
         const day = String(now.getDate()).padStart(2, '0');
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // 格式化为 "YYYY-MM-DDTHH:mm"
+        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // Format "YYYY-MM-DDTHH:mm"
         datetimeInput.setAttribute('max', formattedNow);
         datetimeInput.value = formattedNow; // Set default value to current time
     }
@@ -276,4 +276,11 @@ let loadUsernames = () => {
 
 $('#shareModal').on('show.bs.modal', function () {
     loadUsernames();
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Trigger file input when upload button is clicked
+    document.getElementById('uploadButton').addEventListener('click', function () {
+        document.getElementById('uploadTemplate').click();
+    });
 });
