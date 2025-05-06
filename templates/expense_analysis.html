@@ -176,13 +176,13 @@
             expenses.forEach(expense => {
                 const row = `
                     <tr>
-                        <td>${expense.date}</td>
+                        <td>${expense.date.split('T')[0]}</td>
                         <td>${expense.category}</td>
                         <td>${expense.description}</td>
                         <td>$${expense.amount.toFixed(2)}</td>
                         <td>
                             <button class="btn btn-sm btn-primary share-btn" data-id="${expense.id}">
-                                Share
+                                <i class="fas fa-share-alt"></i> Share
                             </button>
                         </td>
                     </tr>

@@ -6,8 +6,6 @@ page_bp = Blueprint('page', __name__)
 
 @page_bp.route('/')
 def index():
-    if 'user' in session:
-        return redirect(url_for('page.dashboard'))
     return render_template('home.html')
 
 

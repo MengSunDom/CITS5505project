@@ -40,9 +40,9 @@
                         <input type="text" class="form-control" id="description" />
                     </div>
                     <div class="mb-3">
-                        <label for="datetime" class="form-label">Date and Time</label>
+                        <label for="datetime" class="form-label">Date</label>
                         <input
-                            type="datetime-local"
+                            type="date"
                             class="form-control"
                             id="datetime"
                             required
@@ -81,10 +81,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Set max date to current date
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('datetime').max = now.toISOString().slice(0, 16);
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('datetime').value = today;
+        document.getElementById('datetime').max = today;
 
         $('#expenseForm').on('submit', function(e) {
             e.preventDefault();
@@ -92,7 +92,7 @@
             const amount = $('#amount').val();
             const category = $('#category').val();
             const description = $('#description').val();
-            const datetime = $('#datetime').val();
+            const date = $('#datetime').val();
 
             $.ajax({
                 url: '/api/expenses',
@@ -102,11 +102,13 @@
                     amount: parseFloat(amount),
                     category: category,
                     description: description,
-                    date: datetime
+                    date: date
                 }),
                 success: function(response) {
                     alert('Expense added successfully!');
                     $('#expenseForm')[0].reset();
+                    // Reset date to today after form submission
+                    document.getElementById('datetime').value = today;
                 },
                 error: function(xhr) {
                     alert('Failed to add expense: ' + (xhr.responseJSON?.error || 'Unknown error'));
