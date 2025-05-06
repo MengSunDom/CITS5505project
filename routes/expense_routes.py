@@ -1,6 +1,7 @@
 from flask import Blueprint, session, jsonify, request
-from datetime import datetime
+from datetime import datetime, timedelta
 from models.models import db, Expense, SharedExpense, User
+from sqlalchemy import func
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -224,3 +225,66 @@ def cancel_shared_expense():
     db.session.commit()
 
     return jsonify({'message': 'Shared expense canceled successfully'})
+
+
+@expense_bp.route('/api/insights', methods=['GET'])
+def get_insights():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    days = int(request.args.get('days', 7))
+    start_date = datetime.now() - timedelta(days=days)
+
+    expenses = db.session.query(
+        func.date(Expense.date).label('date'),
+        func.sum(Expense.amount).label('total')).filter(
+            Expense.user_id == user_id, Expense.date
+            >= start_date).group_by(func.date(Expense.date)).order_by(
+                func.date(Expense.date)).all()
+
+    # Ensure `e.date` is parsed as a `datetime` object
+    labels = [
+        datetime.strptime(e.date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        if isinstance(e.date, str) else e.date.strftime('%Y-%m-%d')
+        for e in expenses
+    ]
+    values = [e.total for e in expenses]
+
+    print("Insights data:", {'labels': labels, 'values': values})  # 调试信息
+
+    return jsonify({'labels': labels, 'values': values})
+
+
+@expense_bp.route('/api/insights/summary', methods=['GET'])
+def get_expense_summary():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    days = int(request.args.get('days', 7))
+    start_date = datetime.now() - timedelta(days=days)
+
+    # Total entries and total amount
+    total_entries = Expense.query.filter(Expense.user_id == user_id,
+                                         Expense.date >= start_date).count()
+    total_amount = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == user_id, Expense.date >= start_date).scalar() or 0.0
+
+    # Category distribution
+    category_distribution = db.session.query(
+        Expense.category, func.sum(Expense.amount)).filter(
+            Expense.user_id == user_id, Expense.date
+            >= start_date).group_by(Expense.category).all()
+
+    labels = [item[0] for item in category_distribution]
+    values = [item[1] for item in category_distribution]
+
+    return jsonify({
+        'totalEntries': total_entries,
+        'totalAmount': total_amount,
+        'categoryDistribution': {
+            'labels': labels,
+            'values': values
+        }
+    })
