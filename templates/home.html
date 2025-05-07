@@ -3,24 +3,26 @@
 <link rel="stylesheet" href="/static/css/home.css" />
 {% endblock %} {% block navbar_right %}
 <li class="nav-item">
-    <a class="nav-link" href="/login">Login</a>
+    <a class="nav-link text-dark" href="/login">Login</a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="/register">Register</a>
+    <a class="nav-link text-dark" href="/register">Register</a>
 </li>
 {% endblock %} {% block content %}
-<div class="hero-section">
-    <div class="container text-center">
-        <h1 class="display-4 mb-4">Track Your Expenses, Manage Your Budget</h1>
-        <p class="lead mb-4">
-            A simple and powerful tool to help you track your spending, analyze your habits, and
-            share insights with others.
-        </p>
-        <a href="/register" class="btn btn-light btn-lg">Get Started</a>
+<div class="container">
+    <div class="card hero-section text-center">
+        <div class="card-body">
+            <h1 class="display-4 mb-4">Track Your Expenses, Manage Your Budget</h1>
+            <p class="lead mb-4">
+                A simple and powerful tool to help you track your spending, analyze your habits, and
+                share insights with others.
+            </p>
+            <a href="/register" class="btn btn-light btn-lg">Get Started</a>
+        </div>
     </div>
 </div>
 
-<div class="container">
+<div class="container mt-5">
     <div class="row">
         <div class="col-md-4">
             <div class="card feature-card">
