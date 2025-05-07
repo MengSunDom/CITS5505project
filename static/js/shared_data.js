@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("Shared Data page loaded.");
     fetchSharedByMeExpenses();
     fetchSharedWithMeExpenses();
 });
@@ -93,7 +92,6 @@ function cancelSharedExpense(sharedExpenseId) {
             return response.json();
         })
         .then(data => {
-            console.log(data.message);
             fetchSharedByMeExpenses();
             fetchSharedWithMeExpenses();
         })

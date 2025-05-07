@@ -212,7 +212,6 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             const normalizedDate = date.replace(/\//g, '-');
             const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
             const dateWithTime = `${year}-${month}-${day}T00:00`;
-            console.log('Parsed date:', dateWithTime);
 
             // Validate category
             if (!allowedCategories.includes(category)) {
