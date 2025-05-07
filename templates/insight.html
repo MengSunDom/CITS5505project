@@ -1,0 +1,61 @@
+{% extends "base.html" %} {% block title %}Insights{% endblock %} {% block extra_head %}
+<link rel="stylesheet" href="/static/css/insight.css" />
+<script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+{% endblock %} {% block navbar_right %}
+<li class="nav-item">
+    <a class="nav-link text-dark" href="/logout">Logout</a>
+</li>
+{% endblock %} {% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <label for="timeSpan" class="form-label">Select Time Span</label>
+                <select id="timeSpan" class="form-select">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="365">Last Year</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+                <h5 class="card-title mb-0">Expense Summary</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Entries:</strong> <span id="totalEntries">0</span></p>
+                <p><strong>Total Amount:</strong> $<span id="totalAmount">0.00</span></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+                <h5 class="card-title mb-0">Category Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div id="categoryDistributionList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+                <h5 class="card-title mb-0">Expense Insights</h5>
+            </div>
+            <div class="card-body">
+                <div id="insightChart" style="height: 400px"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block extra_scripts %}
+<script src="/static/js/insight.js"></script>
+{% endblock %}

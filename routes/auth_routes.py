@@ -1,8 +1,12 @@
 from flask import Blueprint, session, redirect, url_for, render_template, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models.models import db, User
+from datetime import timedelta
 
 auth_bp = Blueprint('auth', __name__)
+
+# Set session expiration time to 30 minutes
+auth_bp.permanent_session_lifetime = timedelta(minutes=30)
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -36,6 +40,7 @@ def login():
 
     user = User.query.filter_by(username=username).first()
     if user and check_password_hash(user.password, password + "_salt"):
+        session.permanent = True  # Mark session as permanent
         session['user'] = {
             'id': user.id,
             'username': user.username,
