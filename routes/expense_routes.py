@@ -154,6 +154,12 @@ def share_expense(expense_id):
     if not expense or expense.user_id != session['user']['id']:
         return jsonify({'error': 'Expense not found or unauthorized'}), 404
 
+    # Check if the expense is already shared with the user
+    existing_share = SharedExpense.query.filter_by(
+        expense_id=expense_id, shared_with_id=shared_with_user.id).first()
+    if existing_share:
+        return jsonify({'error': 'Expense already shared with this user'}), 400
+
     shared_expense = SharedExpense(expense_id=expense_id,
                                    shared_with_id=shared_with_user.id)
 
@@ -188,6 +194,12 @@ def bulk_share_expenses():
         return jsonify({'error': 'No matching expenses found'}), 404
 
     for expense in expenses:
+        # Check if the expense is already shared with the user
+        existing_share = SharedExpense.query.filter_by(
+            expense_id=expense.id, shared_with_id=shared_with_user.id).first()
+        if existing_share:
+            continue  # Skip already shared expenses
+
         shared_expense = SharedExpense(expense_id=expense.id,
                                        shared_with_id=shared_with_user.id)
         db.session.add(shared_expense)
