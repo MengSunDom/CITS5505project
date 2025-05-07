@@ -82,28 +82,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     labels: data.labels,
                     type: 'pie',
                     textinfo: 'label+percent',
-                    insidetextorientation: 'radial'
+                    insidetextorientation: 'radial',
+                    marker: {
+                        colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
+                    }
                 };
             } else if (chartType === 'bar') {
                 trace = {
                     x: data.labels,
                     y: data.values,
-                    type: 'bar'
+                    type: 'bar',
+                    marker: {
+                        color: '#1f77b4'
+                    }
                 };
             } else {
                 trace = {
                     x: data.labels,
                     y: data.values,
                     type: 'scatter',
-                    mode: 'lines+markers'
+                    mode: 'lines+markers',
+                    marker: {
+                        color: '#1f77b4',
+                        size: 10
+                    },
+                    line: {
+                        color: '#1f77b4',
+                        width: 2
+                    }
                 };
             }
 
             const layout = {
-                title: 'Expense Analysis',
-                xaxis: { title: 'Category' },
-                yaxis: { title: 'Amount' },
-                margin: { t: 40, l: 50, r: 30, b: 50 },
+                title: 'Expense Analysis by Category',
+                xaxis: { 
+                    title: 'Category',
+                    tickangle: -45
+                },
+                yaxis: { 
+                    title: 'Amount ($)',
+                    tickprefix: '$'
+                },
+                margin: { t: 40, l: 50, r: 30, b: 100 },
                 transition: {
                     duration: 500,
                     easing: 'cubic-in-out'

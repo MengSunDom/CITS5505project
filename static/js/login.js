@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
-    const rememberMe = document.getElementById('rememberMe');
-
-    // 检查是否有保存的用户名
+    const rememberMeCheckbox = document.getElementById('rememberMe');
+    
+    // Check if there's saved credentials
     const savedUsername = localStorage.getItem('rememberedUsername');
-    if (savedUsername) {
+    const savedPassword = localStorage.getItem('rememberedPassword');
+    if (savedUsername && savedPassword) {
         document.getElementById('username').value = savedUsername;
-        rememberMe.checked = true;
+        document.getElementById('password').value = savedPassword;
+        rememberMeCheckbox.checked = true;
     }
 
     loginForm.addEventListener('submit', async function(e) {
@@ -14,20 +16,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+        const rememberMe = rememberMeCheckbox.checked;
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-        // 如果选择了"记住我"，保存用户名
-        if (rememberMe.checked) {
+        
+        // Save or remove credentials based on remember me checkbox
+        if (rememberMe) {
             localStorage.setItem('rememberedUsername', username);
+            localStorage.setItem('rememberedPassword', password);
         } else {
             localStorage.removeItem('rememberedUsername');
+            localStorage.removeItem('rememberedPassword');
         }
 
         try {
             const response = await fetch('/login', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     username: username,

@@ -185,13 +185,16 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             const date = row[0];
             const category = row[1];
             const description = row[2] || '';  // Make description optional
-            const amount = row[3];
+            const amount = parseFloat(row[3]);
 
             // Validate date
             if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD format.`);
                 continue;
             }
+
+            // Add time to date
+            const dateWithTime = `${date}T00:00`;
 
             // Validate category
             if (!allowedCategories.includes(category)) {
@@ -205,7 +208,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                 continue;
             }
 
-            validRows.push({ date, category, description, amount });
+            validRows.push({ date: dateWithTime, category, description, amount });
         }
 
         if (errors.length > 0) {
