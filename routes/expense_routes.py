@@ -294,7 +294,11 @@ def get_insights():
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
-    days = int(request.args.get('days', 7))
+    days_param = request.args.get('days', '7')
+    try:
+        days = int(days_param)
+    except ValueError:
+        return jsonify({'error': f"Invalid 'days' parameter: '{days_param}'. Must be an integer."}), 400
     start_date = datetime.now() - timedelta(days=days)
 
     expenses = db.session.query(
