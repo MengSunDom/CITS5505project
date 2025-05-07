@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% block title %}Data Analysis - Expense Tracker{% endblock %} {% block
 extra_head %}
 <link rel="stylesheet" href="/static/css/analysis.css" />
-<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
 {% endblock %} {% block navbar_right %}
 <li class="nav-item">
     <a class="nav-link text-dark" href="/logout">Logout</a>
@@ -24,9 +24,9 @@ extra_head %}
                     <div class="col-md-4">
                         <label for="chartType" class="form-label">Select Chart Type</label>
                         <select id="chartType" class="form-select">
-                            <option value="pie">Pie Chart</option>
-                            <option value="bar">Bar Chart</option>
-                            <option value="line">Line Chart</option>
+                            <option value="pie">Category Distribution</option>
+                            <option value="bar">Date and Category</option>
+                            <option value="line">Daily Trends</option>
                         </select>
                     </div>
                 </div>
@@ -74,4 +74,4 @@ extra_head %}
 </div>
 {% endblock %} {% block extra_scripts %}
 <script src="/static/js/analysis.js"></script>
-{% endblock %} 
+{% endblock %}

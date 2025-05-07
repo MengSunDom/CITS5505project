@@ -65,21 +65,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    let previousChartType = null;
     const fetchAndRenderChart = async (days) => {
         try {
             const response = await fetch(`/api/insights?days=${days}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            }    
             const data = await response.json();
-
             const chartType = chartTypeSelect.value;
-            let trace;
-
+            let trace, layout;
+    
             if (chartType === 'pie') {
                 trace = {
-                    values: data.values,
-                    labels: data.labels,
+                    values: data.category.values,
+                    labels: data.category.labels,
                     type: 'pie',
                     textinfo: 'label+percent',
                     insidetextorientation: 'radial',
@@ -87,50 +87,67 @@ document.addEventListener('DOMContentLoaded', () => {
                         colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
                     }
                 };
-            } else if (chartType === 'bar') {
-                trace = {
-                    x: data.labels,
-                    y: data.values,
-                    type: 'bar',
-                    marker: {
-                        color: '#1f77b4'
-                    }
+                layout = {
+                    title: 'Category Distribution',
+                    margin: { t: 100, l: 50, r: 30, b: 50 }
                 };
-            } else {
+            } else if (chartType === 'bar') {
+                const dates = Object.keys(data.date_category);
+                const categories = Object.keys(data.category.labels.reduce((acc, label) => {
+                    acc[label] = true;
+                    return acc;
+                }, {}));
+                
+                const traces = categories.map(category => {
+                    const y = dates.map(date => data.date_category[date]?.[category] || 0);
+                    return {
+                        x: dates,
+                        y: y,
+                        name: category,
+                        type: 'bar'
+                    };
+                });
+
+                layout = {
+                    title: 'Daily Category Breakdown',
+                    barmode: 'group',
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'Amount ($)', tickprefix: '$' },
+                    margin: { t: 100, l: 70, r: 30, b: 50 }
+                };
+
+                Plotly.react(expenseChartContainer, traces, layout);
+            } else if (chartType === 'line') {
                 trace = {
-                    x: data.labels,
-                    y: data.values,
+                    x: data.date.labels,
+                    y: data.date.values,
                     type: 'scatter',
                     mode: 'lines+markers',
-                    marker: {
-                        color: '#1f77b4',
-                        size: 10
-                    },
-                    line: {
-                        color: '#1f77b4',
-                        width: 2
-                    }
+                    marker: { color: 'blue' },
+                    line: { shape: 'linear' }
+                };
+                layout = {
+                    title: 'Expense Trend',
+                    xaxis: { title: 'Date', type: 'date' },
+                    yaxis: { title: 'Amount', type: 'linear' },
+                    margin: { t: 100, l: 70, r: 30, b: 50 }
                 };
             }
-
-            const layout = {
-                title: 'Expense Analysis by Category',
-                xaxis: { 
-                    title: 'Category',
-                    tickangle: -45
-                },
-                yaxis: { 
-                    title: 'Amount ($)',
-                    tickprefix: '$'
-                },
-                margin: { t: 40, l: 50, r: 30, b: 100 },
-                transition: {
+    
+            const isAnimated =
+                previousChartType === chartType ||
+                (['bar', 'line'].includes(previousChartType) && ['bar', 'line'].includes(chartType));
+    
+            if (isAnimated && chartType !== 'pie') {
+                layout.transition = {
                     duration: 500,
                     easing: 'cubic-in-out'
-                }
-            };
-
+                };
+            }
+    
             Plotly.react(expenseChartContainer, [trace], layout);
+            previousChartType = chartType;
+    
         } catch (error) {
             console.error('Error fetching insights data:', error);
         }
@@ -147,4 +164,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     updateData();
-}); 
+});

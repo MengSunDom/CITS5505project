@@ -304,7 +304,7 @@ def get_insights():
         return jsonify({'error': f"Invalid 'days' parameter: '{days_param}'. Must be an integer."}), 400
     start_date = datetime.now() - timedelta(days=days)
 
-    # Get expenses grouped by category
+    # Total amount by category
     category_expenses = db.session.query(
         Expense.category,
         func.sum(Expense.amount).label('total')
@@ -313,12 +313,63 @@ def get_insights():
         Expense.date >= start_date
     ).group_by(Expense.category).all()
 
-    labels = [item[0] for item in category_expenses]
-    values = [float(item[1]) for item in category_expenses]
+    category_labels = [item[0] for item in category_expenses]
+    category_values = [float(item[1]) for item in category_expenses]
 
-    logging.debug("Insights data: %s", {'labels': labels, 'values': values})
+    # Total amount by date and category
+    date_category_expenses = db.session.query(
+        func.date(Expense.date).label('date'),
+        Expense.category,
+        func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.user_id == user_id,
+        Expense.date >= start_date
+    ).group_by(func.date(Expense.date), Expense.category).all()
 
-    return jsonify({'labels': labels, 'values': values})
+    date_category_data = {}
+    for date, category, total in date_category_expenses:
+        if date not in date_category_data:
+            date_category_data[date] = {}
+        date_category_data[date][category] = float(total)
+
+    # Total amount by date
+    expenses = db.session.query(
+        func.date(Expense.date).label('date'),
+        func.sum(Expense.amount).label('total')).filter(
+            Expense.user_id == user_id, Expense.date
+            >= start_date).group_by(func.date(Expense.date)).order_by(
+                func.date(Expense.date)).all()
+
+    # Ensure `e.date` is parsed as a `datetime` object
+    date_labels = [
+        datetime.strptime(e.date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        if isinstance(e.date, str) else e.date.strftime('%Y-%m-%d')
+        for e in expenses
+    ]
+    date_values = [e.total for e in expenses]
+
+    logging.debug({
+        'category': {
+            'labels': category_labels,
+            'values': category_values
+        },
+        'date_category': date_category_data,
+        'date': {
+            'labels': date_labels,
+            'values': date_values
+        }
+    })
+    return jsonify({
+        'category': {
+            'labels': category_labels,
+            'values': category_values
+        },
+        'date_category': date_category_data,
+        'date': {
+            'labels': date_labels,
+            'values': date_values
+        }
+    })
 
 
 @expense_bp.route('/api/insights/summary', methods=['GET'])
