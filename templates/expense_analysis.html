@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Expense Analysis - Expense Tracker{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/expenses.css" />
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Expense Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Expenses</h6>
+                                <h3 class="card-text" id="totalExpenses">$0.00</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">This Month</h6>
+                                <h3 class="card-text" id="monthlyExpenses">$0.00</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Top Category</h6>
+                                <h3 class="card-text" id="topCategory">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="chartType" class="form-label">Select Chart Type</label>
+                    <select id="chartType" class="form-select">
+                        <option value="pie">Pie Chart</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                    </select>
+                </div>
+                <div id="expenseChart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Expense History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareForm">
+                    <div class="mb-3">
+                        <label for="shareUsername" class="form-label">Username to share with</label>
+                        <select class="form-select" id="shareUsername" required>
+                        </select>
+                    </div>
+                    <input type="hidden" id="expenseIdToShare">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="shareButton">Share</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(document).ready(function() {
+        loadExpenses();
+        loadUsers();
+
+        $('#chartType').on('change', function() {
+            updateChart();
+        });
+
+        function loadExpenses() {
+            $.get('/api/expenses', function(expenses) {
+                updateDashboard(expenses);
+                updateExpenseTable(expenses);
+                updateChart();
+            });
+        }
+
+        function loadUsers() {
+            $.get('/api/users', function(users) {
+                const select = $('#shareUsername');
+                select.empty();
+                users.forEach(user => {
+                    if (user.username !== '{{ session.user.username }}') {
+                        select.append(`<option value="${user.username}">${user.username}</option>`);
+                    }
+                });
+            });
+        }
+
+        function updateDashboard(expenses) {
+            let total = 0;
+            let monthlyTotal = 0;
+            const categories = {};
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+
+            expenses.forEach(expense => {
+                total += expense.amount;
+                const expenseDate = new Date(expense.date);
+                if (expenseDate.getMonth() === currentMonth && 
+                    expenseDate.getFullYear() === currentYear) {
+                    monthlyTotal += expense.amount;
+                }
+                categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
+            });
+
+            $('#totalExpenses').text('$' + total.toFixed(2));
+            $('#monthlyExpenses').text('$' + monthlyTotal.toFixed(2));
+
+            let topCategory = '-';
+            let maxAmount = 0;
+            for (const [category, amount] of Object.entries(categories)) {
+                if (amount > maxAmount) {
+                    maxAmount = amount;
+                    topCategory = category;
+                }
+            }
+            $('#topCategory').text(topCategory);
+        }
+
+        function updateExpenseTable(expenses) {
+            const tbody = $('#expenseTableBody');
+            tbody.empty();
+
+            expenses.forEach(expense => {
+                const row = `
+                    <tr>
+                        <td>${expense.date.split('T')[0]}</td>
+                        <td>${expense.category}</td>
+                        <td>${expense.description}</td>
+                        <td>$${expense.amount.toFixed(2)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary share-btn" data-id="${expense.id}">
+                                <i class="fas fa-share-alt"></i> Share
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+
+            $('.share-btn').on('click', function() {
+                const expenseId = $(this).data('id');
+                $('#expenseIdToShare').val(expenseId);
+                $('#shareModal').modal('show');
+            });
+        }
+
+        function updateChart() {
+            $.get('/api/expenses', function(expenses) {
+                const chartType = $('#chartType').val();
+                const categories = {};
+                
+                expenses.forEach(expense => {
+                    categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
+                });
+
+                const data = [{
+                    values: Object.values(categories),
+                    labels: Object.keys(categories),
+                    type: chartType
+                }];
+
+                const layout = {
+                    title: 'Expenses by Category',
+                    height: 400
+                };
+
+                Plotly.newPlot('expenseChart', data, layout);
+            });
+        }
+
+        $('#shareButton').on('click', function() {
+            const expenseId = $('#expenseIdToShare').val();
+            const username = $('#shareUsername').val();
+
+            $.ajax({
+                url: `/api/expenses/${expenseId}/share`,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ username: username }),
+                success: function() {
+                    alert('Expense shared successfully!');
+                    $('#shareModal').modal('hide');
+                },
+                error: function(xhr) {
+                    alert('Failed to share expense: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,7 +1,9 @@
 from flask import Blueprint, session, jsonify, request
+
 from datetime import datetime, timedelta
 from models.models import db, Expense, SharedExpense, User
 from sqlalchemy import func
+
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -12,8 +14,10 @@ def get_expenses():
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
+
     expenses = Expense.query.filter_by(user_id=user_id).order_by(
         Expense.date.desc()).all()
+
     return jsonify([{
         'id': e.id,
         'amount': e.amount,
@@ -108,6 +112,7 @@ def delete_expense():
     return jsonify({'message': 'Expense deleted successfully'})
 
 
+
 @expense_bp.route('/api/expenses/bulk-delete', methods=['POST'])
 def bulk_delete_expenses():
     if 'user' not in session:
@@ -158,6 +163,7 @@ def share_expense(expense_id):
     db.session.commit()
 
     return jsonify({'message': 'Expense shared successfully'})
+
 
 
 @expense_bp.route('/api/expenses/bulk-share', methods=['POST'])
@@ -353,3 +359,4 @@ def get_expense_summary():
             'values': values
         }
     })
+

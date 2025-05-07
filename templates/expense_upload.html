@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Upload Expenses - Expense Tracker{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/expenses.css" />
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Add New Expense</h5>
+            </div>
+            <div class="card-body">
+                <form id="expenseForm">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input
+                            type="number"
+                            class="form-control"
+                            id="amount"
+                            step="0.01"
+                            required
+                        />
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" required>
+                            <option value="Food">Food</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="datetime" class="form-label">Date</label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="datetime"
+                            required
+                            max=""
+                        />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Bulk Upload</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <button type="button" class="btn btn-primary" id="downloadTemplate">
+                        Download Template
+                    </button>
+                </div>
+                <div class="mb-3">
+                    <label class="btn btn-primary mb-0">
+                        Upload Template
+                        <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('datetime').value = today;
+        document.getElementById('datetime').max = today;
+
+        $('#expenseForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const amount = $('#amount').val();
+            const category = $('#category').val();
+            const description = $('#description').val();
+            const date = $('#datetime').val();
+
+            $.ajax({
+                url: '/api/expenses',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    amount: parseFloat(amount),
+                    category: category,
+                    description: description,
+                    date: date
+                }),
+                success: function(response) {
+                    alert('Expense added successfully!');
+                    $('#expenseForm')[0].reset();
+                    // Reset date to today after form submission
+                    document.getElementById('datetime').value = today;
+                },
+                error: function(xhr) {
+                    alert('Failed to add expense: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#downloadTemplate').on('click', function() {
+            const template = [
+                {
+                    amount: 0,
+                    category: 'Food',
+                    description: 'Example expense',
+                    date: new Date().toISOString()
+                }
+            ];
+
+            const ws = XLSX.utils.json_to_sheet(template);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'expense_template.xlsx');
+        });
+
+        $('#uploadTemplate').on('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const expenses = XLSX.utils.sheet_to_json(firstSheet);
+
+                $.ajax({
+                    url: '/api/expenses/bulk',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(expenses),
+                    success: function(response) {
+                        alert('Expenses uploaded successfully!');
+                        $('#uploadTemplate').val('');
+                    },
+                    error: function(xhr) {
+                        alert('Failed to upload expenses: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    });
+</script>
+{% endblock %} 

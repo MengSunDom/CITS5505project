@@ -4,11 +4,13 @@ $(document).ready(function () {
     function setCurrentDatetime() {
         const now = new Date();
         const year = now.getFullYear();
+
         const month = String(now.getMonth() + 1).padStart(2, '0'); // Month starts from 0
         const day = String(now.getDate()).padStart(2, '0');
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // Format "YYYY-MM-DDTHH:mm"
+
         datetimeInput.setAttribute('max', formattedNow);
         datetimeInput.value = formattedNow; // Set default value to current time
     }
@@ -77,13 +79,16 @@ function loadExpenses() {
         currentExpenses = expenses;
         updateExpenseTable(expenses);
         refreshExpenses(expenses);
+
         filterAndSearchExpenses();
+
     });
 }
 
 function updateExpenseTable(expenses) {
     const tbody = $('#expenseTableBody');
     tbody.empty();
+
 
     // Sort expenses by date in descending order
     expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -92,6 +97,7 @@ function updateExpenseTable(expenses) {
         const row = `
             <tr>
                 <td><input type="checkbox" data-id="${expense.id}" /></td>
+
                 <td>${expense.date}</td>
                 <td>${expense.category}</td>
                 <td>${expense.description}</td>
@@ -100,8 +106,10 @@ function updateExpenseTable(expenses) {
                     <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
+
                     <button class="btn btn-sm btn-danger" onclick="deleteLine(${expense.id})">
                         <i class="fas fa-trash-alt"></i> Delete
+
                     </button>
                 </td>
             </tr>
@@ -264,15 +272,19 @@ let loadUsernames = () => {
         method: 'GET',
         success: function (data) {
             const select = $('#shareUsername');
+
             const bulkSelect = $('#bulkShareUsername');
             select.empty();
             bulkSelect.empty();
+
             data.forEach(function (user) {
                 const option = $('<option></option>')
                     .attr('value', user.username)
                     .text(user.username);
                 select.append(option);
+
                 bulkSelect.append(option.clone());
+
             });
         },
         error: function (xhr, status, error) {
@@ -285,6 +297,7 @@ let loadUsernames = () => {
 $('#shareModal').on('show.bs.modal', function () {
     loadUsernames();
 });
+
 
 document.addEventListener('DOMContentLoaded', function () {
     // Trigger file input when upload button is clicked

@@ -1,13 +1,16 @@
 /* Stats cards */
 .card.text-white {
     transition: transform 0.2s;
+
     height: 150px; /* Ensure uniform height for all cards */
     color: #ffffff; /* Neutral white text for better readability */
+
 }
 
 .card.text-white:hover {
     transform: translateY(-5px);
 }
+
 
 /* Card title color adjustment */
 .card.bg-primary .card-title {
