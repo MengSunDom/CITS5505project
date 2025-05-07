@@ -29,7 +29,7 @@ def add_expense():
 
     data = request.get_json()
     try:
-        date = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M')
+        date = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S')
     except ValueError:
         return jsonify({'error': 'Invalid date format'}), 400
 
