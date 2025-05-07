@@ -1,6 +1,7 @@
 from flask import Blueprint, session, jsonify, request
-from datetime import datetime
+from datetime import datetime, timedelta
 from models.models import db, Expense, SharedExpense, User
+from sqlalchemy import func
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -11,7 +12,8 @@ def get_expenses():
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
-    expenses = Expense.query.filter_by(user_id=user_id).all()
+    expenses = Expense.query.filter_by(user_id=user_id).order_by(
+        Expense.date.desc()).all()
     return jsonify([{
         'id': e.id,
         'amount': e.amount,
@@ -106,6 +108,32 @@ def delete_expense():
     return jsonify({'message': 'Expense deleted successfully'})
 
 
+@expense_bp.route('/api/expenses/bulk-delete', methods=['POST'])
+def bulk_delete_expenses():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    expense_ids = data.get('ids', [])
+
+    if not expense_ids:
+        return jsonify({'error': 'No expense IDs provided'}), 400
+
+    expenses = Expense.query.filter(
+        Expense.id.in_(expense_ids),
+        Expense.user_id == session['user']['id']).all()
+
+    if not expenses:
+        return jsonify({'error': 'No matching expenses found'}), 404
+
+    for expense in expenses:
+        db.session.delete(expense)
+
+    db.session.commit()
+
+    return jsonify({'message': 'Selected expenses deleted successfully'})
+
+
 @expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
 def share_expense(expense_id):
     if 'user' not in session:
@@ -130,6 +158,40 @@ def share_expense(expense_id):
     db.session.commit()
 
     return jsonify({'message': 'Expense shared successfully'})
+
+
+@expense_bp.route('/api/expenses/bulk-share', methods=['POST'])
+def bulk_share_expenses():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    expense_ids = data.get('ids', [])
+    shared_with_username = data.get('username')
+
+    if not expense_ids or not shared_with_username:
+        return jsonify({'error': 'Missing expense IDs or username'}), 400
+
+    shared_with_user = User.query.filter_by(
+        username=shared_with_username).first()
+    if not shared_with_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    expenses = Expense.query.filter(
+        Expense.id.in_(expense_ids),
+        Expense.user_id == session['user']['id']).all()
+
+    if not expenses:
+        return jsonify({'error': 'No matching expenses found'}), 404
+
+    for expense in expenses:
+        shared_expense = SharedExpense(expense_id=expense.id,
+                                       shared_with_id=shared_with_user.id)
+        db.session.add(shared_expense)
+
+    db.session.commit()
+
+    return jsonify({'message': 'Selected expenses shared successfully'})
 
 
 @expense_bp.route('/api/shared-expenses/by-me', methods=['GET'])
@@ -224,3 +286,70 @@ def cancel_shared_expense():
     db.session.commit()
 
     return jsonify({'message': 'Shared expense canceled successfully'})
+
+
+@expense_bp.route('/api/insights', methods=['GET'])
+def get_insights():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    days_param = request.args.get('days', '7')
+    try:
+        days = int(days_param)
+    except ValueError:
+        return jsonify({'error': f"Invalid 'days' parameter: '{days_param}'. Must be an integer."}), 400
+    start_date = datetime.now() - timedelta(days=days)
+
+    expenses = db.session.query(
+        func.date(Expense.date).label('date'),
+        func.sum(Expense.amount).label('total')).filter(
+            Expense.user_id == user_id, Expense.date
+            >= start_date).group_by(func.date(Expense.date)).order_by(
+                func.date(Expense.date)).all()
+
+    # Ensure `e.date` is parsed as a `datetime` object
+    labels = [
+        datetime.strptime(e.date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        if isinstance(e.date, str) else e.date.strftime('%Y-%m-%d')
+        for e in expenses
+    ]
+    values = [e.total for e in expenses]
+
+    logging.debug("Insights data: %s", {'labels': labels, 'values': values})  # Debug information
+
+    return jsonify({'labels': labels, 'values': values})
+
+
+@expense_bp.route('/api/insights/summary', methods=['GET'])
+def get_expense_summary():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    days = int(request.args.get('days', 7))
+    start_date = datetime.now() - timedelta(days=days)
+
+    # Total entries and total amount
+    total_entries = Expense.query.filter(Expense.user_id == user_id,
+                                         Expense.date >= start_date).count()
+    total_amount = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == user_id, Expense.date >= start_date).scalar() or 0.0
+
+    # Category distribution
+    category_distribution = db.session.query(
+        Expense.category, func.sum(Expense.amount)).filter(
+            Expense.user_id == user_id, Expense.date
+            >= start_date).group_by(Expense.category).all()
+
+    labels = [item[0] for item in category_distribution]
+    values = [item[1] for item in category_distribution]
+
+    return jsonify({
+        'totalEntries': total_entries,
+        'totalAmount': total_amount,
+        'categoryDistribution': {
+            'labels': labels,
+            'values': values
+        }
+    })

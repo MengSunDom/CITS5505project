@@ -4,12 +4,21 @@
     color: white;
     padding: 100px 0;
     margin-bottom: 50px;
+    border-radius: 10px;
+}
+
+/* Hero section title */
+.hero-section h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Feature cards */
 .feature-card {
     transition: transform 0.3s;
     margin-bottom: 30px;
+    border-radius: 10px;
 }
 
 .feature-card:hover {

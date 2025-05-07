@@ -1,4 +1,66 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Load user data
+    fetch('/api/expenses')
+        .then(response => response.json())
+        .then(expenses => updateDashboard(expenses));
+
+    function updateDashboard(expenses) {
+        // Calculate totals
+        let total = 0;
+        let monthlyTotal = 0;
+        const categories = {};
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+
+        expenses.forEach(expense => {
+            total += expense.amount;
+            const expenseDate = new Date(expense.date);
+            if (
+                expenseDate.getMonth() === currentMonth &&
+                expenseDate.getFullYear() === currentYear
+            ) {
+                monthlyTotal += expense.amount;
+            }
+            categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
+        });
+
+        // Update summary cards
+        document.getElementById('totalExpenses').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('monthlyExpenses').textContent = `$${monthlyTotal.toFixed(2)}`;
+
+        // Find top category
+        let topCategory = '-';
+        let maxAmount = 0;
+        for (const [category, amount] of Object.entries(categories)) {
+            if (amount > maxAmount) {
+                maxAmount = amount;
+                topCategory = category;
+            }
+        }
+        document.getElementById('topCategory').textContent = topCategory;
+
+        // Update recent expenses table
+        const tbody = document.getElementById('recentExpensesTable');
+        tbody.innerHTML = '';
+
+        // Sort expenses by date and take the 5 most recent
+        const recentExpenses = expenses
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 5);
+
+        recentExpenses.forEach(expense => {
+            const row = `
+                <tr>
+                    <td>${expense.date}</td>
+                    <td>${expense.category}</td>
+                    <td>${expense.description}</td>
+                    <td>$${expense.amount.toFixed(2)}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
     // Handle navigation buttons
     document.getElementById('uploadDataBtn').addEventListener('click', function(e) {
         e.preventDefault();
@@ -45,4 +107,4 @@ document.addEventListener('DOMContentLoaded', function() {
             link.classList.add('active');
         }
     });
-}); 
+});

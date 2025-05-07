@@ -4,13 +4,13 @@ extra_head %}
 <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
 {% endblock %} {% block navbar_right %}
 <li class="nav-item">
-    <a class="nav-link" href="/logout">Logout</a>
+    <a class="nav-link text-dark" href="/logout">Logout</a>
 </li>
 {% endblock %} {% block content %}
 <div class="row">
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light rounded-top border-bottom">
                 <h5 class="card-title mb-0">Add New Expense</h5>
             </div>
             <div class="card-body">
@@ -57,17 +57,17 @@ extra_head %}
                         Download Template
                     </button>
 
-                    <label class="btn btn-primary mb-0">
+                    <button type="button" class="btn btn-primary" id="uploadButton">
                         Upload Template
-                        <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
-                    </label>
+                    </button>
+                    <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light rounded-top border-bottom">
                 <h5 class="card-title mb-0">Expense Analysis</h5>
             </div>
             <div class="card-body">
@@ -86,15 +86,35 @@ extra_head %}
 </div>
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-light rounded-top border-bottom">
                 <h5 class="card-title mb-0">Expense History</h5>
             </div>
             <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search by description..." />
+                    </div>
+                    <div class="col-md-4">
+                        <select id="filterCategory" class="form-select">
+                            <option value="">All Categories</option>
+                            <option value="Food">Food</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="month" id="filterMonth" class="form-control" />
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAll" /></th>
                                 <th>Date</th>
                                 <th>Category</th>
                                 <th>Description</th>
@@ -105,6 +125,38 @@ extra_head %}
                         <tbody id="expenseTableBody"></tbody>
                     </table>
                 </div>
+                <div class="d-flex">
+                    <button class="btn btn-danger me-2" id="deleteSelected">
+                        <i class="fas fa-trash-alt"></i> Delete Selected
+                    </button>
+                    <button class="btn btn-primary" id="shareSelected" data-bs-toggle="modal" data-bs-target="#bulkShareModal">
+                        <i class="fas fa-share-alt"></i> Share Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Share Modal -->
+<div class="modal fade" id="bulkShareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Selected Expenses</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkShareForm">
+                    <div class="mb-3">
+                        <label for="bulkShareUsername" class="form-label">Username to share with</label>
+                        <select class="form-select" id="bulkShareUsername" required></select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="bulkShareButton">Share</button>
             </div>
         </div>
     </div>
@@ -136,7 +188,6 @@ extra_head %}
 </div>
 {% endblock %} {% block extra_scripts %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="/static/js/expenses.js"></script>
 {% endblock %}

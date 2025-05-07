@@ -1,13 +1,59 @@
 /* Stats cards */
 .card.text-white {
     transition: transform 0.2s;
+    height: 150px; /* Ensure uniform height for all cards */
+    color: #ffffff; /* Neutral white text for better readability */
 }
 
 .card.text-white:hover {
     transform: translateY(-5px);
 }
 
+/* Card title color adjustment */
+.card.bg-primary .card-title {
+    color: #cce5ff; /* Light blue for primary card title */
+}
+
+.card.bg-success .card-title {
+    color: #d4edda; /* Light green for success card title */
+}
+
+.card.bg-info .card-title {
+    color: #d1ecf1; /* Light teal for info card title */
+}
+
+.card.text-white .card-title {
+    font-weight: bold; /* Make the title stand out */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Add subtle shadow for better visibility */
+}
+
+/* Card text color adjustment */
+.card.text-white .card-text {
+    color: #e0e0e0; /* Slightly lighter text for better contrast */
+}
+
+/* Background colors for cards */
+.card.bg-primary {
+    background-color: #007bff; /* Coordinated blue for primary card */
+}
+
+.card.bg-success {
+    background-color: #28a745; /* Coordinated green for success card */
+}
+
+.card.bg-info {
+    background-color: #17a2b8; /* Coordinated teal for info card */
+}
+
 /* Recent expenses table */
 #recentExpensesTable tr:hover {
-    background-color: #f8f9fa;
+    background-color: #f1f1f1; /* Light gray for hover effect */
+    color: #333333; /* Darker text for better contrast */
+}
+
+/* Add margin for cards in vertical layout */
+@media (max-width: 768px) {
+    .col-md-4 {
+        margin-bottom: 15px; /* Add bottom margin for spacing */
+    }
 }

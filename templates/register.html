@@ -1,5 +1,12 @@
-{% extends "base.html" %} {% block title %}Register - Expense Tracker{% endblock %} {% block content
-%}
+{% extends "base.html" %} {% block title %}Register - Expense Tracker{% endblock %} {% block
+navbar_left %} {% endblock %} {% block navbar_right %}
+<li class="nav-item">
+    <a class="nav-link text-dark" href="/login">Login</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-dark" href="/register">Register</a>
+</li>
+{% endblock %} {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card">
