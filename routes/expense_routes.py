@@ -1,9 +1,7 @@
 from flask import Blueprint, session, jsonify, request
-
 from datetime import datetime, timedelta
 from models.models import db, Expense, SharedExpense, User
 from sqlalchemy import func
-
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -14,10 +12,8 @@ def get_expenses():
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
-
     expenses = Expense.query.filter_by(user_id=user_id).order_by(
         Expense.date.desc()).all()
-
     return jsonify([{
         'id': e.id,
         'amount': e.amount,
@@ -34,9 +30,9 @@ def add_expense():
 
     data = request.get_json()
     try:
-        date = datetime.strptime(data['date'], '%Y-%m-%d')
+        date = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M')
     except ValueError:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        return jsonify({'error': 'Invalid date format'}), 400
 
     if date > datetime.now():
         return jsonify({'error': 'Date cannot be in the future'}), 400
@@ -57,7 +53,7 @@ def add_expense():
             'amount': new_expense.amount,
             'category': new_expense.category,
             'description': new_expense.description,
-            'date': new_expense.date.strftime('%Y-%m-%d')
+            'date': new_expense.date.strftime('%Y-%m-%d %H:%M:%S')
         }
     })
 
@@ -68,80 +64,29 @@ def add_expenses_bulk():
         return jsonify({'error': 'Not authenticated'}), 401
 
     data_list = request.get_json()
-    if not isinstance(data_list, list):
-        return jsonify({'error': 'Invalid data format. Expected a list of expenses.'}), 400
-
     new_expenses = []
-    errors = []
 
-    for i, data in enumerate(data_list, 1):
-        try:
-            # Validate required fields
-            if not all(k in data for k in ['amount', 'category', 'date']):
-                errors.append(f'Row {i}: Missing required fields')
-                continue
+    for data in data_list:
+        new_expense = Expense(amount=float(data['amount']),
+                              category=data['category'],
+                              description=data.get('description', ''),
+                              user_id=session['user']['id'])
+        db.session.add(new_expense)
+        new_expenses.append(new_expense)
 
-            # Validate amount
-            try:
-                amount = float(data['amount'])
-                if amount <= 0:
-                    errors.append(f'Row {i}: Amount must be positive')
-                    continue
-            except (ValueError, TypeError):
-                errors.append(f'Row {i}: Invalid amount format')
-                continue
+    db.session.commit()
 
-            # Validate category
-            if data['category'] not in ['Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other']:
-                errors.append(f'Row {i}: Invalid category')
-                continue
-
-            # Validate date
-            try:
-                date = datetime.strptime(data['date'], '%Y-%m-%d')
-                if date > datetime.now():
-                    errors.append(f'Row {i}: Date cannot be in the future')
-                    continue
-            except ValueError:
-                errors.append(f'Row {i}: Invalid date format. Use YYYY-MM-DD')
-                continue
-
-            # Create new expense
-            new_expense = Expense(
-                amount=amount,
-                category=data['category'],
-                description=data.get('description', ''),
-                date=date,
-                user_id=session['user']['id']
-            )
-            db.session.add(new_expense)
-            new_expenses.append(new_expense)
-
-        except Exception as e:
-            errors.append(f'Row {i}: {str(e)}')
-            continue
-
-    if errors:
-        return jsonify({
-            'error': 'Some expenses could not be processed',
-            'details': errors
-        }), 400
-
-    try:
-        db.session.commit()
-        return jsonify({
-            'message': f'Successfully added {len(new_expenses)} expenses',
-            'expenses': [{
-                'id': e.id,
-                'amount': e.amount,
-                'category': e.category,
-                'description': e.description,
-                'date': e.date.strftime('%Y-%m-%d %H:%M:%S')
-            } for e in new_expenses]
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    return jsonify({
+        'message':
+        'Expenses added successfully',
+        'expenses': [{
+            'id': e.id,
+            'amount': e.amount,
+            'category': e.category,
+            'description': e.description,
+            'date': e.date.astimezone().strftime('%Y-%m-%d %H:%M:%S')
+        } for e in new_expenses]
+    })
 
 
 @expense_bp.route('/api/expenses/delete', methods=['POST'])
@@ -161,7 +106,6 @@ def delete_expense():
     db.session.commit()
 
     return jsonify({'message': 'Expense deleted successfully'})
-
 
 
 @expense_bp.route('/api/expenses/bulk-delete', methods=['POST'])
@@ -214,7 +158,6 @@ def share_expense(expense_id):
     db.session.commit()
 
     return jsonify({'message': 'Expense shared successfully'})
-
 
 
 @expense_bp.route('/api/expenses/bulk-share', methods=['POST'])
@@ -410,4 +353,3 @@ def get_expense_summary():
             'values': values
         }
     })
-

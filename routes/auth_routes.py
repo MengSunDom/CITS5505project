@@ -1,4 +1,4 @@
-from flask import Blueprint, session, redirect, url_for, render_template, request, jsonify
+from flask import Blueprint, session, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models.models import db, User
 from datetime import timedelta

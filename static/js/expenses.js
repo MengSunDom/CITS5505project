@@ -1,54 +1,52 @@
 $(document).ready(function () {
-    // Set max datetime to current time and default value
-    const datetimeInput = document.getElementById('datetime');
-    function setCurrentDatetime() {
-        const now = new Date();
-        const year = now.getFullYear();
-
-        const month = String(now.getMonth() + 1).padStart(2, '0'); // Month starts from 0
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // Format "YYYY-MM-DDTHH:mm"
-
-        datetimeInput.setAttribute('max', formattedNow);
-        datetimeInput.value = formattedNow; // Set default value to current time
-    }
-    setCurrentDatetime();
-
-    // Reset datetime to current time on form reset
-    $('#expenseForm').on('reset', setCurrentDatetime);
+    // Set default date to today
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const hours = String(today.getHours()).padStart(2, '0');
+    const minutes = String(today.getMinutes()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('date').value = formattedDate;
 
     // Load expenses on page load
     loadExpenses();
 
     // Handle form submission
-    $('#expenseForm').on('submit', function (e) {
+    $('#expenseForm').on('submit', async (e) => {
         e.preventDefault();
-        const amount = $('#amount').val();
-        const category = $('#category').val();
-        const description = $('#description').val();
-        const datetime = $('#datetime').val();
-        let data = {
-            amount: amount,
-            category: category,
-            description: description,
-            date: datetime
+        
+        const formData = {
+            amount: document.getElementById('amount').value,
+            category: document.getElementById('category').value,
+            description: document.getElementById('description').value || '',  // Make description optional
+            date: document.getElementById('date').value
         };
-        $.ajax({
-            url: '/api/expenses',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function (response) {
+
+        try {
+            const response = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Expense added successfully!');
                 $('#expenseForm')[0].reset();
+                // Reset date to today after form reset
+                document.getElementById('date').value = formattedDate;
                 loadExpenses();
-                setCurrentDatetime();
-            },
-            error: function (xhr) {
-                alert('Error adding expense: ' + xhr.responseJSON.error);
+            } else {
+                alert(data.error || 'Failed to add expense');
             }
-        });
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while adding the expense');
+        }
     });
 
     // Handle share button click
@@ -78,17 +76,13 @@ function loadExpenses() {
     $.get('/api/expenses', function (expenses) {
         currentExpenses = expenses;
         updateExpenseTable(expenses);
-        refreshExpenses(expenses);
-
         filterAndSearchExpenses();
-
     });
 }
 
 function updateExpenseTable(expenses) {
     const tbody = $('#expenseTableBody');
     tbody.empty();
-
 
     // Sort expenses by date in descending order
     expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -97,19 +91,16 @@ function updateExpenseTable(expenses) {
         const row = `
             <tr>
                 <td><input type="checkbox" data-id="${expense.id}" /></td>
-
                 <td>${expense.date}</td>
                 <td>${expense.category}</td>
-                <td>${expense.description}</td>
+                <td>${expense.description || ''}</td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-
                     <button class="btn btn-sm btn-danger" onclick="deleteLine(${expense.id})">
                         <i class="fas fa-trash-alt"></i> Delete
-
                     </button>
                 </td>
             </tr>
@@ -118,57 +109,7 @@ function updateExpenseTable(expenses) {
     });
 }
 
-function updateExpenseChart(expenses) {
-    const categories = {};
-    expenses.forEach(expense => {
-        categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
-    });
-
-    const chartType = document.getElementById('chartType').value;
-
-    let data = [];
-    let layout = {
-        title: 'Expense Distribution by Category',
-        height: 400
-    };
-
-    const labels = Object.keys(categories);
-    const values = Object.values(categories);
-
-    if (chartType === 'pie') {
-        data = [{
-            values: values,
-            labels: labels,
-            type: 'pie'
-        }];
-    } else if (chartType === 'bar') {
-        data = [{
-            x: labels,
-            y: values,
-            type: 'bar'
-        }];
-    } else if (chartType === 'line') {
-        data = [{
-            x: labels,
-            y: values,
-            type: 'scatter',
-            mode: 'lines+markers'
-        }];
-    }
-
-    Plotly.newPlot('expenseChart', data, layout);
-}
-
-document.getElementById('chartType').addEventListener('change', function () {
-    updateExpenseChart(currentExpenses);
-});
-
 let currentExpenses = [];
-
-function refreshExpenses(expenses) {
-    currentExpenses = expenses;
-    updateExpenseChart(expenses);
-}
 
 function openShareModal(expenseId) {
     $('#expenseIdToShare').val(expenseId);
@@ -177,7 +118,7 @@ function openShareModal(expenseId) {
 
 function deleteLine(expenseId) {
     if (!confirm("Are you sure you want to delete this expense?")) {
-        return; // If the user cancels, exit the function
+        return;
     }
 
     $.ajax({
@@ -189,6 +130,15 @@ function deleteLine(expenseId) {
         }),
         success: function (response) {
             $('#expenseForm')[0].reset();
+            // Reset date to today after form reset
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const hours = String(today.getHours()).padStart(2, '0');
+            const minutes = String(today.getMinutes()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+            document.getElementById('date').value = formattedDate;
             loadExpenses();
         },
         error: function (xhr) {
@@ -197,7 +147,7 @@ function deleteLine(expenseId) {
     });
 }
 
-const allowedCategories = ['Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'];
+const allowedCategories = ['Food', 'Entertainment', 'Shopping', 'Bills', 'Other'];
 
 document.getElementById('downloadTemplate').addEventListener('click', function () {
     const ws_data = [
@@ -218,153 +168,79 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 
     const reader = new FileReader();
     reader.onload = function (e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-            // Check if file has header row
-            if (jsonData.length < 2) {
-                alert('File is empty or missing data rows.');
-                $('#uploadTemplate').val('');
-                return;
+        const errors = [];
+        const validRows = [];
+        
+        // Skip header row
+        for (let i = 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length < 4) continue;  // Skip empty rows or rows with insufficient data
+
+            const date = row[0];
+            const category = row[1];
+            const description = row[2] || '';  // Make description optional
+            const amount = row[3];
+
+            // Validate date
+            if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD format.`);
+                continue;
             }
 
-            const validRows = [];
-            const allErrors = [];
-
-            for (let i = 1; i < jsonData.length; i++) {
-                const result = validateExpenseData(jsonData[i], i);
-                if (result.valid) {
-                    validRows.push(result.data);
-                } else {
-                    allErrors.push(...result.errors);
-                }
+            // Validate category
+            if (!allowedCategories.includes(category)) {
+                errors.push(`Row ${i + 1}: Invalid category "${category}". Allowed categories: ${allowedCategories.join(', ')}`);
+                continue;
             }
 
-            if (allErrors.length > 0) {
-                alert('Upload failed:\n\n' + allErrors.join('\n') + '\n\nPlease correct these errors and try again.');
-                $('#uploadTemplate').val('');
-                return;
+            // Validate amount
+            if (isNaN(amount) || amount <= 0) {
+                errors.push(`Row ${i + 1}: Invalid amount "${amount}". Must be a positive number.`);
+                continue;
             }
 
-            if (validRows.length === 0) {
-                alert('No valid data found in the file. Please check the file format and try again.');
-                $('#uploadTemplate').val('');
-                return;
-            }
+            validRows.push({ date, category, description, amount });
+        }
 
-            // Upload valid data
+        if (errors.length > 0) {
+            alert('Upload failed:\n' + errors.join('\n'));
+        } else if (validRows.length > 0) {
             $.ajax({
                 url: '/api/expenses/bulk',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
-                    alert(`Successfully uploaded ${validRows.length} expenses!`);
-                    $('#uploadTemplate').val('');
+                    alert('Upload successful!');
+                    $('#expenseForm')[0].reset();
+                    // Reset date to today after form reset
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    const hours = String(today.getHours()).padStart(2, '0');
+                    const minutes = String(today.getMinutes()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+                    document.getElementById('date').value = formattedDate;
                     loadExpenses();
                 },
                 error: function (xhr) {
-                    alert('Error uploading expenses: ' + (xhr.responseJSON?.error || 'Unknown error'));
-                    $('#uploadTemplate').val('');
+                    alert('Error uploading expenses: ' + xhr.responseJSON.error);
                 }
             });
-        } catch (error) {
-            alert('Error processing file: ' + error.message);
-            $('#uploadTemplate').val('');
+        } else {
+            alert('No valid data found in the file.');
         }
     };
 
     reader.readAsArrayBuffer(file);
 });
-
-function isValidDate(dateStr) {
-    if (!dateStr) return false;
-    
-    // Handle Excel date format
-    if (typeof dateStr === 'number') {
-        return true;
-    }
-    
-    const regex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!regex.test(dateStr)) return false;
-    
-    const date = new Date(dateStr);
-    return date instanceof Date && !isNaN(date);
-}
-
-function formatDate(dateStr) {
-    if (typeof dateStr === 'number') {
-        // Convert Excel date number to string
-        const date = new Date((dateStr - 25569) * 86400 * 1000);
-        return date.toISOString().split('T')[0];
-    }
-    const date = new Date(dateStr);
-    return date.toISOString().split('T')[0];
-}
-
-function validateExpenseData(row, rowIndex) {
-    const errors = [];
-    
-    if (!row || row.length < 4) {
-        errors.push(`Row ${rowIndex + 1}: Missing required fields`);
-        return { valid: false, errors };
-    }
-
-    const date = row[0];
-    const category = row[1];
-    const description = row[2];
-    const amount = row[3];
-
-    // Validate date
-    if (!date) {
-        errors.push(`Row ${rowIndex + 1}: Date is required`);
-    } else {
-        let dateStr = date;
-        if (typeof date === 'number') {
-            dateStr = XLSX.SSF.format('yyyy-mm-dd', date);
-        }
-        if (!isValidDate(dateStr)) {
-            errors.push(`Row ${rowIndex + 1}: Invalid date format "${dateStr}". Please use YYYY-MM-DD format.`);
-        }
-    }
-
-    // Validate category
-    if (!category) {
-        errors.push(`Row ${rowIndex + 1}: Category is required`);
-    } else if (!allowedCategories.includes(category)) {
-        errors.push(`Row ${rowIndex + 1}: Invalid category "${category}". Allowed categories are: ${allowedCategories.join(', ')}`);
-    }
-
-    // Validate amount
-    if (amount === undefined || amount === null || amount === '') {
-        errors.push(`Row ${rowIndex + 1}: Amount is required`);
-    } else {
-        const amountNum = parseFloat(amount);
-        if (isNaN(amountNum) || amountNum <= 0) {
-            errors.push(`Row ${rowIndex + 1}: Invalid amount "${amount}". Amount must be a positive number.`);
-        }
-    }
-
-    // Validate description (optional)
-    if (description !== undefined && description !== null && typeof description !== 'string') {
-        errors.push(`Row ${rowIndex + 1}: Invalid description format`);
-    }
-
-    return {
-        valid: errors.length === 0,
-        errors,
-        data: errors.length === 0 ? {
-            date: formatDate(date),
-            category: category,
-            description: description || '',
-            amount: parseFloat(amount)
-        } : null
-    };
-}
 
 let loadUsernames = () => {
     $.ajax({
@@ -372,19 +248,15 @@ let loadUsernames = () => {
         method: 'GET',
         success: function (data) {
             const select = $('#shareUsername');
-
             const bulkSelect = $('#bulkShareUsername');
             select.empty();
             bulkSelect.empty();
-
             data.forEach(function (user) {
                 const option = $('<option></option>')
                     .attr('value', user.username)
                     .text(user.username);
                 select.append(option);
-
                 bulkSelect.append(option.clone());
-
             });
         },
         error: function (xhr, status, error) {
@@ -398,15 +270,12 @@ $('#shareModal').on('show.bs.modal', function () {
     loadUsernames();
 });
 
-
 document.addEventListener('DOMContentLoaded', function () {
-    // Trigger file input when upload button is clicked
     document.getElementById('uploadButton').addEventListener('click', function () {
         document.getElementById('uploadTemplate').click();
     });
 });
 
-// Filter and search functionality
 function filterAndSearchExpenses() {
     const searchValue = $('#searchInput').val().toLowerCase();
     const selectedCategory = $('#filterCategory').val();
@@ -422,12 +291,10 @@ function filterAndSearchExpenses() {
     updateExpenseTable(filteredExpenses);
 }
 
-// Event listeners for search and filters
 $('#searchInput').on('input', filterAndSearchExpenses);
 $('#filterCategory').on('change', filterAndSearchExpenses);
 $('#filterMonth').on('change', filterAndSearchExpenses);
 
-// Multi-select delete functionality
 $('#selectAll').on('change', function () {
     const isChecked = $(this).is(':checked');
     $('#expenseTableBody input[type="checkbox"]').prop('checked', isChecked);
@@ -463,7 +330,6 @@ $('#deleteSelected').on('click', function () {
     });
 });
 
-// Set default month filter to the current month
 document.addEventListener('DOMContentLoaded', function () {
     const now = new Date();
     const year = now.getFullYear();
@@ -504,7 +370,6 @@ $('#bulkShareButton').on('click', function () {
     });
 });
 
-// Load usernames for bulk share modal
 $('#bulkShareModal').on('show.bs.modal', function () {
     loadUsernames();
 });
