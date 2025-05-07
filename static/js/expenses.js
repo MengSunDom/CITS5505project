@@ -35,11 +35,14 @@ $(document).ready(function () {
             const data = await response.json();
             
             if (response.ok) {
-                alert('Expense added successfully!');
                 $('#expenseForm')[0].reset();
                 // Reset date to today after form reset
                 document.getElementById('date').value = formattedDate;
                 loadExpenses();
+                // Close the offcanvas panel
+                const offcanvasElement = document.getElementById('addExpenseCanvas');
+                const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+                offcanvasInstance.hide();
             } else {
                 alert(data.error || 'Failed to add expense');
             }
@@ -96,10 +99,10 @@ function updateExpenseTable(expenses) {
                 <td>${expense.description || ''}</td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
+                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteLine(${expense.id})">
+                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${expense.id})">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>
