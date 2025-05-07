@@ -40,18 +40,11 @@ def dashboard():
     return render_template('dashboard.html')
 
 
-@page_bp.route('/expenses/upload')
-def expense_upload():
+@page_bp.route('/expenses')
+def expenses():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
-    return render_template('expense_upload.html')
-
-
-@page_bp.route('/expenses/analysis')
-def expense_analysis():
-    if 'user' not in session:
-        return redirect(url_for('page.login_page'))
-    return render_template('expense_analysis.html')
+    return render_template('expenses.html')
 
 
 @page_bp.route('/shared-data')
@@ -59,6 +52,13 @@ def shared_data():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
     return render_template('shared_data.html')
+
+
+@page_bp.route('/analysis')
+def analysis():
+    if 'user' not in session:
+        return redirect(url_for('page.login_page'))
+    return render_template('analysis.html')
 
 
 @page_bp.route('/insights')

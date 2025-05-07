@@ -4,7 +4,6 @@ body {
 }
 
 .navbar {
-
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -41,9 +40,7 @@ body {
 
 .form-control:focus {
     border-color: #0d6efd;
-
     box-shadow: 0 0 0 0.3rem rgba(13, 110, 253, 0.3);
-
 }
 
 /* Dashboard specific styles */
@@ -82,10 +79,8 @@ body {
 
 /* Navigation */
 .nav-link {
-
     color: rgba(255, 255, 255, 0.85);
     transition: color 0.3s ease;
-
 }
 
 .nav-link:hover {
@@ -100,10 +95,8 @@ body {
 
 /* Dropdown menu */
 .dropdown-menu {
-
     border-radius: 8px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-
 }
 
 .dropdown-item:hover {
@@ -121,7 +114,3 @@ body {
         margin-bottom: 1rem;
     }
 }
-
-
-.btn-temp {}
-
