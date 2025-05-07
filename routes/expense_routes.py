@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime, timedelta
 from models.models import db, Expense, SharedExpense, User
