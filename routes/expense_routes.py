@@ -72,7 +72,8 @@ def add_expenses_bulk():
         new_expense = Expense(amount=float(data['amount']),
                               category=data['category'],
                               description=data.get('description', ''),
-                              user_id=session['user']['id'])
+                              user_id=session['user']['id'],
+                              date=datetime.strptime(data['date'], '%Y-%m-%dT%H:%M'))
         db.session.add(new_expense)
         new_expenses.append(new_expense)
 

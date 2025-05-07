@@ -185,19 +185,30 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             const row = jsonData[i];
             if (!row || row.length < 4) continue;  // Skip empty rows or rows with insufficient data
 
-            const date = row[0];
+            let date = row[0]?.toString(); // Ensure date is a string
             const category = row[1];
             const description = row[2] || '';  // Make description optional
             const amount = parseFloat(row[3]);
 
+            // Handle Excel numeric date format
+            if (!isNaN(date) && date.length <= 5) {
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel epoch starts on 1899-12-30
+                date = new Date(excelEpoch.getTime() + date * 86400000) // Convert days to milliseconds
+                    .toISOString()
+                    .split('T')[0]; // Extract YYYY-MM-DD
+            }
+
             // Validate date
-            if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD format.`);
+            if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
+                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD or YYYY/MM/DD format.`);
                 continue;
             }
 
-            // Add time to date
-            const dateWithTime = `${date}T00:00`;
+            // Normalize date to YYYY-MM-DD format
+            const normalizedDate = date.replace(/\//g, '-');
+            const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
+            const dateWithTime = `${year}-${month}-${day}T00:00`;
+            console.log('Parsed date:', dateWithTime);
 
             // Validate category
             if (!allowedCategories.includes(category)) {
