@@ -58,7 +58,7 @@ $(document).ready(function () {
         const expenseId = $('#expenseIdToShare').val();
 
         $.ajax({
-            url: `/api/expenses/${expenseId}/share`,
+            url: `/api/share/${expenseId}`,
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -373,7 +373,7 @@ $('#bulkShareButton').on('click', function () {
     }
 
     $.ajax({
-        url: '/api/expenses/bulk-share',
+        url: '/api/share/bulk',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ ids: selectedIds, username: username }),
