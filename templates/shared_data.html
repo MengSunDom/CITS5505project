@@ -1,5 +1,9 @@
 {% extends "base.html" %} {% block title %}Shared Data{% endblock %} {% block extra_head %}
 <link rel="stylesheet" href="/static/css/shared_data.css" />
+{% endblock %} {% block navbar_right %}
+<li class="nav-item">
+    <a class="nav-link text-dark" href="/logout">Logout</a>
+</li>
 {% endblock %} {% block content %}
 <div class="row mt-4">
     <div class="col-12">
