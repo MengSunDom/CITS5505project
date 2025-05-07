@@ -6,8 +6,6 @@ page_bp = Blueprint('page', __name__)
 
 @page_bp.route('/')
 def index():
-    if 'user' in session:
-        return redirect(url_for('page.dashboard'))
     return render_template('home.html')
 
 
@@ -54,6 +52,13 @@ def shared_data():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
     return render_template('shared_data.html')
+
+
+@page_bp.route('/analysis')
+def analysis():
+    if 'user' not in session:
+        return redirect(url_for('page.login_page'))
+    return render_template('analysis.html')
 
 
 @page_bp.route('/insights')

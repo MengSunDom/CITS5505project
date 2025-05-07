@@ -3,6 +3,7 @@ from flask import Blueprint, session, jsonify, request
 from datetime import datetime, timedelta
 from models.models import db, Expense, SharedExpense, User
 from sqlalchemy import func
+import logging
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -302,22 +303,19 @@ def get_insights():
         return jsonify({'error': f"Invalid 'days' parameter: '{days_param}'. Must be an integer."}), 400
     start_date = datetime.now() - timedelta(days=days)
 
-    expenses = db.session.query(
-        func.date(Expense.date).label('date'),
-        func.sum(Expense.amount).label('total')).filter(
-            Expense.user_id == user_id, Expense.date
-            >= start_date).group_by(func.date(Expense.date)).order_by(
-                func.date(Expense.date)).all()
+    # Get expenses grouped by category
+    category_expenses = db.session.query(
+        Expense.category,
+        func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.user_id == user_id,
+        Expense.date >= start_date
+    ).group_by(Expense.category).all()
 
-    # Ensure `e.date` is parsed as a `datetime` object
-    labels = [
-        datetime.strptime(e.date, '%Y-%m-%d').strftime('%Y-%m-%d')
-        if isinstance(e.date, str) else e.date.strftime('%Y-%m-%d')
-        for e in expenses
-    ]
-    values = [e.total for e in expenses]
+    labels = [item[0] for item in category_expenses]
+    values = [float(item[1]) for item in category_expenses]
 
-    logging.debug("Insights data: %s", {'labels': labels, 'values': values})  # Debug information
+    logging.debug("Insights data: %s", {'labels': labels, 'values': values})
 
     return jsonify({'labels': labels, 'values': values})
 

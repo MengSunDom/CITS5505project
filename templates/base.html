@@ -20,7 +20,7 @@
         {% block extra_head %}{% endblock %}
     </head>
     <body>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm py-3">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white">
             <div class="container">
                 <a class="navbar-brand fw-bold text-uppercase text-primary" href="/"
                     >Expense Tracker</a
@@ -35,7 +35,7 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
-                        {% block navbar_left %}
+                        {% if session.get('user') %}
                         <li class="nav-item">
                             <a class="nav-link text-dark" href="/dashboard">Dashboard</a>
                         </li>
@@ -43,15 +43,33 @@
                             <a class="nav-link text-dark" href="/expenses">Expenses</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="/shared-data">Shared Data</a>
+                            <a class="nav-link text-dark" href="/analysis">Analysis</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="/insights">Insights</a>
+                            <a class="nav-link text-dark" href="/shared-data">Shared Data</a>
                         </li>
-                        {% endblock %}
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/">Home</a>
+                        </li>
+                        {% endif %}
                     </ul>
                     <ul class="navbar-nav">
-                        {% block navbar_right %}{% endblock %}
+                        {% if session.get('user') %}
+                        <li class="nav-item">
+                            <span class="nav-link text-dark">Welcome, {{ session['user']['username'] }}</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/logout">Logout</a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/login">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/register">Register</a>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>

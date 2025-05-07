@@ -1,7 +1,6 @@
 {% extends "base.html" %} {% block title %}Expenses - Expense Tracker{% endblock %} {% block
 extra_head %}
 <link rel="stylesheet" href="/static/css/expenses.css" />
-<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
 {% endblock %} {% block navbar_right %}
 <li class="nav-item">
     <a class="nav-link text-dark" href="/logout">Logout</a>
@@ -38,25 +37,30 @@ extra_head %}
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <input type="text" class="form-control" id="description" />
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="description"
+                            name="description"
+                        />
                     </div>
                     <div class="mb-3">
-                        <label for="datetime" class="form-label">Date and Time</label>
+                        <label for="date" class="form-label">Date</label>
                         <input
                             type="datetime-local"
                             class="form-control"
-                            id="datetime"
+                            id="date"
                             required
-                            max=""
                         />
                     </div>
-                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Expense</button>
+                    </div>
                 </form>
                 <div class="mt-2">
                     <button type="button" class="btn btn-primary" id="downloadTemplate">
                         Download Template
                     </button>
-
                     <button type="button" class="btn btn-primary" id="uploadButton">
                         Upload Template
                     </button>
@@ -66,26 +70,6 @@ extra_head %}
         </div>
     </div>
     <div class="col-md-8">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Expense Analysis</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="chartType" class="form-label">Select Chart Type</label>
-                    <select id="chartType" class="form-select">
-                        <option value="pie">Pie Chart</option>
-                        <option value="bar">Bar Chart</option>
-                        <option value="line">Line Chart</option>
-                    </select>
-                </div>
-                <div id="expenseChart"></div>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="row mt-4">
-    <div class="col-12">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-header bg-light rounded-top border-bottom">
                 <h5 class="card-title mb-0">Expense History</h5>
@@ -174,7 +158,7 @@ extra_head %}
                 <form id="shareForm">
                     <div class="mb-3">
                         <label for="shareUsername" class="form-label">Username to share with</label>
-                        <select class="form-select" id="shareUsername" required>
+                        <select class="form-select" id="shareUsername" required></select>
                     </div>
                     <input type="hidden" id="expenseIdToShare">
                 </form>

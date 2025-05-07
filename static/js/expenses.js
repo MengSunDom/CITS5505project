@@ -1,52 +1,52 @@
 $(document).ready(function () {
-    // Set max datetime to current time and default value
-    const datetimeInput = document.getElementById('datetime');
-    function setCurrentDatetime() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0'); // Month starts from 0
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`; // Format "YYYY-MM-DDTHH:mm"
-        datetimeInput.setAttribute('max', formattedNow);
-        datetimeInput.value = formattedNow; // Set default value to current time
-    }
-    setCurrentDatetime();
-
-    // Reset datetime to current time on form reset
-    $('#expenseForm').on('reset', setCurrentDatetime);
+    // Set default date to today
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const hours = String(today.getHours()).padStart(2, '0');
+    const minutes = String(today.getMinutes()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('date').value = formattedDate;
 
     // Load expenses on page load
     loadExpenses();
 
     // Handle form submission
-    $('#expenseForm').on('submit', function (e) {
+    $('#expenseForm').on('submit', async (e) => {
         e.preventDefault();
-        const amount = $('#amount').val();
-        const category = $('#category').val();
-        const description = $('#description').val();
-        const datetime = $('#datetime').val();
-        let data = {
-            amount: amount,
-            category: category,
-            description: description,
-            date: datetime
+        
+        const formData = {
+            amount: document.getElementById('amount').value,
+            category: document.getElementById('category').value,
+            description: document.getElementById('description').value || '',  // Make description optional
+            date: document.getElementById('date').value
         };
-        $.ajax({
-            url: '/api/expenses',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function (response) {
+
+        try {
+            const response = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Expense added successfully!');
                 $('#expenseForm')[0].reset();
+                // Reset date to today after form reset
+                document.getElementById('date').value = formattedDate;
                 loadExpenses();
-                setCurrentDatetime();
-            },
-            error: function (xhr) {
-                alert('Error adding expense: ' + xhr.responseJSON.error);
+            } else {
+                alert(data.error || 'Failed to add expense');
             }
-        });
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while adding the expense');
+        }
     });
 
     // Handle share button click
@@ -76,7 +76,6 @@ function loadExpenses() {
     $.get('/api/expenses', function (expenses) {
         currentExpenses = expenses;
         updateExpenseTable(expenses);
-        refreshExpenses(expenses);
         filterAndSearchExpenses();
     });
 }
@@ -94,7 +93,7 @@ function updateExpenseTable(expenses) {
                 <td><input type="checkbox" data-id="${expense.id}" /></td>
                 <td>${expense.date}</td>
                 <td>${expense.category}</td>
-                <td>${expense.description}</td>
+                <td>${expense.description || ''}</td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
@@ -110,57 +109,7 @@ function updateExpenseTable(expenses) {
     });
 }
 
-function updateExpenseChart(expenses) {
-    const categories = {};
-    expenses.forEach(expense => {
-        categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
-    });
-
-    const chartType = document.getElementById('chartType').value;
-
-    let data = [];
-    let layout = {
-        title: 'Expense Distribution by Category',
-        height: 400
-    };
-
-    const labels = Object.keys(categories);
-    const values = Object.values(categories);
-
-    if (chartType === 'pie') {
-        data = [{
-            values: values,
-            labels: labels,
-            type: 'pie'
-        }];
-    } else if (chartType === 'bar') {
-        data = [{
-            x: labels,
-            y: values,
-            type: 'bar'
-        }];
-    } else if (chartType === 'line') {
-        data = [{
-            x: labels,
-            y: values,
-            type: 'scatter',
-            mode: 'lines+markers'
-        }];
-    }
-
-    Plotly.newPlot('expenseChart', data, layout);
-}
-
-document.getElementById('chartType').addEventListener('change', function () {
-    updateExpenseChart(currentExpenses);
-});
-
 let currentExpenses = [];
-
-function refreshExpenses(expenses) {
-    currentExpenses = expenses;
-    updateExpenseChart(expenses);
-}
 
 function openShareModal(expenseId) {
     $('#expenseIdToShare').val(expenseId);
@@ -169,7 +118,7 @@ function openShareModal(expenseId) {
 
 function deleteLine(expenseId) {
     if (!confirm("Are you sure you want to delete this expense?")) {
-        return; // If the user cancels, exit the function
+        return;
     }
 
     $.ajax({
@@ -181,6 +130,15 @@ function deleteLine(expenseId) {
         }),
         success: function (response) {
             $('#expenseForm')[0].reset();
+            // Reset date to today after form reset
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const hours = String(today.getHours()).padStart(2, '0');
+            const minutes = String(today.getMinutes()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+            document.getElementById('date').value = formattedDate;
             loadExpenses();
         },
         error: function (xhr) {
@@ -209,7 +167,6 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     if (!file) return;
 
     const reader = new FileReader();
-    const validRows = [];
     reader.onload = function (e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -218,40 +175,70 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
         const errors = [];
+        const validRows = [];
+        
+        // Skip header row
         for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
+            if (!row || row.length < 4) continue;  // Skip empty rows or rows with insufficient data
+
             const date = row[0];
             const category = row[1];
-            const description = row[2];
-            const amount = row[3];
+            const description = row[2] || '';  // Make description optional
+            const amount = parseFloat(row[3]);
 
+            // Validate date
+            if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD format.`);
+                continue;
+            }
+
+            // Add time to date
+            const dateWithTime = `${date}T00:00`;
+
+            // Validate category
             if (!allowedCategories.includes(category)) {
-                errors.push(`Row ${i + 1}: Invalid category "${category}"`);
+                errors.push(`Row ${i + 1}: Invalid category "${category}". Allowed categories: ${allowedCategories.join(', ')}`);
+                continue;
             }
 
-            if (isNaN(amount)) {
-                errors.push(`Row ${i + 1}: Amount "${amount}" is not a number`);
+            // Validate amount
+            if (isNaN(amount) || amount <= 0) {
+                errors.push(`Row ${i + 1}: Invalid amount "${amount}". Must be a positive number.`);
+                continue;
             }
-            validRows.push({ date, category, description, amount });
+
+            validRows.push({ date: dateWithTime, category, description, amount });
         }
 
         if (errors.length > 0) {
             alert('Upload failed:\n' + errors.join('\n'));
-        } else {
-            alert('Upload successful!');
+        } else if (validRows.length > 0) {
             $.ajax({
                 url: '/api/expenses/bulk',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
+                    alert('Upload successful!');
                     $('#expenseForm')[0].reset();
+                    // Reset date to today after form reset
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    const hours = String(today.getHours()).padStart(2, '0');
+                    const minutes = String(today.getMinutes()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+                    document.getElementById('date').value = formattedDate;
                     loadExpenses();
                 },
                 error: function (xhr) {
-                    alert('Error adding expense: ' + xhr.responseJSON.error);
+                    alert('Error uploading expenses: ' + xhr.responseJSON.error);
                 }
             });
+        } else {
+            alert('No valid data found in the file.');
         }
     };
 
@@ -287,13 +274,11 @@ $('#shareModal').on('show.bs.modal', function () {
 });
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Trigger file input when upload button is clicked
     document.getElementById('uploadButton').addEventListener('click', function () {
         document.getElementById('uploadTemplate').click();
     });
 });
 
-// Filter and search functionality
 function filterAndSearchExpenses() {
     const searchValue = $('#searchInput').val().toLowerCase();
     const selectedCategory = $('#filterCategory').val();
@@ -309,12 +294,10 @@ function filterAndSearchExpenses() {
     updateExpenseTable(filteredExpenses);
 }
 
-// Event listeners for search and filters
 $('#searchInput').on('input', filterAndSearchExpenses);
 $('#filterCategory').on('change', filterAndSearchExpenses);
 $('#filterMonth').on('change', filterAndSearchExpenses);
 
-// Multi-select delete functionality
 $('#selectAll').on('change', function () {
     const isChecked = $(this).is(':checked');
     $('#expenseTableBody input[type="checkbox"]').prop('checked', isChecked);
@@ -350,7 +333,6 @@ $('#deleteSelected').on('click', function () {
     });
 });
 
-// Set default month filter to the current month
 document.addEventListener('DOMContentLoaded', function () {
     const now = new Date();
     const year = now.getFullYear();
@@ -391,7 +373,6 @@ $('#bulkShareButton').on('click', function () {
     });
 });
 
-// Load usernames for bulk share modal
 $('#bulkShareModal').on('show.bs.modal', function () {
     loadUsernames();
 });
