@@ -312,7 +312,7 @@ def get_insights():
     ]
     values = [e.total for e in expenses]
 
-    print("Insights data:", {'labels': labels, 'values': values})  # 调试信息
+    logging.debug("Insights data: %s", {'labels': labels, 'values': values})  # Debug information
 
     return jsonify({'labels': labels, 'values': values})
 
