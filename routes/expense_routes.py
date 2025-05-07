@@ -108,6 +108,32 @@ def delete_expense():
     return jsonify({'message': 'Expense deleted successfully'})
 
 
+@expense_bp.route('/api/expenses/bulk-delete', methods=['POST'])
+def bulk_delete_expenses():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    expense_ids = data.get('ids', [])
+
+    if not expense_ids:
+        return jsonify({'error': 'No expense IDs provided'}), 400
+
+    expenses = Expense.query.filter(
+        Expense.id.in_(expense_ids),
+        Expense.user_id == session['user']['id']).all()
+
+    if not expenses:
+        return jsonify({'error': 'No matching expenses found'}), 404
+
+    for expense in expenses:
+        db.session.delete(expense)
+
+    db.session.commit()
+
+    return jsonify({'message': 'Selected expenses deleted successfully'})
+
+
 @expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
 def share_expense(expense_id):
     if 'user' not in session:
@@ -132,6 +158,40 @@ def share_expense(expense_id):
     db.session.commit()
 
     return jsonify({'message': 'Expense shared successfully'})
+
+
+@expense_bp.route('/api/expenses/bulk-share', methods=['POST'])
+def bulk_share_expenses():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    expense_ids = data.get('ids', [])
+    shared_with_username = data.get('username')
+
+    if not expense_ids or not shared_with_username:
+        return jsonify({'error': 'Missing expense IDs or username'}), 400
+
+    shared_with_user = User.query.filter_by(
+        username=shared_with_username).first()
+    if not shared_with_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    expenses = Expense.query.filter(
+        Expense.id.in_(expense_ids),
+        Expense.user_id == session['user']['id']).all()
+
+    if not expenses:
+        return jsonify({'error': 'No matching expenses found'}), 404
+
+    for expense in expenses:
+        shared_expense = SharedExpense(expense_id=expense.id,
+                                       shared_with_id=shared_with_user.id)
+        db.session.add(shared_expense)
+
+    db.session.commit()
+
+    return jsonify({'message': 'Selected expenses shared successfully'})
 
 
 @expense_bp.route('/api/shared-expenses/by-me', methods=['GET'])

@@ -77,6 +77,7 @@ function loadExpenses() {
         currentExpenses = expenses;
         updateExpenseTable(expenses);
         refreshExpenses(expenses);
+        filterAndSearchExpenses();
     });
 }
 
@@ -90,6 +91,7 @@ function updateExpenseTable(expenses) {
     expenses.forEach(expense => {
         const row = `
             <tr>
+                <td><input type="checkbox" data-id="${expense.id}" /></td>
                 <td>${expense.date}</td>
                 <td>${expense.category}</td>
                 <td>${expense.description}</td>
@@ -98,8 +100,8 @@ function updateExpenseTable(expenses) {
                     <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-sm btn-primary" onclick="deleteLine(${expense.id})">
-                        Delete
+                    <button class="btn btn-sm btn-danger" onclick="deleteLine(${expense.id})">
+                        <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>
             </tr>
@@ -262,12 +264,15 @@ let loadUsernames = () => {
         method: 'GET',
         success: function (data) {
             const select = $('#shareUsername');
+            const bulkSelect = $('#bulkShareUsername');
             select.empty();
+            bulkSelect.empty();
             data.forEach(function (user) {
                 const option = $('<option></option>')
                     .attr('value', user.username)
                     .text(user.username);
                 select.append(option);
+                bulkSelect.append(option.clone());
             });
         },
         error: function (xhr, status, error) {
@@ -286,4 +291,107 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('uploadButton').addEventListener('click', function () {
         document.getElementById('uploadTemplate').click();
     });
+});
+
+// Filter and search functionality
+function filterAndSearchExpenses() {
+    const searchValue = $('#searchInput').val().toLowerCase();
+    const selectedCategory = $('#filterCategory').val();
+    const selectedMonth = $('#filterMonth').val();
+
+    const filteredExpenses = currentExpenses.filter(expense => {
+        const matchesSearch = expense.description.toLowerCase().includes(searchValue);
+        const matchesCategory = !selectedCategory || expense.category === selectedCategory;
+        const matchesMonth = !selectedMonth || expense.date.startsWith(selectedMonth);
+        return matchesSearch && matchesCategory && matchesMonth;
+    });
+
+    updateExpenseTable(filteredExpenses);
+}
+
+// Event listeners for search and filters
+$('#searchInput').on('input', filterAndSearchExpenses);
+$('#filterCategory').on('change', filterAndSearchExpenses);
+$('#filterMonth').on('change', filterAndSearchExpenses);
+
+// Multi-select delete functionality
+$('#selectAll').on('change', function () {
+    const isChecked = $(this).is(':checked');
+    $('#expenseTableBody input[type="checkbox"]').prop('checked', isChecked);
+});
+
+$('#deleteSelected').on('click', function () {
+    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
+        .map(function () {
+            return $(this).data('id');
+        })
+        .get();
+
+    if (selectedIds.length === 0) {
+        alert('No expenses selected.');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete the selected expenses?')) {
+        return;
+    }
+
+    $.ajax({
+        url: '/api/expenses/bulk-delete',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ ids: selectedIds }),
+        success: function () {
+            loadExpenses();
+        },
+        error: function (xhr) {
+            alert('Error deleting expenses: ' + xhr.responseJSON.error);
+        }
+    });
+});
+
+// Set default month filter to the current month
+document.addEventListener('DOMContentLoaded', function () {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    $('#filterMonth').val(`${year}-${month}`);
+});
+
+$('#bulkShareButton').on('click', function () {
+    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
+        .map(function () {
+            return $(this).data('id');
+        })
+        .get();
+
+    if (selectedIds.length === 0) {
+        alert('No expenses selected.');
+        return;
+    }
+
+    const username = $('#bulkShareUsername').val();
+    if (!username) {
+        alert('Please select a username to share with.');
+        return;
+    }
+
+    $.ajax({
+        url: '/api/expenses/bulk-share',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ ids: selectedIds, username: username }),
+        success: function () {
+            $('#bulkShareModal').modal('hide');
+            alert('Expenses shared successfully!');
+        },
+        error: function (xhr) {
+            alert('Error sharing expenses: ' + xhr.responseJSON.error);
+        }
+    });
+});
+
+// Load usernames for bulk share modal
+$('#bulkShareModal').on('show.bs.modal', function () {
+    loadUsernames();
 });
