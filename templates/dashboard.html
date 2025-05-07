@@ -1,28 +1,36 @@
 {% extends "base.html" %} {% block title %}Dashboard - Expense Tracker{% endblock %} {% block
 navbar_right %}
 <li class="nav-item">
+
     <a class="nav-link" href="/logout">Logout</a>
+
 </li>
 {% endblock %} {% block content %}
 <div class="row">
     <div class="col-md-4">
+
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Welcome, <span id="username"></span>!</h5>
                 <p class="card-text">Track your expenses and manage your budget effectively.</p>
                 <a href="/expenses" class="btn btn-primary">Go to Expenses</a>
+
             </div>
         </div>
     </div>
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+
                 <h5 class="card-title mb-0">Expense Summary</h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4">
-                        <div class="card bg-primary text-white">
+
+                        <div class="card bg-primary text-white shadow-sm border-0">
+
                             <div class="card-body">
                                 <h6 class="card-title">Total Expenses</h6>
                                 <h3 class="card-text" id="totalExpenses">$0.00</h3>
@@ -30,7 +38,9 @@ navbar_right %}
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card bg-success text-white">
+
+                        <div class="card bg-success text-white shadow-sm border-0">
+
                             <div class="card-body">
                                 <h6 class="card-title">This Month</h6>
                                 <h3 class="card-text" id="monthlyExpenses">$0.00</h3>
@@ -38,7 +48,9 @@ navbar_right %}
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card bg-info text-white">
+
+                        <div class="card bg-info text-white shadow-sm border-0">
+
                             <div class="card-body">
                                 <h6 class="card-title">Top Category</h6>
                                 <h3 class="card-text" id="topCategory">-</h3>
@@ -52,14 +64,18 @@ navbar_right %}
 </div>
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+
                 <h5 class="card-title mb-0">Recent Expenses</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table">
-                        <thead>
+
+                    <table class="table table-hover">
+                        <thead class="thead-light">
+
                             <tr>
                                 <th>Date</th>
                                 <th>Category</th>
@@ -75,6 +91,7 @@ navbar_right %}
     </div>
 </div>
 {% endblock %} {% block extra_scripts %}
+
 <script>
     $(document).ready(function () {
         // Load user data
@@ -143,6 +160,7 @@ navbar_right %}
         });
     }
 </script>
+
 {% endblock %} {% block extra_head %}
 <link rel="stylesheet" href="/static/css/dashboard.css" />
 {% endblock %}

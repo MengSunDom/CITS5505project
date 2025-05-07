@@ -1,4 +1,13 @@
-{% extends "base.html" %} {% block title %}Login - Expense Tracker{% endblock %} {% block content %}
+
+{% extends "base.html" %} {% block title %}Login - Expense Tracker{% endblock %} {% block
+navbar_left %} {% endblock %} {% block navbar_right %}
+<li class="nav-item">
+    <a class="nav-link text-dark" href="/login">Login</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-dark" href="/register">Register</a>
+</li>
+{% endblock %} {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card">
@@ -28,6 +37,7 @@
                             required
                         />
                     </div>
+
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
                         <label class="form-check-label" for="rememberMe">Remember me</label>
@@ -35,6 +45,7 @@
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Login</button>
                     </div>
+
                 </form>
                 <div class="text-center mt-3">
                     <p>Don't have an account? <a href="/register">Register here</a></p>
@@ -44,6 +55,7 @@
     </div>
 </div>
 {% endblock %} {% block extra_scripts %}
+
 <script>
     $(document).ready(function() {
         // Check if there are saved credentials
@@ -109,4 +121,5 @@
         });
     });
 </script>
+
 {% endblock %}
