@@ -71,13 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/insights?days=${days}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
-            }    
+            }
             const data = await response.json();
             const chartType = chartTypeSelect.value;
-            let trace, layout;
+            let traces = [];
+            let layout = {};
     
             if (chartType === 'pie') {
-                trace = {
+                traces = [{
                     values: data.category.values,
                     labels: data.category.labels,
                     type: 'pie',
@@ -86,28 +87,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     marker: {
                         colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
                     }
-                };
+                }];
                 layout = {
                     title: 'Category Distribution',
                     margin: { t: 100, l: 50, r: 30, b: 50 }
                 };
             } else if (chartType === 'bar') {
-                const dates = Object.keys(data.date_category);
-                const categories = Object.keys(data.category.labels.reduce((acc, label) => {
-                    acc[label] = true;
-                    return acc;
-                }, {}));
-                
-                const traces = categories.map(category => {
-                    const y = dates.map(date => data.date_category[date]?.[category] || 0);
-                    return {
-                        x: dates,
-                        y: y,
-                        name: category,
-                        type: 'bar'
-                    };
-                });
-
+                const dates = Object.keys(data.date_category || {});
+                const categories = Array.from(new Set(data.category.labels));
+    
+                traces = categories.map(category => ({
+                    x: dates,
+                    y: dates.map(date => data.date_category[date]?.[category] || 0),
+                    name: category,
+                    type: 'bar'
+                }));
+    
                 layout = {
                     title: 'Daily Category Breakdown',
                     barmode: 'group',
@@ -115,17 +110,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     yaxis: { title: 'Amount ($)', tickprefix: '$' },
                     margin: { t: 100, l: 70, r: 30, b: 50 }
                 };
-
-                Plotly.react(expenseChartContainer, traces, layout);
             } else if (chartType === 'line') {
-                trace = {
+                traces = [{
                     x: data.date.labels,
                     y: data.date.values,
                     type: 'scatter',
                     mode: 'lines+markers',
                     marker: { color: 'blue' },
                     line: { shape: 'linear' }
-                };
+                }];
                 layout = {
                     title: 'Expense Trend',
                     xaxis: { title: 'Date', type: 'date' },
@@ -145,13 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
     
-            Plotly.react(expenseChartContainer, [trace], layout);
+            Plotly.react(expenseChartContainer, traces, layout);
             previousChartType = chartType;
     
         } catch (error) {
             console.error('Error fetching insights data:', error);
         }
     };
+    
 
     const updateData = () => {
         const days = timeSpanSelect.value;
