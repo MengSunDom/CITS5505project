@@ -26,6 +26,7 @@ class Expense(db.Model):
                      nullable=False,
                      default=lambda: datetime.now().astimezone())
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type = db.Column(db.String(10), nullable=False, default='expense')
 
 
 class SharedExpense(db.Model):

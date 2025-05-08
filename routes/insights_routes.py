@@ -119,3 +119,79 @@ def get_expense_summary():
             'values': values
         }
     })
+
+@insights_bp.route('/api/income-summary', methods=['GET'])
+def get_income_summary():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    days = int(request.args.get('days', 7))
+    start_date = datetime.now() - timedelta(days=days)
+
+    total_income = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.user_id == user_id,
+        Expense.type == 'income',
+        Expense.date >= start_date
+    ).scalar() or 0.0
+
+    category_distribution = db.session.query(
+        Expense.category, func.sum(Expense.amount)
+    ).filter(
+        Expense.user_id == user_id,
+        Expense.type == 'income',
+        Expense.date >= start_date
+    ).group_by(Expense.category).all()
+
+    labels = [item[0] for item in category_distribution]
+    values = [item[1] for item in category_distribution]
+
+    return jsonify({
+        'totalAmount': total_income,
+        'categoryDistribution': {
+            'labels': labels,
+            'values': values
+        }
+    })
+
+@insights_bp.route('/api/income-expense-comparison', methods=['GET'])
+def income_expense_comparison():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    user_id = session['user']['id']
+    days = int(request.args.get('days', 7))
+    start_date = datetime.now() - timedelta(days=days)
+
+    income_data = db.session.query(
+        func.date(Expense.date).label('date'),
+        func.sum(Expense.amount)
+    ).filter(
+        Expense.user_id == user_id,
+        Expense.type == 'income',
+        Expense.date >= start_date
+    ).group_by(func.date(Expense.date)).all()
+
+    expense_data = db.session.query(
+        func.date(Expense.date).label('date'),
+        func.sum(Expense.amount)
+    ).filter(
+        Expense.user_id == user_id,
+        Expense.type == 'expense',
+        Expense.date >= start_date
+    ).group_by(func.date(Expense.date)).all()
+
+    date_set = set([d for d, _ in income_data] + [d for d, _ in expense_data])
+    date_list = sorted(date_set)
+
+    income_map = {d: float(a) for d, a in income_data}
+    expense_map = {d: float(a) for d, a in expense_data}
+
+    income_list = [income_map.get(d, 0.0) for d in date_list]
+    expense_list = [expense_map.get(d, 0.0) for d in date_list]
+
+    return jsonify({
+        'labels': [d.strftime('%Y-%m-%d') for d in date_list],
+        'income': income_list,
+        'expense': expense_list
+    })
