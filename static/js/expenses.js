@@ -1,13 +1,17 @@
+function getFormattedDateTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 $(document).ready(function () {
     // Set default date to today
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const hours = String(today.getHours()).padStart(2, '0');
-    const minutes = String(today.getMinutes()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-    document.getElementById('date').value = formattedDate;
+    document.getElementById('date').value = getFormattedDateTime();
 
     // Load expenses on page load
     loadExpenses();
@@ -35,11 +39,14 @@ $(document).ready(function () {
             const data = await response.json();
             
             if (response.ok) {
-                alert('Expense added successfully!');
                 $('#expenseForm')[0].reset();
                 // Reset date to today after form reset
-                document.getElementById('date').value = formattedDate;
+                document.getElementById('date').value = getFormattedDateTime();
                 loadExpenses();
+                // Close the offcanvas panel
+                const offcanvasElement = document.getElementById('addExpenseCanvas');
+                const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+                offcanvasInstance.hide();
             } else {
                 alert(data.error || 'Failed to add expense');
             }
@@ -55,7 +62,7 @@ $(document).ready(function () {
         const expenseId = $('#expenseIdToShare').val();
 
         $.ajax({
-            url: `/api/expenses/${expenseId}/share`,
+            url: `/api/share/${expenseId}`,
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -96,10 +103,10 @@ function updateExpenseTable(expenses) {
                 <td>${expense.description || ''}</td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
+                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteLine(${expense.id})">
+                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${expense.id})">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>
@@ -182,19 +189,29 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             const row = jsonData[i];
             if (!row || row.length < 4) continue;  // Skip empty rows or rows with insufficient data
 
-            const date = row[0];
+            let date = row[0]?.toString(); // Ensure date is a string
             const category = row[1];
             const description = row[2] || '';  // Make description optional
             const amount = parseFloat(row[3]);
 
+            // Handle Excel numeric date format
+            if (!isNaN(date) && date.length <= 5) {
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel epoch starts on 1899-12-30
+                date = new Date(excelEpoch.getTime() + date * 86400000) // Convert days to milliseconds
+                    .toISOString()
+                    .split('T')[0]; // Extract YYYY-MM-DD
+            }
+
             // Validate date
-            if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD format.`);
+            if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
+                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD or YYYY/MM/DD format.`);
                 continue;
             }
 
-            // Add time to date
-            const dateWithTime = `${date}T00:00`;
+            // Normalize date to YYYY-MM-DD format
+            const normalizedDate = date.replace(/\//g, '-');
+            const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
+            const dateWithTime = `${year}-${month}-${day}T00:00`;
 
             // Validate category
             if (!allowedCategories.includes(category)) {
@@ -359,7 +376,7 @@ $('#bulkShareButton').on('click', function () {
     }
 
     $.ajax({
-        url: '/api/expenses/bulk-share',
+        url: '/api/share/bulk',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ ids: selectedIds, username: username }),

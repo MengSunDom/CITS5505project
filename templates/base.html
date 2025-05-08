@@ -43,21 +43,19 @@
                             <a class="nav-link text-dark" href="/expenses">Expenses</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="/analysis">Analysis</a>
+                            <a class="nav-link text-dark" href="/insights">Insights</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" href="/shared-data">Shared Data</a>
-                        </li>
-                        {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="/">Home</a>
                         </li>
                         {% endif %}
                     </ul>
                     <ul class="navbar-nav">
                         {% if session.get('user') %}
                         <li class="nav-item">
-                            <span class="nav-link text-dark">Welcome, {{ session['user']['username'] }}</span>
+                            <span class="nav-link text-dark"
+                                >Welcome, {{ session['user']['username'] }}</span
+                            >
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" href="/logout">Logout</a>

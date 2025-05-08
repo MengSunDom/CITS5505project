@@ -1,11 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("Shared Data page loaded.");
     fetchSharedByMeExpenses();
     fetchSharedWithMeExpenses();
 });
 
 function fetchSharedByMeExpenses() {
-    fetch('/api/shared-expenses/by-me')
+    fetch('/api/share/by-me')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to fetch shared by me expenses');
@@ -17,7 +16,7 @@ function fetchSharedByMeExpenses() {
 }
 
 function fetchSharedWithMeExpenses() {
-    fetch('/api/shared-expenses/with-me')
+    fetch('/api/share/with-me')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to fetch shared with me expenses');
@@ -77,7 +76,7 @@ function cancelSharedExpense(sharedExpenseId) {
         return;
     }
 
-    fetch('/api/shared-expenses/cancel', {
+    fetch('/api/share/cancel', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -93,7 +92,6 @@ function cancelSharedExpense(sharedExpenseId) {
             return response.json();
         })
         .then(data => {
-            console.log(data.message);
             fetchSharedByMeExpenses();
             fetchSharedWithMeExpenses();
         })
