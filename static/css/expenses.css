@@ -4,11 +4,6 @@
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
-/* Expense analysis chart */
-#expenseChart {
-    margin-top: 1rem;
-}
-
 /* Share modal */
 #shareModal .modal-content {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

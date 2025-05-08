@@ -53,14 +53,6 @@ def shared_data():
         return redirect(url_for('page.login_page'))
     return render_template('shared_data.html')
 
-
-@page_bp.route('/analysis')
-def analysis():
-    if 'user' not in session:
-        return redirect(url_for('page.login_page'))
-    return render_template('analysis.html')
-
-
 @page_bp.route('/insights')
 def insights():
     if 'user' not in session:
