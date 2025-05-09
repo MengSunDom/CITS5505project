@@ -28,3 +28,6 @@ instance/
 # Selenium test cache
 selenium-screenshots/
 users.db
+
+# API keys
+config.py

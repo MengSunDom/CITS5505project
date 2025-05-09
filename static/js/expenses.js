@@ -262,6 +262,104 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     reader.readAsArrayBuffer(file);
 });
 
+document.getElementById('uploadPicture').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Show progress bar and disable buttons
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.position = 'fixed';
+    progressBar.style.top = '0';
+    progressBar.style.left = '0';
+    progressBar.style.width = '100%';
+    progressBar.style.height = '5px';
+    progressBar.style.backgroundColor = '#0d6efd';
+    progressBar.style.transition = 'width 0.4s ease';
+    progressBar.style.zIndex = '1050';
+    document.body.appendChild(progressBar);
+
+    const disableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
+    };
+
+    const enableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
+    };
+
+    disableUI();
+
+    $.ajax({
+        url: '/api/expenses/by-ocr',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        xhr: function () {
+            const xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = `${percentComplete}%`;
+                }
+            });
+            return xhr;
+        },
+        success: function (response) {
+            try {
+                if (response.error) {
+                    alert(`Error: ${response.error}`);
+                    return;
+                }
+                data = JSON.parse(response.result);
+                addExpense(data);
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                alert('An unexpected error occurred. Please try again.');
+            }
+        },
+        error: function (xhr) {
+            console.error('Error:', xhr);
+            alert('An error occurred while processing the Picture.');
+        },
+        complete: function () {
+            document.body.removeChild(progressBar);
+            enableUI();
+
+        }
+    });
+});
+
+async function addExpense(expenseData) {
+    const formData = {
+        amount: expenseData.amount,
+        category: expenseData.category,
+        description: expenseData.description || '',  // Make description optional
+        date: expenseData.date
+    };
+    
+    $.ajax({
+        url: '/api/expenses',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function () {
+            $('#expenseForm')[0].reset();
+            document.getElementById('date').value = getFormattedDateTime();
+            loadExpenses();
+            const offcanvasElement = document.getElementById('addExpenseCanvas');
+            const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+            offcanvasInstance.hide();
+        },
+        error: function (xhr) {
+            alert(xhr.responseJSON?.error || 'Failed to add expense');
+        }
+    });
+}
+
 let loadUsernames = () => {
     $.ajax({
         url: '/api/users',
@@ -293,6 +391,10 @@ $('#shareModal').on('show.bs.modal', function () {
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('uploadButton').addEventListener('click', function () {
         document.getElementById('uploadTemplate').click();
+    });
+    document.getElementById('ocrButton').addEventListener('click', function () {
+        const fileInput = document.getElementById('uploadPicture');
+        fileInput.click();
     });
 });
 
