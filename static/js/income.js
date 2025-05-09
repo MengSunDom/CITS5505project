@@ -13,13 +13,12 @@ $(document).ready(function () {
     // Set default date to today
     document.getElementById('date').value = getFormattedDateTime();
 
-    // Load expenses on page load
-    loadExpenses();
+    loadData();
 
     // Handle form submission
-    $('#expenseForm').on('submit', async (e) => {
+    $('#incomeForm').on('submit', async (e) => {
         e.preventDefault();
-        
+
         const formData = {
             amount: document.getElementById('amount').value,
             category: document.getElementById('category').value,
@@ -28,7 +27,7 @@ $(document).ready(function () {
         };
 
         try {
-            const response = await fetch('/api/expenses', {
+            const response = await fetch('/api/incomes', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -37,32 +36,32 @@ $(document).ready(function () {
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
-                $('#expenseForm')[0].reset();
+                $('#incomeForm')[0].reset();
                 // Reset date to today after form reset
                 document.getElementById('date').value = getFormattedDateTime();
-                loadExpenses();
+                loadData();
                 // Close the offcanvas panel
-                const offcanvasElement = document.getElementById('addExpenseCanvas');
+                const offcanvasElement = document.getElementById('addIncomeCanvas');
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                 offcanvasInstance.hide();
             } else {
-                alert(data.error || 'Failed to add expense');
+                alert(data.error || 'Failed to add income');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while adding the expense');
+            alert('An error occurred while adding the income');
         }
     });
 
     // Handle share button click
     $('#shareButton').on('click', function () {
         const username = $('#shareUsername').val();
-        const expenseId = $('#expenseIdToShare').val();
+        const incomeId = $('#incomeIdToShare').val();
 
         $.ajax({
-            url: `/api/share/${expenseId}`,
+            url: `/api/share/${incomeId}`,
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -70,43 +69,43 @@ $(document).ready(function () {
             }),
             success: function (response) {
                 $('#shareModal').modal('hide');
-                alert('Expense shared successfully!');
+                alert('Income shared successfully!');
             },
             error: function (xhr) {
-                alert('Error sharing expense: ' + xhr.responseJSON.error);
+                alert('Error sharing income: ' + xhr.responseJSON.error);
             }
         });
     });
 });
 
-function loadExpenses() {
-    $.get('/api/expenses', function (expenses) {
-        currentExpenses = expenses;
-        updateExpenseTable(expenses);
-        filterAndSearchExpenses();
+function loadData() {
+    $.get('/api/incomes', function (incomes) {
+        currentincomes = incomes;
+        updateIncomeTable(incomes);
+        filterAndSearchincomes();
     });
 }
 
-function updateExpenseTable(expenses) {
-    const tbody = $('#expenseTableBody');
+function updateIncomeTable(incomes) {
+    const tbody = $('#incomeTableBody');
     tbody.empty();
 
-    // Sort expenses by date in descending order
-    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Sort incomes by date in descending order
+    incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    expenses.forEach(expense => {
+    incomes.forEach(income => {
         const row = `
             <tr>
-                <td><input type="checkbox" data-id="${expense.id}" /></td>
-                <td>${expense.date}</td>
-                <td>${expense.category}</td>
-                <td>${expense.description || ''}</td>
-                <td>$${expense.amount.toFixed(2)}</td>
+                <td><input type="checkbox" data-id="${income.id}" /></td>
+                <td>${income.date}</td>
+                <td>${income.category}</td>
+                <td>${income.description || ''}</td>
+                <td>$${income.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
+                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${income.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${expense.id})">
+                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${income.id})">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>
@@ -116,27 +115,27 @@ function updateExpenseTable(expenses) {
     });
 }
 
-let currentExpenses = [];
+let currentincomes = [];
 
-function openShareModal(expenseId) {
-    $('#expenseIdToShare').val(expenseId);
+function openShareModal(incomeId) {
+    $('#incomeIdToShare').val(incomeId);
     $('#shareModal').modal('show');
 }
 
-function deleteLine(expenseId) {
-    if (!confirm("Are you sure you want to delete this expense?")) {
+function deleteLine(incomeId) {
+    if (!confirm("Are you sure you want to delete this income?")) {
         return;
     }
 
     $.ajax({
-        url: '/api/expenses/delete',
+        url: '/api/incomes/delete',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
-            id: expenseId
+            id: incomeId
         }),
         success: function (response) {
-            $('#expenseForm')[0].reset();
+            $('#incomeForm')[0].reset();
             // Reset date to today after form reset
             const today = new Date();
             const year = today.getFullYear();
@@ -146,10 +145,10 @@ function deleteLine(expenseId) {
             const minutes = String(today.getMinutes()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
             document.getElementById('date').value = formattedDate;
-            loadExpenses();
+            loadData();
         },
         error: function (xhr) {
-            alert('Error deleting expense: ' + xhr.responseJSON.error);
+            alert('Error deleting income: ' + xhr.responseJSON.error);
         }
     });
 }
@@ -166,7 +165,7 @@ document.getElementById('downloadTemplate').addEventListener('click', function (
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
 
-    XLSX.writeFile(workbook, 'expense_template.xlsx');
+    XLSX.writeFile(workbook, 'income_template.xlsx');
 });
 
 document.getElementById('uploadTemplate').addEventListener('change', function (e) {
@@ -183,7 +182,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 
         const errors = [];
         const validRows = [];
-        
+
         // Skip header row
         for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
@@ -232,13 +231,13 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             alert('Upload failed:\n' + errors.join('\n'));
         } else if (validRows.length > 0) {
             $.ajax({
-                url: '/api/expenses/bulk',
+                url: '/api/incomes/bulk',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
                     alert('Upload successful!');
-                    $('#expenseForm')[0].reset();
+                    $('#incomeForm')[0].reset();
                     // Reset date to today after form reset
                     const today = new Date();
                     const year = today.getFullYear();
@@ -248,10 +247,10 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                     const minutes = String(today.getMinutes()).padStart(2, '0');
                     const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
                     document.getElementById('date').value = formattedDate;
-                    loadExpenses();
+                    loadData();
                 },
                 error: function (xhr) {
-                    alert('Error uploading expenses: ' + xhr.responseJSON.error);
+                    alert('Error uploading incomes: ' + xhr.responseJSON.error);
                 }
             });
         } else {
@@ -296,56 +295,56 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-function filterAndSearchExpenses() {
+function filterAndSearchincomes() {
     const searchValue = $('#searchInput').val().toLowerCase();
     const selectedCategory = $('#filterCategory').val();
     const selectedMonth = $('#filterMonth').val();
 
-    const filteredExpenses = currentExpenses.filter(expense => {
-        const matchesSearch = expense.description.toLowerCase().includes(searchValue);
-        const matchesCategory = !selectedCategory || expense.category === selectedCategory;
-        const matchesMonth = !selectedMonth || expense.date.startsWith(selectedMonth);
+    const filteredincomes = currentincomes.filter(income => {
+        const matchesSearch = income.description.toLowerCase().includes(searchValue);
+        const matchesCategory = !selectedCategory || income.category === selectedCategory;
+        const matchesMonth = !selectedMonth || income.date.startsWith(selectedMonth);
         return matchesSearch && matchesCategory && matchesMonth;
     });
 
-    updateExpenseTable(filteredExpenses);
+    updateIncomeTable(filteredincomes);
 }
 
-$('#searchInput').on('input', filterAndSearchExpenses);
-$('#filterCategory').on('change', filterAndSearchExpenses);
-$('#filterMonth').on('change', filterAndSearchExpenses);
+$('#searchInput').on('input', filterAndSearchincomes);
+$('#filterCategory').on('change', filterAndSearchincomes);
+$('#filterMonth').on('change', filterAndSearchincomes);
 
 $('#selectAll').on('change', function () {
     const isChecked = $(this).is(':checked');
-    $('#expenseTableBody input[type="checkbox"]').prop('checked', isChecked);
+    $('#incomeTableBody input[type="checkbox"]').prop('checked', isChecked);
 });
 
 $('#deleteSelected').on('click', function () {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
+    const selectedIds = $('#incomeTableBody input[type="checkbox"]:checked')
         .map(function () {
             return $(this).data('id');
         })
         .get();
 
     if (selectedIds.length === 0) {
-        alert('No expenses selected.');
+        alert('No incomes selected.');
         return;
     }
 
-    if (!confirm('Are you sure you want to delete the selected expenses?')) {
+    if (!confirm('Are you sure you want to delete the selected incomes?')) {
         return;
     }
 
     $.ajax({
-        url: '/api/expenses/bulk-delete',
+        url: '/api/incomes/bulk-delete',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ ids: selectedIds }),
         success: function () {
-            loadExpenses();
+            loadData();
         },
         error: function (xhr) {
-            alert('Error deleting expenses: ' + xhr.responseJSON.error);
+            alert('Error deleting incomes: ' + xhr.responseJSON.error);
         }
     });
 });
@@ -358,14 +357,14 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 $('#bulkShareButton').on('click', function () {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
+    const selectedIds = $('#incomeTableBody input[type="checkbox"]:checked')
         .map(function () {
             return $(this).data('id');
         })
         .get();
 
     if (selectedIds.length === 0) {
-        alert('No expenses selected.');
+        alert('No incomes selected.');
         return;
     }
 
@@ -382,10 +381,10 @@ $('#bulkShareButton').on('click', function () {
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {
             $('#bulkShareModal').modal('hide');
-            alert('Expenses shared successfully!');
+            alert('incomes shared successfully!');
         },
         error: function (xhr) {
-            alert('Error sharing expenses: ' + xhr.responseJSON.error);
+            alert('Error sharing incomes: ' + xhr.responseJSON.error);
         }
     });
 });
