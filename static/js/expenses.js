@@ -422,7 +422,7 @@ document.getElementById('uploadPicture').addEventListener('change', function (e)
                     alert(`Error: ${response.error}`);
                     return;
                 }
-                data = JSON.parse(response.result);
+                const data = JSON.parse(response.result);
                 addExpense(data);
             } catch (e) {
                 console.error('Error parsing response:', e);
