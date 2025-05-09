@@ -1,0 +1,289 @@
+/* Expense form */
+#expenseForm .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Share modal */
+#shareModal .modal-content {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Unified button styles */
+#expenseForm button,
+#downloadTemplate,
+#uploadButton {
+    background-color: #0d6efd; /* Primary blue color */
+    color: #ffffff; /* White text */
+    border: none; /* Remove border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 0.5rem 1rem; /* Consistent padding */
+    font-size: 1rem; /* Consistent font size */
+    transition: background-color 0.2s ease-in-out;
+    width: 100%; /* Ensure buttons are the same width */
+    margin-bottom: 0.5rem; /* Add spacing between buttons */
+    text-align: center; /* Center-align text */
+}
+
+#expenseForm button:hover,
+#downloadTemplate:hover,
+#uploadButton:hover {
+    background-color: #0b5ed7; /* Darker blue on hover */
+}
+
+/* Card spacing and size */
+.card {
+    margin-bottom: 1rem;
+}
+
+.card .card-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-sm i {
+    font-size: 0.875rem;
+}
+
+.expense-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+#searchInput,
+#filterCategory,
+#filterMonth {
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    #searchInput,
+    #filterCategory,
+    #filterMonth {
+        margin-bottom: 0;
+    }
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+#uploadTemplate {
+    display: none;
+}
+
+.btn-group {
+    margin-bottom: 1rem;
+}
+
+.btn-group .btn {
+    margin-right: 0.5rem;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+.table-responsive {
+    margin-bottom: 1rem;
+}
+
+.d-flex {
+    gap: 0.5rem;
+}
+
+.fas {
+    margin-right: 0.25rem;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.modal-header .btn-close {
+    padding: 0.5rem;
+    margin: -0.5rem -0.5rem -0.5rem auto;
+}
+
+.form-select {
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+}
+
+.form-control {
+    padding: 0.375rem 0.75rem;
+}
+
+.btn {
+    padding: 0.375rem 0.75rem;
+    font-weight: 500;
+}
+
+.btn i {
+    margin-right: 0.25rem;
+}
+
+.table th:first-child,
+.table td:first-child {
+    width: 50px;
+}
+
+.table th:last-child,
+.table td:last-child {
+    width: 100px;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+    width: 100px;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+    width: 120px;
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+    width: 100px;
+    text-align: right;
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+    width: 120px;
+    text-align: center;
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+    min-width: 200px;
+}
+
+@media (max-width: 768px) {
+    .table th,
+    .table td {
+        padding: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-sm i {
+        font-size: 0.75rem;
+    }
+
+    .table th:first-child,
+    .table td:first-child {
+        width: 40px;
+    }
+
+    .table th:last-child,
+    .table td:last-child {
+        width: 80px;
+    }
+
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        width: 80px;
+    }
+
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        width: 100px;
+    }
+
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+        width: 80px;
+    }
+
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        width: 100px;
+    }
+
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+        min-width: 150px;
+    }
+}
