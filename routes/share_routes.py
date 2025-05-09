@@ -1,8 +1,6 @@
 from flask import Blueprint, session, jsonify, request
 from models.models import db, Expense, SharedExpense, User
-
 from flask_login import login_required, current_user
-
 
 share_bp = Blueprint('share', __name__)
 
@@ -12,7 +10,6 @@ def share_expense(expense_id):
         return jsonify({'error': 'Not authenticated'}), 401
 
     data = request.get_json()
-
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
@@ -21,12 +18,10 @@ def share_expense(expense_id):
         return jsonify({'error': 'Username is required'}), 400
 
     shared_with_user = User.query.filter_by(username=shared_with_username).first()
-
     if not shared_with_user:
         return jsonify({'error': 'User not found'}), 404
 
     expense = Expense.query.get(expense_id)
-
     if not expense:
         return jsonify({'error': 'Expense not found'}), 404
     
@@ -63,7 +58,6 @@ def share_expense(expense_id):
         db.session.rollback()
         return jsonify({'error': f'Failed to share expense: {str(e)}'}), 500
 
-
 @share_bp.route('/api/share/bulk', methods=['POST'])
 def bulk_share_expenses():
     if 'user' not in session:
@@ -76,7 +70,6 @@ def bulk_share_expenses():
     if not expense_ids or not shared_with_username:
         return jsonify({'error': 'Missing expense IDs or username'}), 400
 
-
     shared_with_user = User.query.filter_by(username=shared_with_username).first()
     if not shared_with_user:
         return jsonify({'error': 'User not found'}), 404
@@ -87,10 +80,8 @@ def bulk_share_expenses():
         Expense.user_id == session['user']['id']
     ).all()
 
-
     if not expenses:
         return jsonify({'error': 'No matching expenses found'}), 404
-
 
     try:
         # If only one expense is selected, treat it as a single share
@@ -155,25 +146,21 @@ def bulk_share_expenses():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-
 @share_bp.route('/api/share/by-me', methods=['GET'])
 def get_shared_by_me_expenses():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
-
     # Get all shared expenses where the current user is the owner
     shared_expenses = SharedExpense.query.join(Expense).filter(
         Expense.user_id == user_id
     ).order_by(SharedExpense.date_shared.desc()).all()
     
-
     expenses = []
 
     for se in shared_expenses:
         shared_with_user = User.query.get(se.shared_with_id)
-
         if not shared_with_user:
             continue
 
@@ -239,7 +226,6 @@ def get_shared_by_me_expenses():
                     'is_repeat': bool(bulk_share)
                 })
     
-
     return jsonify(expenses)
 
 @share_bp.route('/api/share/with-me', methods=['GET'])
@@ -343,14 +329,12 @@ def get_shared_with_me_expenses():
         print(f"Error in get_shared_with_me_expenses: {str(e)}")  # Debug log
         return jsonify({'error': str(e)}), 500
 
-
 @share_bp.route('/api/share/cancel', methods=['POST'])
 def cancel_shared_expense():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
     data = request.get_json()
-
     shared_id = data.get('shared_id')
     if not shared_id:
         return jsonify({'error': 'Shared expense ID is required'}), 400
@@ -410,4 +394,3 @@ def bulk_cancel_shares():
     return jsonify({
         'message': f'Successfully canceled sharing for {len(shared_expenses)} expenses'
     })
-

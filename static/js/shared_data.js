@@ -314,7 +314,6 @@ function cancelSharedExpense(sharedExpenseId) {
         },
         body: JSON.stringify({ shared_id: sharedExpenseId })
     })
-
     .then(response => {
         if (!response.ok) {
             return response.json().then(err => {
@@ -354,5 +353,4 @@ function toggleBulkDetails(expenseId) {
         icon.classList.remove('fa-chevron-down');
         icon.classList.add('fa-chevron-right');
     }
-
 }
