@@ -57,7 +57,6 @@ $(document).ready(function () {
     });
 
     // Handle share button click
-
     $('#shareButton').off('click').on('click', function() {
         const expenseId = document.getElementById('expenseIdToShare').value;
         const username = document.getElementById('shareUsername').value;
@@ -68,7 +67,6 @@ $(document).ready(function () {
         }
         
         fetch(`/api/share/${expenseId}`, {
-
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -456,8 +454,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#filterMonth').val(`${year}-${month}`);
 });
 
-
 $('#bulkShareButton').on('click', shareSelectedExpenses);
 $('#deleteSelected').on('click', deleteSelectedExpenses);
 $('#cancelSelected').on('click', cancelSelectedShares);
-

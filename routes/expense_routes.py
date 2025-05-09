@@ -1,8 +1,6 @@
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime
-
 from models.models import db, Expense, User, SharedExpense
-
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -99,15 +97,20 @@ def delete_expense():
     data = request.get_json()
     expense_id = data.get('id')
 
-    expense = Expense.query.filter_by(id=expense_id,
-                                      user_id=session['user']['id']).first()
+    # Find the expense belonging to the current user
+    expense = Expense.query.filter_by(id=expense_id, user_id=session['user']['id']).first()
     if not expense:
         return jsonify({'error': 'Expense not found'}), 404
 
-    db.session.delete(expense)
-    db.session.commit()
-
-    return jsonify({'message': 'Expense deleted successfully'})
+    try:
+        # Delete all related SharedExpense records before deleting the expense itself
+        SharedExpense.query.filter_by(expense_id=expense_id).delete()
+        db.session.delete(expense)
+        db.session.commit()
+        return jsonify({'message': 'Expense deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete expense: {str(e)}'}), 500
 
 
 @expense_bp.route('/api/expenses/bulk-delete', methods=['POST'])
@@ -221,4 +224,3 @@ def bulk_share_expenses():
         'shared_count': shared_count,
         'already_shared': already_shared
     })
-
