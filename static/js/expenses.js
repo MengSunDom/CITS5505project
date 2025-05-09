@@ -80,14 +80,14 @@ $(document).ready(function () {
             if (data.error) {
                 alert(data.error);
             } else {
-                alert(data.message);
+                alert(data.message || 'Expense shared successfully');
                 $('#shareModal').modal('hide');
                 loadExpenses(); // Refresh the expenses list
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to share expense');
+            alert('Failed to share expense. Please try again.');
         });
     });
 

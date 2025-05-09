@@ -31,11 +31,12 @@ class SharedExpense(db.Model):
     shared_with_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date_shared = db.Column(db.DateTime, default=datetime.utcnow)
     is_bulk_share = db.Column(db.Boolean, default=False)
-    bulk_expense_ids = db.Column(db.Text)  # Store comma-separated expense IDs for bulk shares
+    bulk_expense_ids = db.Column(db.String(500))  # Store comma-separated expense IDs for bulk shares
+    is_repeat = db.Column(db.Boolean, default=False)  # Flag to indicate if this is a repeat share
 
     # Define relationships with backrefs
-    expense = db.relationship('Expense', backref=db.backref('shares', lazy=True))
-    shared_with = db.relationship('User', backref=db.backref('shared_expenses', lazy=True))
+    expense = db.relationship('Expense', backref='shares')
+    shared_with = db.relationship('User', backref='shared_expenses')
 
 
 def init_db():
