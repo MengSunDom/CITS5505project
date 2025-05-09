@@ -335,26 +335,35 @@ def cancel_shared_expense():
         return jsonify({'error': 'Not authenticated'}), 401
 
     data = request.get_json()
-    shared_expense_id = data.get('id')
-    print(shared_expense_id)
+    shared_id = data.get('shared_id')
+    if not shared_id:
+        return jsonify({'error': 'Shared expense ID is required'}), 400
 
-    shared_expense = SharedExpense.query.get(shared_expense_id)
-    print(shared_expense)
+    shared_expense = SharedExpense.query.get(shared_id)
     if not shared_expense:
-        return jsonify({'error': 'Shared expense not found'}), 400
+        return jsonify({'error': 'Shared expense not found'}), 404
 
     user_id = session['user']['id']
-    expense = Expense.query.get(shared_expense.expense_id)
+    
+    # For bulk shares, allow both the sharer and the recipient to cancel
+    if shared_expense.is_bulk_share:
+        expense_ids = [int(id) for id in shared_expense.bulk_expense_ids.split(',')]
+        first_expense = Expense.query.get(expense_ids[0])
+        if not first_expense or (first_expense.user_id != user_id and shared_expense.shared_with_id != user_id):
+            return jsonify({'error': 'Unauthorized to cancel this shared expense'}), 403
+    else:
+        # For single shares, check if the user is either the sharer or the recipient
+        expense = Expense.query.get(shared_expense.expense_id)
+        if not expense or (expense.user_id != user_id and shared_expense.shared_with_id != user_id):
+            return jsonify({'error': 'Unauthorized to cancel this shared expense'}), 403
 
-    # Check if the user is either the sharer or the recipient
-    if expense.user_id != user_id and shared_expense.shared_with_id != user_id:
-        return jsonify({'error':
-                        'Unauthorized to cancel this shared expense'}), 400
-
-    db.session.delete(shared_expense)
-    db.session.commit()
-
-    return jsonify({'message': 'Shared expense canceled successfully'})
+    try:
+        db.session.delete(shared_expense)
+        db.session.commit()
+        return jsonify({'message': 'Shared expense canceled successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to cancel shared expense: {str(e)}'}), 500
 
 @share_bp.route('/api/share/bulk-cancel', methods=['POST'])
 def bulk_cancel_shares():

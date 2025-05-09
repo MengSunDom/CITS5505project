@@ -70,11 +70,10 @@ function populateSharedByMeTable(expenses) {
                     <div class="d-flex flex-column">
                         <div class="d-flex align-items-center">
                             <span class="me-2">${expense.expense_count} expenses</span>
-                            ${hasRepeatedItems ? 
-                                '<span class="badge bg-warning">Contains individually shared items</span>' : 
-                                ''}
+                            ${(expense.is_repeat || (typeof hasRepeatedItems !== 'undefined' && hasRepeatedItems)) ?
+                                '<span class="badge bg-warning">Contains individually shared items</span>' : ''}
                         </div>
-                        <small class="text-muted">Shared with: ${expense.shared_with}</small>
+                        <small class="text-muted">${expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by}</small>
                     </div>
                 </td>
                 <td style="width: 20%">
@@ -82,16 +81,17 @@ function populateSharedByMeTable(expenses) {
                           data-bs-toggle="tooltip" 
                           data-bs-html="true"
                           data-bs-placement="top"
-                          title="${categories.join('<br>')}">
-                        ${displayCategories}
+                          title="${expense.categories.join('<br>')}">
+                        ${expense.categories.length > 2 ? `${expense.categories.slice(0, 2).join(', ')} +${expense.categories.length - 2} more` : expense.categories.join(', ')}
                     </span>
                 </td>
                 <td style="width: 15%">$${expense.total_amount.toFixed(2)}</td>
                 <td style="width: 15%">${expense.date}</td>
                 <td style="width: 20%">
-                    <button class="btn btn-danger btn-sm" onclick="cancelShare(${expense.shared_id})">
-                        <i class="fas fa-times"></i> Cancel Share
-                    </button>
+                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
+                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
+                        <span class="badge bg-warning" style="width: 60px; visibility:hidden;">Repeat</span>
+                    </div>
                 </td>
             `;
             tbody.appendChild(mainRow);
@@ -134,27 +134,23 @@ function populateSharedByMeTable(expenses) {
             `;
             tbody.appendChild(detailsRow);
         } else {
-            // Create row for single expense share
+            // Single share
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td style="width: 5%"></td>
                 <td style="width: 25%">
                     <div class="d-flex flex-column">
                         <div>${expense.description}</div>
-                        <small class="text-muted">Shared with: ${expense.shared_with}</small>
+                        <small class="text-muted">${expense.note ? expense.note : (expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by)}</small>
                     </div>
                 </td>
                 <td style="width: 20%">${expense.category}</td>
                 <td style="width: 15%">$${expense.amount.toFixed(2)}</td>
                 <td style="width: 15%">${expense.date}</td>
                 <td style="width: 20%">
-                    <div class="d-flex align-items-center justify-content-between">
-                        ${expense.is_repeat ? 
-                            '<span class="badge bg-warning">Already shared</span>' : 
-                            ''}
-                        <button class="btn btn-danger btn-sm" onclick="cancelShare(${expense.shared_id})">
-                            <i class="fas fa-times"></i> Cancel Share
-                        </button>
+                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
+                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
+                        <span class="badge bg-warning" style="width: 60px; ${expense.is_repeat ? '' : 'visibility:hidden;'}">Repeat</span>
                     </div>
                 </td>
             `;
@@ -188,6 +184,9 @@ function populateSharedWithMeTable(expenses) {
 
     expenses.forEach(expense => {
         if (expense.is_bulk) {
+            // Check if any details have is_repeat flag
+            const hasRepeatedItems = expense.details.some(detail => detail.is_repeat);
+            
             // Format categories for display
             const categories = expense.categories;
             const displayCategories = categories.length > 2 ? 
@@ -206,11 +205,10 @@ function populateSharedWithMeTable(expenses) {
                     <div class="d-flex flex-column">
                         <div class="d-flex align-items-center">
                             <span class="me-2">${expense.expense_count} expenses</span>
-                            ${expense.is_repeat ? 
-                                '<span class="badge bg-warning">Contains individually shared items</span>' : 
-                                ''}
+                            ${(expense.is_repeat || (typeof hasRepeatedItems !== 'undefined' && hasRepeatedItems)) ?
+                                '<span class="badge bg-warning">Contains individually shared items</span>' : ''}
                         </div>
-                        <small class="text-muted">Shared by: ${expense.shared_by}</small>
+                        <small class="text-muted">${expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by}</small>
                     </div>
                 </td>
                 <td style="width: 20%">
@@ -218,16 +216,17 @@ function populateSharedWithMeTable(expenses) {
                           data-bs-toggle="tooltip" 
                           data-bs-html="true"
                           data-bs-placement="top"
-                          title="${categories.join('<br>')}">
-                        ${displayCategories}
+                          title="${expense.categories.join('<br>')}">
+                        ${expense.categories.length > 2 ? `${expense.categories.slice(0, 2).join(', ')} +${expense.categories.length - 2} more` : expense.categories.join(', ')}
                     </span>
                 </td>
                 <td style="width: 15%">$${expense.total_amount.toFixed(2)}</td>
                 <td style="width: 15%">${expense.date}</td>
                 <td style="width: 20%">
-                    <button class="btn btn-danger btn-sm" onclick="cancelSharedExpense(${expense.shared_id})">
-                        <i class="fas fa-times"></i> Cancel Share
-                    </button>
+                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
+                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
+                        <span class="badge bg-warning" style="width: 60px; visibility:hidden;">Repeat</span>
+                    </div>
                 </td>
             `;
             tbody.appendChild(mainRow);
@@ -270,27 +269,23 @@ function populateSharedWithMeTable(expenses) {
             `;
             tbody.appendChild(detailsRow);
         } else {
-            // Create row for single expense share
+            // Single share
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td style="width: 5%"></td>
                 <td style="width: 25%">
                     <div class="d-flex flex-column">
                         <div>${expense.description}</div>
-                        <small class="text-muted">Shared by: ${expense.shared_by}</small>
+                        <small class="text-muted">${expense.note ? expense.note : (expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by)}</small>
                     </div>
                 </td>
                 <td style="width: 20%">${expense.category}</td>
                 <td style="width: 15%">$${expense.amount.toFixed(2)}</td>
                 <td style="width: 15%">${expense.date}</td>
                 <td style="width: 20%">
-                    <div class="d-flex align-items-center justify-content-between">
-                        ${expense.is_repeat ? 
-                            '<span class="badge bg-warning">Already shared</span>' : 
-                            ''}
-                        <button class="btn btn-danger btn-sm" onclick="cancelSharedExpense(${expense.shared_id})">
-                            <i class="fas fa-times"></i> Cancel Share
-                        </button>
+                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
+                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
+                        <span class="badge bg-warning" style="width: 60px; ${expense.is_repeat ? '' : 'visibility:hidden;'}">Repeat</span>
                     </div>
                 </td>
             `;
@@ -317,21 +312,32 @@ function cancelSharedExpense(sharedExpenseId) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: sharedExpenseId }),
+        body: JSON.stringify({ shared_id: sharedExpenseId })
     })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.error || 'Unknown error occurred');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            fetchSharedByMeExpenses();
-            fetchSharedWithMeExpenses();
-        })
-        .catch(error => console.error(error));
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Failed to cancel share');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Refresh both tables to ensure data consistency
+        fetchSharedByMeExpenses();
+        fetchSharedWithMeExpenses();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Show user-friendly error messages
+        if (error.message.includes('Unauthorized')) {
+            alert('You are not authorized to cancel this share');
+        } else if (error.message.includes('not found')) {
+            alert('This share no longer exists');
+        } else {
+            alert('Failed to cancel share: ' + error.message);
+        }
+    });
 }
 
 function toggleBulkDetails(expenseId) {
@@ -346,29 +352,5 @@ function toggleBulkDetails(expenseId) {
         detailsRow.style.display = 'none';
         icon.classList.remove('fa-chevron-down');
         icon.classList.add('fa-chevron-right');
-    }
-}
-
-function cancelShare(sharedId) {
-    if (confirm('Are you sure you want to cancel this share?')) {
-        fetch('/api/share/cancel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ shared_id: sharedId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadSharedData();
-            } else {
-                alert(data.error || 'Failed to cancel share');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to cancel share');
-        });
     }
 }
