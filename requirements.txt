@@ -1,9 +1,7 @@
-flask
-flask-socketio
-eventlet
-pytest
-selenium
-flask-sqlalchemy
-plotly
-pandas
-numpy
+easyocr==1.7.2
+Flask==3.1.0
+flask_sqlalchemy==3.1.1
+openai==1.78.0
+selenium==4.32.0
+SQLAlchemy==2.0.34
+Werkzeug==3.1.3
