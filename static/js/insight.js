@@ -56,8 +56,8 @@ $(document).ready(() => {
             success: (data) => {
                 drawPieChart(data);
                 drawLineChart(data);
-                drawYoYChart(data, startDate, endDate);
-                drawMoMChart(data, startDate, endDate);
+                drawYoYChart(startDate, endDate);
+                drawMoMChart(startDate, endDate);
             },
             error: (xhr, status, error) => {
                 console.error('Error fetching insights data:', error);
@@ -121,132 +121,83 @@ $(document).ready(() => {
         Plotly.react($('#lineChart')[0], traces, layout);
     };
 
-    const drawYoYChart = (currentData, startDate, endDate) => {
-        const lastYearStart = new Date(startDate);
-        const lastYearEnd = new Date(endDate);
-        lastYearStart.setFullYear(lastYearStart.getFullYear() - 1);
-        lastYearEnd.setFullYear(lastYearEnd.getFullYear() - 1);
+    const drawYoYChart = (startDate, endDate) => {
+        const thisYear = new Date(startDate).getFullYear();
+        const lastYear = thisYear - 1;
 
-        const formatDate = date => date.toISOString().split('T')[0];
+        const formatDate = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const thisYearStart = formatDate(thisYear, 1, 1);
+        const thisYearEnd = formatDate(thisYear, 12, 31);
+        const lastYearStart = formatDate(lastYear, 1, 1);
+        const lastYearEnd = formatDate(lastYear, 12, 31);
 
-        $.ajax({
-            url: '/api/insights',
-            method: 'GET',
-            data: {
-                startDate: formatDate(lastYearStart),
-                endDate: formatDate(lastYearEnd)
-            },
-            dataType: 'json',
-            success: (lastYearData) => {
-                const currentX = currentData.date.labels.map(formatToMonthDay);
-                const currentY = currentData.date.values;
+        $.when(
+            $.getJSON('/api/insights', { startDate: lastYearStart, endDate: lastYearEnd }),
+            $.getJSON('/api/insights', { startDate: thisYearStart, endDate: thisYearEnd })
+        ).done((lastRes, thisRes) => {
+            const lastYearAmount = lastRes[0].totalAmount;
+            const thisYearAmount = thisRes[0].totalAmount;
 
-                const lastYearX = lastYearData.date.labels.map(formatToMonthDay);
-                const lastYearY = lastYearData.date.values;
+            const traces = [{
+                x: [lastYear.toString(), thisYear.toString()],
+                y: [lastYearAmount, thisYearAmount],
+                type: 'bar',
+                text: [lastYearAmount.toFixed(2), thisYearAmount.toFixed(2)],
+                textposition: 'auto',
+                marker: { color: ['gray', 'blue'] }
+            }];
 
-                const traces = [
-                    {
-                        x: currentX,
-                        y: currentY,
-                        type: 'scatter',
-                        mode: 'lines+markers',
-                        name: 'This Year',
-                        line: { color: 'blue' }
-                    },
-                    {
-                        x: lastYearX,
-                        y: lastYearY,
-                        type: 'scatter',
-                        mode: 'lines+markers',
-                        name: 'Last Year',
-                        line: { color: 'gray', dash: 'dot' }
-                    }
-                ];
+            const layout = {
+                title: 'Year-over-Year Total Comparison',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Amount ($)' },
+                margin: { t: 80, l: 60, r: 30, b: 50 }
+            };
 
-                const layout = {
-                    title: 'Year-over-Year Comparison',
-                    xaxis: { title: 'Date (MM-DD)', tickformat: '%b %d' },
-                    yaxis: { title: 'Amount ($)' },
-                    margin: { t: 80, l: 60, r: 30, b: 50 }
-                };
-
-                Plotly.react($('#yoyChart')[0], traces, layout);
-            },
-            error: (xhr, status, err) => {
-                console.error('Error fetching YoY data:', err);
-            }
+            Plotly.react($('#yoyChart')[0], traces, layout);
         });
     };
 
 
+    const drawMoMChart = (startDate, endDate) => {
+        const start = new Date(startDate);
+        const year = start.getFullYear();
+        const month = start.getMonth() + 1;
+        const lastMonthDate = new Date(start);
+        lastMonthDate.setMonth(month - 2);
 
-    const drawMoMChart = (currentData, startDate, endDate) => {
-        const thisStart = new Date(startDate);
-        const thisEnd = new Date(endDate);
+        const formatDate = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const thisMonthStart = formatDate(year, month, 1);
+        const thisMonthEnd = formatDate(year, month + 1, 1);
 
-        const lastMonthStart = new Date(thisStart);
-        lastMonthStart.setMonth(thisStart.getMonth() - 1);
+        const lastMonthStart = formatDate(lastMonthDate.getFullYear(), lastMonthDate.getMonth() + 1, 1);
+        const lastMonthEnd = formatDate(lastMonthDate.getFullYear(), lastMonthDate.getMonth() + 2, 1);
 
-        const lastMonthEnd = new Date(thisEnd);
-        lastMonthEnd.setMonth(thisEnd.getMonth() - 1);
+        $.when(
+            $.getJSON('/api/insights', { startDate: lastMonthStart, endDate: lastMonthEnd }),
+            $.getJSON('/api/insights', { startDate: thisMonthStart, endDate: thisMonthEnd })
+        ).done((lastRes, thisRes) => {
+            const lastAmount = lastRes[0].totalAmount;
+            const thisAmount = thisRes[0].totalAmount;
 
-        const formatDate = date => date.toISOString().split('T')[0];
+            const traces = [{
+                x: ['Last Month', 'This Month'],
+                y: [lastAmount, thisAmount],
+                type: 'bar',
+                text: [lastAmount.toFixed(2), thisAmount.toFixed(2)],
+                textposition: 'auto',
+                marker: { color: ['orange', 'green'] }
+            }];
 
-        $.ajax({
-            url: '/api/insights',
-            method: 'GET',
-            data: {
-                startDate: formatDate(lastMonthStart),
-                endDate: formatDate(lastMonthEnd)
-            },
-            dataType: 'json',
-            success: (lastMonthData) => {
-                const currentX = currentData.date.labels.map(formatToMonthDay);
-                const currentY = currentData.date.values;
+            const layout = {
+                title: 'Month-over-Month Total Comparison',
+                xaxis: { title: 'Month' },
+                yaxis: { title: 'Amount ($)' },
+                margin: { t: 80, l: 60, r: 30, b: 50 }
+            };
 
-                const lastMonthX = lastMonthData.date.labels.map(formatToMonthDay);
-                const lastMonthY = lastMonthData.date.values;
-
-                const traces = [
-                    {
-                        x: currentX,
-                        y: currentY,
-                        type: 'scatter',
-                        mode: 'lines+markers',
-                        name: 'This Month',
-                        line: { color: 'green' }
-                    },
-                    {
-                        x: lastMonthX,
-                        y: lastMonthY,
-                        type: 'scatter',
-                        mode: 'lines+markers',
-                        name: 'Last Month',
-                        line: { color: 'orange', dash: 'dot' }
-                    }
-                ];
-
-                const layout = {
-                    title: 'Month-over-Month Comparison',
-                    xaxis: { title: 'Date (MM-DD)', tickformat: '%b %d' },
-                    yaxis: { title: 'Amount ($)' },
-                    margin: { t: 80, l: 60, r: 30, b: 50 }
-                };
-
-                Plotly.react($('#momChart')[0], traces, layout);
-            },
-            error: (xhr, status, err) => {
-                console.error('Error fetching MoM data:', err);
-            }
+            Plotly.react($('#momChart')[0], traces, layout);
         });
-    };
-
-
-    const formatToMonthDay = (dateStr) => {
-        const d = new Date(dateStr);
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${month}-${day}`;
     };
 
     const updateData = () => {
