@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const timeSpanSelect = document.getElementById('timeSpan');
+    // const timeSpanSelect = document.getElementById('timeSpan');
+    const startDateSelect = document.getElementById('startDate');
+    const endDateSelect = document.getElementById('endDate');
     const chartTypeSelect = document.getElementById('chartType');
     const expenseChartContainer = document.getElementById('expenseChart');
     const totalEntriesElement = document.getElementById('totalEntries');
@@ -7,9 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const averageAmountElement = document.getElementById('averageAmount');
     const categoryDistributionList = document.getElementById('categoryDistributionList');
 
-    const fetchSummaryData = async (days) => {
+    // time selector default value
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').value = today;
+    document.getElementById('endDate').value = today;
+
+    const fetchSummaryData = async (startDate, endDate) => {
         try {
-            const response = await fetch(`/api/insights/summary?days=${days}`);
+            const response = await fetch(`/api/insights/summary?startDate=${startDate}&endDate=${endDate}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -66,9 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let previousChartType = null;
-    const fetchAndRenderChart = async (days) => {
+    const fetchAndRenderChart = async (startDate, endDate) => {
         try {
-            const response = await fetch(`/api/insights?days=${days}`);
+            const response = await fetch(`/api/insights?startDate=${startDate}&endDate=${endDate}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -76,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const chartType = chartTypeSelect.value;
             let traces = [];
             let layout = {};
-    
+
             if (chartType === 'pie') {
                 traces = [{
                     values: data.category.values,
@@ -95,14 +102,14 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (chartType === 'bar') {
                 const dates = Object.keys(data.date_category || {});
                 const categories = Array.from(new Set(data.category.labels));
-    
+
                 traces = categories.map(category => ({
                     x: dates,
                     y: dates.map(date => data.date_category[date]?.[category] || 0),
                     name: category,
                     type: 'bar'
                 }));
-    
+
                 layout = {
                     title: 'Daily Category Breakdown',
                     barmode: 'group',
@@ -126,34 +133,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     margin: { t: 100, l: 70, r: 30, b: 50 }
                 };
             }
-    
+
             const isAnimated =
                 previousChartType === chartType ||
                 (['bar', 'line'].includes(previousChartType) && ['bar', 'line'].includes(chartType));
-    
+
             if (isAnimated && chartType !== 'pie') {
                 layout.transition = {
                     duration: 500,
                     easing: 'cubic-in-out'
                 };
             }
-    
+
             Plotly.react(expenseChartContainer, traces, layout);
             previousChartType = chartType;
-    
+
         } catch (error) {
             console.error('Error fetching insights data:', error);
         }
     };
-    
+
 
     const updateData = () => {
-        const days = timeSpanSelect.value;
-        fetchSummaryData(days);
-        fetchAndRenderChart(days);
+        const startDate = startDateSelect.value;
+        const endDate = endDateSelect.value;
+        fetchSummaryData(startDate, endDate);
+        fetchAndRenderChart(startDate, endDate);
     };
 
-    timeSpanSelect.addEventListener('change', updateData);
+    startDateSelect.addEventListener('change', updateData);
+    endDateSelect.addEventListener('change', updateData);
     chartTypeSelect.addEventListener('change', updateData);
 
     // Initial load

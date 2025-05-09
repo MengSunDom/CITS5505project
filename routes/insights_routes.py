@@ -93,20 +93,28 @@ def get_expense_summary():
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_id = session['user']['id']
-    days = int(request.args.get('days', 7))
-    start_date = datetime.now() - timedelta(days=days)
-
+    # days = int(request.args.get('days', 7))
+    # start_date = datetime.now() - timedelta(days=days)
+    start_date = int(request.args.get('startDate', 7))
+    end_date = int(request.args.get('endDate', 7))
     # Total entries and total amount
-    total_entries = Expense.query.filter(Expense.user_id == user_id,
-                                         Expense.date >= start_date).count()
+    total_entries = Expense.query.filter(Expense.user_id == user_id, 
+                                         Expense.date >= start_date,
+                                         Expense.date >= end_date
+                                         ).count()
     total_amount = db.session.query(func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id, Expense.date >= start_date).scalar() or 0.0
+        Expense.user_id == user_id, 
+        Expense.date >= start_date,
+        Expense.date >= end_date
+        ).scalar() or 0.0
 
     # Category distribution
     category_distribution = db.session.query(
         Expense.category, func.sum(Expense.amount)).filter(
-            Expense.user_id == user_id, Expense.date
-            >= start_date).group_by(Expense.category).all()
+            Expense.user_id == user_id, 
+            Expense.date >= start_date,
+            Expense.date >= end_date
+            ).group_by(Expense.category).all()
 
     labels = [item[0] for item in category_distribution]
     values = [item[1] for item in category_distribution]
