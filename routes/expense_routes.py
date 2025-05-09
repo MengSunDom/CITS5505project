@@ -1,6 +1,8 @@
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime
+
 from models.models import db, Expense, User, SharedExpense
+
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -219,3 +221,4 @@ def bulk_share_expenses():
         'shared_count': shared_count,
         'already_shared': already_shared
     })
+
