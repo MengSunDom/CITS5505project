@@ -12,9 +12,6 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False)
     permission = db.Column(db.String(20), default='basic')
     expenses = db.relationship('Expense', backref='user', lazy=True)
-    shared_expenses = db.relationship('SharedExpense',
-                                      backref='shared_with',
-                                      lazy=True)
 
 
 class Expense(db.Model):
@@ -30,15 +27,15 @@ class Expense(db.Model):
 
 class SharedExpense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    expense_id = db.Column(db.Integer,
-                           db.ForeignKey('expense.id'),
-                           nullable=False)
-    shared_with_id = db.Column(db.Integer,
-                               db.ForeignKey('user.id'),
-                               nullable=False)
-    date_shared = db.Column(db.DateTime,
-                            nullable=False,
-                            default=lambda: datetime.now().astimezone())
+    expense_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable=False)
+    shared_with_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date_shared = db.Column(db.DateTime, default=datetime.utcnow)
+    is_bulk_share = db.Column(db.Boolean, default=False)
+    bulk_expense_ids = db.Column(db.Text)  # Store comma-separated expense IDs for bulk shares
+
+    # Define relationships with backrefs
+    expense = db.relationship('Expense', backref=db.backref('shares', lazy=True))
+    shared_with = db.relationship('User', backref=db.backref('shared_expenses', lazy=True))
 
 
 def init_db():

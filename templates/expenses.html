@@ -7,77 +7,31 @@ extra_head %}
 </li>
 {% endblock %} {% block content %}
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-12">
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Add New Expense</h5>
-            </div>
-            <div class="card-body">
-                <form id="expenseForm">
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Amount</label>
-                        <input
-                            type="number"
-                            class="form-control"
-                            id="amount"
-                            step="0.01"
-                            required
-                        />
-                    </div>
-                    <div class="mb-3">
-                        <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" required>
-                            <option value="Food">Food</option>
-                            <option value="Transportation">Transportation</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Shopping">Shopping</option>
-                            <option value="Bills">Bills</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="description"
-                            name="description"
-                        />
-                    </div>
-                    <div class="mb-3">
-                        <label for="date" class="form-label">Date</label>
-                        <input
-                            type="datetime-local"
-                            class="form-control"
-                            id="date"
-                            required
-                        />
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Add Expense</button>
-                    </div>
-                </form>
-                <div class="mt-2">
-                    <button type="button" class="btn btn-primary" id="downloadTemplate">
-                        Download Template
-                    </button>
-                    <button type="button" class="btn btn-primary" id="uploadButton">
-                        Upload Template
-                    </button>
-                    <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-light rounded-top border-bottom">
+            <div
+                class="card-header bg-light rounded-top border-bottom d-flex justify-content-between align-items-center"
+            >
                 <h5 class="card-title mb-0">Expense History</h5>
+                <button
+                    class="btn btn-primary btn-sm"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#addExpenseCanvas"
+                    aria-controls="addExpenseCanvas"
+                >
+                    Add New Expense
+                </button>
             </div>
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search by description..." />
+                        <input
+                            type="text"
+                            id="searchInput"
+                            class="form-control"
+                            placeholder="Search by description..."
+                        />
                     </div>
                     <div class="col-md-4">
                         <select id="filterCategory" class="form-select">
@@ -95,7 +49,7 @@ extra_head %}
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table table-sm table-striped table-hover">
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="selectAll" /></th>
@@ -106,7 +60,7 @@ extra_head %}
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="expenseTableBody"></tbody>
+                        <tbody id="expenseTableBody" class="text-nowrap"></tbody>
                     </table>
                 </div>
                 <div class="d-flex">
@@ -118,6 +72,61 @@ extra_head %}
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offcanvas for Add New Expense -->
+<div
+    class="offcanvas offcanvas-end"
+    tabindex="-1"
+    id="addExpenseCanvas"
+    aria-labelledby="addExpenseCanvasLabel"
+>
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="addExpenseCanvasLabel">Add New Expense</h5>
+        <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+        ></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="expenseForm">
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount</label>
+                <input type="number" class="form-control" id="amount" step="0.01" required />
+            </div>
+            <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <select class="form-select" id="category" required>
+                    <option value="Food">Food</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Bills">Bills</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <input type="text" class="form-control" id="description" name="description" />
+            </div>
+            <div class="mb-3">
+                <label for="date" class="form-label">Date</label>
+                <input type="datetime-local" class="form-control" id="date" step="1" required />
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Add Expense</button>
+            </div>
+        </form>
+        <div class="mt-2">
+            <button type="button" class="btn btn-primary" id="downloadTemplate">
+                Download Template
+            </button>
+            <button type="button" class="btn btn-primary" id="uploadButton">Upload Template</button>
+            <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
         </div>
     </div>
 </div>
@@ -134,7 +143,9 @@ extra_head %}
                 <form id="bulkShareForm">
                     <div class="mb-3">
                         <label for="bulkShareUsername" class="form-label">Username to share with</label>
-                        <select class="form-select" id="bulkShareUsername" required></select>
+                        <select class="form-select" id="bulkShareUsername" required>
+                            <option value="">Select a user...</option>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -158,9 +169,11 @@ extra_head %}
                 <form id="shareForm">
                     <div class="mb-3">
                         <label for="shareUsername" class="form-label">Username to share with</label>
-                        <select class="form-select" id="shareUsername" required></select>
+                        <select class="form-select" id="shareUsername" required>
+                            <option value="">Select a user...</option>
+                        </select>
                     </div>
-                    <input type="hidden" id="expenseIdToShare">
+                    <input type="hidden" id="expenseIdToShare" />
                 </form>
             </div>
             <div class="modal-footer">

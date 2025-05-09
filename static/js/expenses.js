@@ -1,13 +1,17 @@
+function getFormattedDateTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 $(document).ready(function () {
     // Set default date to today
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const hours = String(today.getHours()).padStart(2, '0');
-    const minutes = String(today.getMinutes()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-    document.getElementById('date').value = formattedDate;
+    document.getElementById('date').value = getFormattedDateTime();
 
     // Load expenses on page load
     loadExpenses();
@@ -35,11 +39,14 @@ $(document).ready(function () {
             const data = await response.json();
             
             if (response.ok) {
-                alert('Expense added successfully!');
                 $('#expenseForm')[0].reset();
                 // Reset date to today after form reset
-                document.getElementById('date').value = formattedDate;
+                document.getElementById('date').value = getFormattedDateTime();
                 loadExpenses();
+                // Close the offcanvas panel
+                const offcanvasElement = document.getElementById('addExpenseCanvas');
+                const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+                offcanvasInstance.hide();
             } else {
                 alert(data.error || 'Failed to add expense');
             }
@@ -49,25 +56,38 @@ $(document).ready(function () {
         }
     });
 
-    // Handle share button click
-    $('#shareButton').on('click', function () {
-        const username = $('#shareUsername').val();
-        const expenseId = $('#expenseIdToShare').val();
-
-        $.ajax({
-            url: `/api/expenses/${expenseId}/share`,
+    // Handle share button click for single expense
+    $('#shareButton').on('click', function() {
+        const expenseId = document.getElementById('expenseIdToShare').value;
+        const username = document.getElementById('shareUsername').value;
+        
+        if (!username) {
+            alert('Please select a user to share with');
+            return;
+        }
+        
+        fetch(`/api/share/${expenseId}`, {
             method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                username: username
-            }),
-            success: function (response) {
-                $('#shareModal').modal('hide');
-                alert('Expense shared successfully!');
+            headers: {
+                'Content-Type': 'application/json',
             },
-            error: function (xhr) {
-                alert('Error sharing expense: ' + xhr.responseJSON.error);
+            body: JSON.stringify({
+                username: username
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message);
+                $('#shareModal').modal('hide');
+                loadExpenses(); // Refresh the expenses list
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to share expense');
         });
     });
 });
@@ -96,10 +116,10 @@ function updateExpenseTable(expenses) {
                 <td>${expense.description || ''}</td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="openShareModal(${expense.id})">
+                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteLine(${expense.id})">
+                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${expense.id})">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>
@@ -111,9 +131,139 @@ function updateExpenseTable(expenses) {
 
 let currentExpenses = [];
 
+// Function to load usernames for sharing
+function loadUsernames() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('shareUsername');
+            const bulkSelect = document.getElementById('bulkShareUsername');
+            
+            // Clear existing options
+            select.innerHTML = '<option value="">Select a user...</option>';
+            bulkSelect.innerHTML = '<option value="">Select a user...</option>';
+            
+            // Add new options
+            data.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.username;
+                option.textContent = user.username;
+                select.appendChild(option);
+                bulkSelect.appendChild(option.cloneNode(true));
+            });
+        })
+        .catch(error => {
+            console.error('Failed to load usernames:', error);
+            alert('Failed to load usernames.');
+        });
+}
+
+// Handle share button click for single expense
 function openShareModal(expenseId) {
-    $('#expenseIdToShare').val(expenseId);
-    $('#shareModal').modal('show');
+    // Load usernames before showing the modal
+    loadUsernames();
+    
+    // Set the expense ID in the hidden input
+    document.getElementById('expenseIdToShare').value = expenseId;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+// Handle share button click
+document.getElementById('shareButton').addEventListener('click', function() {
+    const expenseId = document.getElementById('expenseIdToShare').value;
+    const username = document.getElementById('shareUsername').value;
+    
+    if (!username) {
+        alert('Please select a user to share with');
+        return;
+    }
+    
+    fetch(`/api/share/${expenseId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            username: username
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert(data.message);
+            $('#shareModal').modal('hide');
+            loadExpenses(); // Refresh the expenses list
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to share expense');
+    });
+});
+
+// Handle bulk share button click
+document.getElementById('shareSelected').addEventListener('click', function() {
+    const selectedIds = getSelectedExpenseIds();
+    if (selectedIds.length === 0) {
+        alert('Please select at least one expense to share');
+        return;
+    }
+    
+    // Store selected IDs in the modal
+    document.getElementById('bulkShareModal').dataset.selectedIds = selectedIds.join(',');
+    
+    // Load usernames into the select
+    loadUsernames();
+    
+    // Show the modal
+    $('#bulkShareModal').modal('show');
+});
+
+// Handle bulk share button click in modal
+document.getElementById('bulkShareButton').addEventListener('click', function() {
+    const selectedIds = document.getElementById('bulkShareModal').dataset.selectedIds.split(',');
+    const username = document.getElementById('bulkShareUsername').value;
+    
+    if (!username) {
+        alert('Please select a user to share with');
+        return;
+    }
+    
+    fetch('/api/share/bulk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ids: selectedIds,
+            username: username
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert(data.message);
+            $('#bulkShareModal').modal('hide');
+            loadExpenses(); // Refresh the expenses list
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to share expenses');
+    });
+});
+
+// Function to get selected expense IDs
+function getSelectedExpenseIds() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.id);
 }
 
 function deleteLine(expenseId) {
@@ -182,19 +332,29 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             const row = jsonData[i];
             if (!row || row.length < 4) continue;  // Skip empty rows or rows with insufficient data
 
-            const date = row[0];
+            let date = row[0]?.toString(); // Ensure date is a string
             const category = row[1];
             const description = row[2] || '';  // Make description optional
             const amount = parseFloat(row[3]);
 
+            // Handle Excel numeric date format
+            if (!isNaN(date) && date.length <= 5) {
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel epoch starts on 1899-12-30
+                date = new Date(excelEpoch.getTime() + date * 86400000) // Convert days to milliseconds
+                    .toISOString()
+                    .split('T')[0]; // Extract YYYY-MM-DD
+            }
+
             // Validate date
-            if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD format.`);
+            if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
+                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD or YYYY/MM/DD format.`);
                 continue;
             }
 
-            // Add time to date
-            const dateWithTime = `${date}T00:00`;
+            // Normalize date to YYYY-MM-DD format
+            const normalizedDate = date.replace(/\//g, '-');
+            const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
+            const dateWithTime = `${year}-${month}-${day}T00:00`;
 
             // Validate category
             if (!allowedCategories.includes(category)) {
@@ -245,38 +405,19 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     reader.readAsArrayBuffer(file);
 });
 
-let loadUsernames = () => {
-    $.ajax({
-        url: '/api/users',
-        method: 'GET',
-        success: function (data) {
-            const select = $('#shareUsername');
-            const bulkSelect = $('#bulkShareUsername');
-            select.empty();
-            bulkSelect.empty();
-            data.forEach(function (user) {
-                const option = $('<option></option>')
-                    .attr('value', user.username)
-                    .text(user.username);
-                select.append(option);
-                bulkSelect.append(option.clone());
-            });
-        },
-        error: function (xhr, status, error) {
-            console.error('Failed to load usernames:', error);
-            alert('Failed to load usernames.');
-        }
-    });
-};
-
-$('#shareModal').on('show.bs.modal', function () {
+// Load usernames when the page loads
+document.addEventListener('DOMContentLoaded', function() {
     loadUsernames();
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('uploadButton').addEventListener('click', function () {
-        document.getElementById('uploadTemplate').click();
-    });
+// Load usernames when share modal is opened
+$('#shareModal').on('show.bs.modal', function() {
+    loadUsernames();
+});
+
+// Load usernames when bulk share modal is opened
+$('#bulkShareModal').on('show.bs.modal', function() {
+    loadUsernames();
 });
 
 function filterAndSearchExpenses() {
@@ -319,17 +460,25 @@ $('#deleteSelected').on('click', function () {
         return;
     }
 
-    $.ajax({
-        url: '/api/expenses/bulk-delete',
+    fetch('/api/expenses/bulk-delete', {
         method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ids: selectedIds }),
-        success: function () {
-            loadExpenses();
+        headers: {
+            'Content-Type': 'application/json',
         },
-        error: function (xhr) {
-            alert('Error deleting expenses: ' + xhr.responseJSON.error);
+        body: JSON.stringify({ ids: selectedIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert('Selected expenses deleted successfully');
+            loadExpenses();
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting expenses');
     });
 });
 
@@ -340,39 +489,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#filterMonth').val(`${year}-${month}`);
 });
 
-$('#bulkShareButton').on('click', function () {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
-        .map(function () {
-            return $(this).data('id');
-        })
-        .get();
-
-    if (selectedIds.length === 0) {
-        alert('No expenses selected.');
-        return;
-    }
-
-    const username = $('#bulkShareUsername').val();
-    if (!username) {
-        alert('Please select a username to share with.');
-        return;
-    }
-
-    $.ajax({
-        url: '/api/expenses/bulk-share',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ids: selectedIds, username: username }),
-        success: function () {
-            $('#bulkShareModal').modal('hide');
-            alert('Expenses shared successfully!');
-        },
-        error: function (xhr) {
-            alert('Error sharing expenses: ' + xhr.responseJSON.error);
-        }
-    });
-});
-
-$('#bulkShareModal').on('show.bs.modal', function () {
-    loadUsernames();
-});
+$('#bulkShareButton').on('click', shareSelectedExpenses);
+$('#deleteSelected').on('click', deleteSelectedExpenses);
+$('#cancelSelected').on('click', cancelSelectedShares);
