@@ -8,6 +8,10 @@ $(document).ready(() => {
         $('#endDate').attr('min', $(this).val());
     }).trigger('change');
 
+    $('#endDate').on('change', function () {
+        $('#startDate').attr('max', $(this).val());
+    }).trigger('change');
+
     const fetchSummaryData = (startDate, endDate) => {
         $.ajax({
             url: '/api/insights/summary',
