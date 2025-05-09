@@ -486,7 +486,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const fileInput = document.getElementById('uploadPicture');
         fileInput.click();
     });
-    
+});
+
 // Load usernames when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     loadUsernames();
