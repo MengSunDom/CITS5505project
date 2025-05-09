@@ -1,6 +1,8 @@
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime
-from models.models import db, Expense
+
+from models.models import db, Expense, User, SharedExpense
+
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -132,3 +134,91 @@ def bulk_delete_expenses():
     db.session.commit()
 
     return jsonify({'message': 'Selected expenses deleted successfully'})
+
+
+@expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
+def share_expense(expense_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    shared_with_username = data.get('username')
+
+    shared_with_user = User.query.filter_by(username=shared_with_username).first()
+    if not shared_with_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    expense = Expense.query.get(expense_id)
+    if not expense or expense.user_id != session['user']['id']:
+        return jsonify({'error': 'Expense not found or unauthorized'}), 404
+
+    # Check if already shared
+    existing_share = SharedExpense.query.filter_by(
+        expense_id=expense_id,
+        shared_with_id=shared_with_user.id
+    ).first()
+    
+    if existing_share:
+        return jsonify({'error': 'This expense is already shared with this user'}), 400
+
+    shared_expense = SharedExpense(expense_id=expense_id, shared_with_id=shared_with_user.id)
+    db.session.add(shared_expense)
+    db.session.commit()
+
+    return jsonify({'message': 'Expense shared successfully'})
+
+
+@expense_bp.route('/api/expenses/bulk-share', methods=['POST'])
+def bulk_share_expenses():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    expense_ids = data.get('ids', [])
+    shared_with_username = data.get('username')
+
+    if not expense_ids or not shared_with_username:
+        return jsonify({'error': 'Missing expense IDs or username'}), 400
+
+    shared_with_user = User.query.filter_by(username=shared_with_username).first()
+    if not shared_with_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    expenses = Expense.query.filter(
+        Expense.id.in_(expense_ids),
+        Expense.user_id == session['user']['id']
+    ).all()
+
+    if not expenses:
+        return jsonify({'error': 'No matching expenses found'}), 404
+
+    # Check for existing shares and create new ones
+    shared_count = 0
+    already_shared = []
+    for expense in expenses:
+        existing_share = SharedExpense.query.filter_by(
+            expense_id=expense.id,
+            shared_with_id=shared_with_user.id
+        ).first()
+        
+        if not existing_share:
+            shared_expense = SharedExpense(expense_id=expense.id, shared_with_id=shared_with_user.id)
+            db.session.add(shared_expense)
+            shared_count += 1
+        else:
+            already_shared.append(expense.id)
+
+    db.session.commit()
+
+    # Prepare response message
+    if already_shared:
+        message = f'Shared {shared_count} expenses. {len(already_shared)} expenses were already shared.'
+    else:
+        message = f'Successfully shared {shared_count} expenses.'
+
+    return jsonify({
+        'message': message,
+        'shared_count': shared_count,
+        'already_shared': already_shared
+    })
+

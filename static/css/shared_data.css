@@ -22,3 +22,52 @@ tr:nth-child(even) {
 tr:hover {
     background-color: #e9ecef;
 }
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.5rem;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.bulk-share-main {
+    background-color: #f8f9fa;
+}
+
+.bulk-share-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bulk-share-details {
+    background-color: #fff;
+}
+
+.bulk-details-content {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.bulk-details-content table {
+    margin-bottom: 0;
+}
+
+.btn-link {
+    padding: 0;
+    color: #6c757d;
+}
+
+.btn-link:hover {
+    color: #495057;
+}
+
+.fa-chevron-down,
+.fa-chevron-up {
+    transition: transform 0.2s ease-in-out;
+}
