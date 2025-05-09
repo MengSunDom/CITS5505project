@@ -66,11 +66,13 @@ def get_insights():
 
     date_labels = [e.date for e in expenses]
     date_values = [e.total for e in expenses]
-
+    totalAmount = sum(date_values)
+    
     return jsonify({
         'category': {'labels': category_labels, 'values': category_values},
         'date_category': date_category_data,
-        'date': {'labels': date_labels, 'values': date_values}
+        'date': {'labels': date_labels, 'values': date_values},
+        'totalAmount': totalAmount
     })
 
 @insights_bp.route('/api/insights/summary', methods=['GET'])
