@@ -44,7 +44,7 @@ extra_head %}
                     </div>
 
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-primary btn-sm me-2" type="button">Search</button>
+                        <button class="btn btn-primary btn-sm me-2" type="button" id="search">Search</button>
                         <button class="btn btn-primary btn-sm" type="button">Cancel</button>
                     </div>
                 </div>
@@ -79,15 +79,45 @@ extra_head %}
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
+
+<div class="row mb-4">
+    <div class="col-md-6">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Expense Analysis</h5>
+                <h5 class="card-title mb-0">Expense ratio</h5>
             </div>
             <div class="card-body">
-                <div id="expenseChart" style="height: 400px"></div>
+                <div id="pieChart" style="height: 400px"></div>
             </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+                <h5 class="card-title mb-0">Expense trend</h5>
+            </div>
+            <div class="card-body">
+                <div id="lineChart" style="height: 400px"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card-header bg-light rounded-top border-bottom">
+            <h5 class="card-title mb-0">MoM Analysis</h5>
+        </div>
+        <div class="card-body">
+            <div id="MoMChart" style="height: 400px"></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card-header bg-light rounded-top border-bottom">
+            <h5 class="card-title mb-0">YoY Analysis</h5>
+        </div>
+        <div class="card-body">
+            <div id="YoYChart" style="height: 400px"></div>
         </div>
     </div>
 </div>
