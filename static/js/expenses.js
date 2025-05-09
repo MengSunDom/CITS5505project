@@ -56,8 +56,8 @@ $(document).ready(function () {
         }
     });
 
-    // Handle share button click for single expense
-    $('#shareButton').on('click', function() {
+    // Handle share button click
+    $('#shareButton').off('click').on('click', function() {
         const expenseId = document.getElementById('expenseIdToShare').value;
         const username = document.getElementById('shareUsername').value;
         
@@ -88,6 +88,60 @@ $(document).ready(function () {
         .catch(error => {
             console.error('Error:', error);
             alert('Failed to share expense');
+        });
+    });
+
+    // Handle bulk share button click
+    $('#shareSelected').off('click').on('click', function() {
+        const selectedIds = getSelectedExpenseIds();
+        if (selectedIds.length === 0) {
+            alert('Please select at least one expense to share');
+            return;
+        }
+        
+        // Store selected IDs in the modal
+        document.getElementById('bulkShareModal').dataset.selectedIds = selectedIds.join(',');
+        
+        // Load usernames into the select
+        loadUsernames();
+        
+        // Show the modal
+        $('#bulkShareModal').modal('show');
+    });
+
+    // Handle bulk share button click in modal
+    $('#bulkShareButton').off('click').on('click', function() {
+        const selectedIds = document.getElementById('bulkShareModal').dataset.selectedIds.split(',');
+        const username = document.getElementById('bulkShareUsername').value;
+        
+        if (!username) {
+            alert('Please select a user to share with');
+            return;
+        }
+        
+        fetch('/api/share/bulk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ids: selectedIds,
+                username: username
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message);
+                $('#bulkShareModal').modal('hide');
+                loadExpenses(); // Refresh the expenses list
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to share expenses');
         });
     });
 });
@@ -170,95 +224,6 @@ function openShareModal(expenseId) {
     const modal = new bootstrap.Modal(document.getElementById('shareModal'));
     modal.show();
 }
-
-// Handle share button click
-document.getElementById('shareButton').addEventListener('click', function() {
-    const expenseId = document.getElementById('expenseIdToShare').value;
-    const username = document.getElementById('shareUsername').value;
-    
-    if (!username) {
-        alert('Please select a user to share with');
-        return;
-    }
-    
-    fetch(`/api/share/${expenseId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            username: username
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            alert(data.message);
-            $('#shareModal').modal('hide');
-            loadExpenses(); // Refresh the expenses list
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to share expense');
-    });
-});
-
-// Handle bulk share button click
-document.getElementById('shareSelected').addEventListener('click', function() {
-    const selectedIds = getSelectedExpenseIds();
-    if (selectedIds.length === 0) {
-        alert('Please select at least one expense to share');
-        return;
-    }
-    
-    // Store selected IDs in the modal
-    document.getElementById('bulkShareModal').dataset.selectedIds = selectedIds.join(',');
-    
-    // Load usernames into the select
-    loadUsernames();
-    
-    // Show the modal
-    $('#bulkShareModal').modal('show');
-});
-
-// Handle bulk share button click in modal
-document.getElementById('bulkShareButton').addEventListener('click', function() {
-    const selectedIds = document.getElementById('bulkShareModal').dataset.selectedIds.split(',');
-    const username = document.getElementById('bulkShareUsername').value;
-    
-    if (!username) {
-        alert('Please select a user to share with');
-        return;
-    }
-    
-    fetch('/api/share/bulk', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            ids: selectedIds,
-            username: username
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            alert(data.message);
-            $('#bulkShareModal').modal('hide');
-            loadExpenses(); // Refresh the expenses list
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to share expenses');
-    });
-});
 
 // Function to get selected expense IDs
 function getSelectedExpenseIds() {
