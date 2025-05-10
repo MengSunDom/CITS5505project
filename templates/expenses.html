@@ -67,12 +67,7 @@ extra_head %}
                     <button class="btn btn-danger me-2" id="deleteSelected">
                         <i class="fas fa-trash-alt"></i> Delete Selected
                     </button>
-                    <button
-                        class="btn btn-primary"
-                        id="shareSelected"
-                        data-bs-toggle="modal"
-                        data-bs-target="#bulkShareModal"
-                    >
+                    <button class="btn btn-primary" id="shareSelected" data-bs-toggle="modal" data-bs-target="#bulkShareModal">
                         <i class="fas fa-share-alt"></i> Share Selected
                     </button>
                 </div>
@@ -132,6 +127,9 @@ extra_head %}
             </button>
             <button type="button" class="btn btn-primary" id="uploadButton">Upload Template</button>
             <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
+            <!-- 新增 OCR 按钮 -->
+            <button type="button" class="btn btn-primary" id="ocrButton">Add Expense by OCR</button>
+            <input type="file" id="uploadPicture" accept=".png, .jpg, .jpeg" hidden />
         </div>
     </div>
 </div>
@@ -147,17 +145,15 @@ extra_head %}
             <div class="modal-body">
                 <form id="bulkShareForm">
                     <div class="mb-3">
-                        <label for="bulkShareUsername" class="form-label"
-                            >Username to share with</label
-                        >
-                        <select class="form-select" id="bulkShareUsername" required></select>
+                        <label for="bulkShareUsername" class="form-label">Username to share with</label>
+                        <select class="form-select" id="bulkShareUsername" required>
+                            <option value="">Select a user...</option>
+                        </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    Close
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" id="bulkShareButton">Share</button>
             </div>
         </div>
@@ -176,15 +172,15 @@ extra_head %}
                 <form id="shareForm">
                     <div class="mb-3">
                         <label for="shareUsername" class="form-label">Username to share with</label>
-                        <select class="form-select" id="shareUsername" required></select>
+                        <select class="form-select" id="shareUsername" required>
+                            <option value="">Select a user...</option>
+                        </select>
                     </div>
                     <input type="hidden" id="expenseIdToShare" />
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    Close
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" id="shareButton">Share</button>
             </div>
         </div>

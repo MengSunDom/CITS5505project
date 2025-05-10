@@ -57,24 +57,91 @@ $(document).ready(function () {
     });
 
     // Handle share button click
-    $('#shareButton').on('click', function () {
-        const username = $('#shareUsername').val();
-        const expenseId = $('#expenseIdToShare').val();
-
-        $.ajax({
-            url: `/api/share/${expenseId}`,
+    $('#shareButton').off('click').on('click', function() {
+        const expenseId = document.getElementById('expenseIdToShare').value;
+        const username = document.getElementById('shareUsername').value;
+        
+        if (!username) {
+            alert('Please select a user to share with');
+            return;
+        }
+        
+        fetch(`/api/share/${expenseId}`, {
             method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                username: username
-            }),
-            success: function (response) {
-                $('#shareModal').modal('hide');
-                alert('Expense shared successfully!');
+            headers: {
+                'Content-Type': 'application/json',
             },
-            error: function (xhr) {
-                alert('Error sharing expense: ' + xhr.responseJSON.error);
+            body: JSON.stringify({
+                username: username
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message || 'Expense shared successfully');
+                $('#shareModal').modal('hide');
+                loadExpenses(); // Refresh the expenses list
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to share expense. Please try again.');
+        });
+    });
+
+    // Handle bulk share button click
+    $('#shareSelected').off('click').on('click', function() {
+        const selectedIds = getSelectedExpenseIds();
+        if (selectedIds.length === 0) {
+            alert('Please select at least one expense to share');
+            return;
+        }
+        
+        // Store selected IDs in the modal
+        document.getElementById('bulkShareModal').dataset.selectedIds = selectedIds.join(',');
+        
+        // Load usernames into the select
+        loadUsernames();
+        
+        // Show the modal
+        $('#bulkShareModal').modal('show');
+    });
+
+    // Handle bulk share button click in modal
+    $('#bulkShareButton').off('click').on('click', function() {
+        const selectedIds = document.getElementById('bulkShareModal').dataset.selectedIds.split(',');
+        const username = document.getElementById('bulkShareUsername').value;
+        
+        if (!username) {
+            alert('Please select a user to share with');
+            return;
+        }
+        
+        fetch('/api/share/bulk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ids: selectedIds,
+                username: username
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message);
+                $('#bulkShareModal').modal('hide');
+                loadExpenses(); // Refresh the expenses list
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to share expenses');
         });
     });
 });
@@ -118,9 +185,50 @@ function updateExpenseTable(expenses) {
 
 let currentExpenses = [];
 
+// Function to load usernames for sharing
+function loadUsernames() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('shareUsername');
+            const bulkSelect = document.getElementById('bulkShareUsername');
+            
+            // Clear existing options
+            select.innerHTML = '<option value="">Select a user...</option>';
+            bulkSelect.innerHTML = '<option value="">Select a user...</option>';
+            
+            // Add new options
+            data.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.username;
+                option.textContent = user.username;
+                select.appendChild(option);
+                bulkSelect.appendChild(option.cloneNode(true));
+            });
+        })
+        .catch(error => {
+            console.error('Failed to load usernames:', error);
+            alert('Failed to load usernames.');
+        });
+}
+
+// Handle share button click for single expense
 function openShareModal(expenseId) {
-    $('#expenseIdToShare').val(expenseId);
-    $('#shareModal').modal('show');
+    // Load usernames before showing the modal
+    loadUsernames();
+    
+    // Set the expense ID in the hidden input
+    document.getElementById('expenseIdToShare').value = expenseId;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+// Function to get selected expense IDs
+function getSelectedExpenseIds() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.id);
 }
 
 function deleteLine(expenseId) {
@@ -262,31 +370,111 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     reader.readAsArrayBuffer(file);
 });
 
-let loadUsernames = () => {
+document.getElementById('uploadPicture').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Show progress bar and disable buttons
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.position = 'fixed';
+    progressBar.style.top = '0';
+    progressBar.style.left = '0';
+    progressBar.style.width = '100%';
+    progressBar.style.height = '5px';
+    progressBar.style.backgroundColor = '#0d6efd';
+    progressBar.style.transition = 'width 0.4s ease';
+    progressBar.style.zIndex = '1050';
+    document.body.appendChild(progressBar);
+
+    const disableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
+    };
+
+    const enableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
+    };
+
+    disableUI();
+
     $.ajax({
-        url: '/api/users',
-        method: 'GET',
-        success: function (data) {
-            const select = $('#shareUsername');
-            const bulkSelect = $('#bulkShareUsername');
-            select.empty();
-            bulkSelect.empty();
-            data.forEach(function (user) {
-                const option = $('<option></option>')
-                    .attr('value', user.username)
-                    .text(user.username);
-                select.append(option);
-                bulkSelect.append(option.clone());
+        url: '/api/expenses/by-ocr',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        xhr: function () {
+            const xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = `${percentComplete}%`;
+                }
             });
+            return xhr;
         },
-        error: function (xhr, status, error) {
-            console.error('Failed to load usernames:', error);
-            alert('Failed to load usernames.');
+        success: function (response) {
+            try {
+                if (response.error) {
+                    alert(`Error: ${response.error}`);
+                    return;
+                }
+                const data = JSON.parse(response.result);
+                addExpense(data);
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                alert('An unexpected error occurred. Please try again.');
+            }
+        },
+        error: function (xhr) {
+            console.error('Error:', xhr);
+            alert('An error occurred while processing the Picture.');
+        },
+        complete: function () {
+            document.body.removeChild(progressBar);
+            enableUI();
+
         }
     });
-};
+});
 
-$('#shareModal').on('show.bs.modal', function () {
+async function addExpense(expenseData) {
+    const formData = {
+        amount: expenseData.amount,
+        category: expenseData.category,
+        description: expenseData.description || '',  // Make description optional
+        date: expenseData.date
+    };
+    
+    $.ajax({
+        url: '/api/expenses',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function () {
+            $('#expenseForm')[0].reset();
+            document.getElementById('date').value = getFormattedDateTime();
+            loadExpenses();
+            const offcanvasElement = document.getElementById('addExpenseCanvas');
+            const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+            offcanvasInstance.hide();
+        },
+        error: function (xhr) {
+            alert(xhr.responseJSON?.error || 'Failed to add expense');
+        }
+    });
+}
+
+// Load usernames when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsernames();
+});
+
+// Load usernames when share modal is opened
+$('#shareModal').on('show.bs.modal', function() {
     loadUsernames();
 });
 
@@ -294,6 +482,25 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('uploadButton').addEventListener('click', function () {
         document.getElementById('uploadTemplate').click();
     });
+    document.getElementById('ocrButton').addEventListener('click', function () {
+        const fileInput = document.getElementById('uploadPicture');
+        fileInput.click();
+    });
+});
+
+// Load usernames when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsernames();
+});
+
+// Load usernames when share modal is opened
+$('#shareModal').on('show.bs.modal', function() {
+    loadUsernames();
+});
+
+// Load usernames when bulk share modal is opened
+$('#bulkShareModal').on('show.bs.modal', function() {
+    loadUsernames();
 });
 
 function filterAndSearchExpenses() {
@@ -336,17 +543,25 @@ $('#deleteSelected').on('click', function () {
         return;
     }
 
-    $.ajax({
-        url: '/api/expenses/bulk-delete',
+    fetch('/api/expenses/bulk-delete', {
         method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ids: selectedIds }),
-        success: function () {
-            loadExpenses();
+        headers: {
+            'Content-Type': 'application/json',
         },
-        error: function (xhr) {
-            alert('Error deleting expenses: ' + xhr.responseJSON.error);
+        body: JSON.stringify({ ids: selectedIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert('Selected expenses deleted successfully');
+            loadExpenses();
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting expenses');
     });
 });
 
@@ -357,39 +572,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#filterMonth').val(`${year}-${month}`);
 });
 
-$('#bulkShareButton').on('click', function () {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
-        .map(function () {
-            return $(this).data('id');
-        })
-        .get();
-
-    if (selectedIds.length === 0) {
-        alert('No expenses selected.');
-        return;
-    }
-
-    const username = $('#bulkShareUsername').val();
-    if (!username) {
-        alert('Please select a username to share with.');
-        return;
-    }
-
-    $.ajax({
-        url: '/api/share/bulk',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ids: selectedIds, username: username }),
-        success: function () {
-            $('#bulkShareModal').modal('hide');
-            alert('Expenses shared successfully!');
-        },
-        error: function (xhr) {
-            alert('Error sharing expenses: ' + xhr.responseJSON.error);
-        }
-    });
-});
-
-$('#bulkShareModal').on('show.bs.modal', function () {
-    loadUsernames();
-});
+$('#bulkShareButton').on('click', shareSelectedExpenses);
+$('#deleteSelected').on('click', deleteSelectedExpenses);
+$('#cancelSelected').on('click', cancelSelectedShares);
