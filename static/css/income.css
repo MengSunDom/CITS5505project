@@ -13,22 +13,32 @@
 #expenseForm button,
 #downloadTemplate,
 #uploadButton {
-    background-color: #0d6efd; /* Primary blue color */
-    color: #ffffff; /* White text */
-    border: none; /* Remove border */
-    border-radius: 5px; /* Rounded corners */
-    padding: 0.5rem 1rem; /* Consistent padding */
-    font-size: 1rem; /* Consistent font size */
+    background-color: #0d6efd;
+    /* Primary blue color */
+    color: #ffffff;
+    /* White text */
+    border: none;
+    /* Remove border */
+    border-radius: 5px;
+    /* Rounded corners */
+    padding: 0.5rem 1rem;
+    /* Consistent padding */
+    font-size: 1rem;
+    /* Consistent font size */
     transition: background-color 0.2s ease-in-out;
-    width: 100%; /* Ensure buttons are the same width */
-    margin-bottom: 0.5rem; /* Add spacing between buttons */
-    text-align: center; /* Center-align text */
+    width: 100%;
+    /* Ensure buttons are the same width */
+    margin-bottom: 0.5rem;
+    /* Add spacing between buttons */
+    text-align: center;
+    /* Center-align text */
 }
 
 #expenseForm button:hover,
 #downloadTemplate:hover,
 #uploadButton:hover {
-    background-color: #0b5ed7; /* Darker blue on hover */
+    background-color: #0b5ed7;
+    /* Darker blue on hover */
 }
 
 /* Card spacing and size */
@@ -76,6 +86,7 @@
 }
 
 @media (min-width: 768px) {
+
     #searchInput,
     #filterCategory,
     #filterMonth {
@@ -111,6 +122,15 @@
 
 .table-responsive {
     margin-bottom: 1rem;
+    max-height: 56vh;
+    overflow-y: auto;
+}
+
+.table-header th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .d-flex {
@@ -238,6 +258,7 @@
 }
 
 @media (max-width: 768px) {
+
     .table th,
     .table td {
         padding: 0.5rem;
