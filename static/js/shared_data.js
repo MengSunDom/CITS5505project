@@ -17,13 +17,13 @@ const fetchSharedByMe = () => {
         success: data => { populateSharedByMeTable(data, '', 'ByMe') },
         error: err => console.error('Error fetching shared by me:', err)
     });
-    // $.ajax({
-    //     url: '/api/share/income/by-me',
-    //     method: 'GET',
-    //     dataType: 'json',
-    //     success: data => populateSharedByMeTable(data, 'Income', 'ByMe'),
-    //     error: err => console.error('Error fetching shared by me:', err)
-    // });
+    $.ajax({
+        url: '/api/share/income/by-me',
+        method: 'GET',
+        dataType: 'json',
+        success: data => populateSharedByMeTable(data, 'Income', 'ByMe'),
+        error: err => console.error('Error fetching shared by me:', err)
+    });
 }
 
 // Fetch shared with me
@@ -41,19 +41,19 @@ const fetchSharedWithMe = () => {
             `);
         }
     });
-    // $.ajax({
-    //     url: '/api/share/income/with-me',
-    //     method: 'GET',
-    //     dataType: 'json',
-    //     success: data => populateSharedWithMeTable(data, 'Income', 'WithMe'),
-    //     error: xhr => {
-    //         const errorMsg = xhr.responseJSON?.error || 'Failed to fetch data';
-    //         console.error(errorMsg);
-    //         $('#sharedWithMeTableBody').html(`
-    //             <tr><td colspan="6" class="text-center text-danger">${errorMsg}</td></tr>
-    //         `);
-    //     }
-    // });
+    $.ajax({
+        url: '/api/share/income/with-me',
+        method: 'GET',
+        dataType: 'json',
+        success: data => populateSharedWithMeTable(data, 'Income', 'WithMe'),
+        error: xhr => {
+            const errorMsg = xhr.responseJSON?.error || 'Failed to fetch data';
+            console.error(errorMsg);
+            $('#sharedWithMeTableBody').html(`
+                <tr><td colspan="6" class="text-center text-danger">${errorMsg}</td></tr>
+            `);
+        }
+    });
 }
 
 // Render shared-by-me table

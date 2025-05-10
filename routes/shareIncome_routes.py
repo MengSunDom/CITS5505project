@@ -152,32 +152,32 @@ def get_shared_by_me_Incomes():
 
     user_id = session['user']['id']
     # Get all shared Incomes where the current user is the owner
-    shared_Incomes = SharedIncome.query.join(Income).filter(
+    shared_incomes = SharedIncome.query.join(Income).filter(
         Income.user_id == user_id
     ).order_by(SharedIncome.date_shared.desc()).all()
     
-    Incomes = []
+    incomes = []
 
-    for se in shared_Incomes:
+    for se in shared_incomes:
         shared_with_user = User.query.get(se.shared_with_id)
         if not shared_with_user:
             continue
 
-        if se.is_bulk_share and se.bulk_Income_ids:
+        if se.is_bulk_share and se.bulk_income_ids:
             # Handle bulk shared Incomes
-            Income_ids = se.bulk_Income_ids.split(',')
-            bulk_Incomes = Income.query.filter(Income.id.in_(Income_ids)).all()
+            income_ids = se.bulk_income_ids.split(',')
+            bulk_incomes = Income.query.filter(Income.id.in_(income_ids)).all()
             
             # Get total amount and categories
-            total_amount = sum(e.amount for e in bulk_Incomes)
-            categories = list(set(e.category for e in bulk_Incomes))
+            total_amount = sum(e.amount for e in bulk_incomes)
+            categories = list(set(e.category for e in bulk_incomes))
             
             # Get detailed information for each Income
             details = []
-            for e in bulk_Incomes:
+            for e in bulk_incomes:
                 # Check if this Income is shared individually with the same user
                 individual_share = SharedIncome.query.filter_by(
-                    Income_id=e.id,
+                    income_id=e.id,
                     shared_with_id=se.shared_with_id,
                     is_bulk_share=False
                 ).first()
@@ -190,10 +190,10 @@ def get_shared_by_me_Incomes():
                     'is_repeat': bool(individual_share)
                 })
             
-            Incomes.append({
+            incomes.append({
                 'id': se.id,
                 'is_bulk': True,
-                'Income_count': len(bulk_Incomes),
+                'Income_count': len(bulk_incomes),
                 'total_amount': total_amount,
                 'categories': categories,
                 'date': se.date_shared.strftime('%Y-%m-%d %H:%M:%S'),
@@ -204,28 +204,28 @@ def get_shared_by_me_Incomes():
             })
         else:
             # Handle single shared Income
-            Income = Income.query.get(se.Income_id)
-            if Income:
-                # Check if this Income is part of any bulk share with the same user
+            income = Income.query.get(se.income_id)
+            if income:
+                # Check if this income is part of any bulk share with the same user
                 bulk_share = SharedIncome.query.filter(
                     SharedIncome.shared_with_id == se.shared_with_id,
                     SharedIncome.is_bulk_share == True,
-                    SharedIncome.bulk_Income_ids.like(f'%{se.Income_id}%')
+                    SharedIncome.bulk_income_ids.like(f'%{se.income_id}%')
                 ).first()
 
-                Incomes.append({
-                    'id': se.Income_id,
+                incomes.append({
+                    'id': se.income_id,
                     'is_bulk': False,
-                    'amount': Income.amount,
-                    'category': Income.category,
-                    'description': Income.description,
-                    'date': Income.date.astimezone().strftime('%Y-%m-%d %H:%M:%S'),
+                    'amount': income.amount,
+                    'category': income.category,
+                    'description': income.description,
+                    'date': income.date.astimezone().strftime('%Y-%m-%d %H:%M:%S'),
                     'shared_with': shared_with_user.username,
                     'shared_id': se.id,
                     'is_repeat': bool(bulk_share)
                 })
     
-    return jsonify(Incomes)
+    return jsonify(incomes)
 
 @shareIncome_bp.route('/api/share/income/with-me', methods=['GET'])
 def get_shared_with_me_Incomes():
@@ -252,69 +252,69 @@ def get_shared_with_me_Incomes():
                 if key not in bulk_shares:
                     # Get all Incomes in this bulk share
                     Income_ids = [int(id) for id in key.split(',')]
-                    Incomes = Income.query.filter(Income.id.in_(Income_ids)).all()
+                    incomes = Income.query.filter(Income.id.in_(Income_ids)).all()
                     
                     # Calculate total amount and get all categories
-                    total_amount = sum(Income.amount for Income in Incomes)
-                    categories = list(set(Income.category for Income in Incomes))
+                    total_amount = sum(income.amount for income in incomes)
+                    categories = list(set(income.category for income in incomes))
                     
                     # Check if any of these Incomes are already shared individually
                     is_repeat = any(
                         SharedIncome.query.filter_by(
-                            Income_id=Income.id,
+                            income_id=income.id,
                             shared_with_id=user_id,
                             is_bulk_share=False
                         ).first() is not None
-                        for Income in Incomes
+                        for income in incomes
                     )
                     
                     # Get the user who shared these Incomes (from the first Income)
-                    shared_by_user = User.query.get(Incomes[0].user_id) if Incomes else None
+                    shared_by_user = User.query.get(incomes[0].user_id) if incomes else None
                     
                     bulk_shares[key] = {
                         'id': share.id,
                         'shared_id': share.id,
                         'is_bulk': True,
-                        'Income_count': len(Incomes),
+                        'Income_count': len(incomes),
                         'total_amount': total_amount,
                         'categories': categories,
                         'date': share.date_shared.strftime('%Y-%m-%d'),
                         'shared_by': shared_by_user.username if shared_by_user else 'Unknown',
                         'is_repeat': is_repeat,
                         'details': [{
-                            'date': Income.date.strftime('%Y-%m-%d'),
-                            'category': Income.category,
-                            'description': Income.description,
-                            'amount': Income.amount,
+                            'date': income.date.strftime('%Y-%m-%d'),
+                            'category': income.category,
+                            'description': income.description,
+                            'amount': income.amount,
                             'is_repeat': SharedIncome.query.filter_by(
-                                Income_id=Income.id,
+                                income_id=income.id,
                                 shared_with_id=user_id,
                                 is_bulk_share=False
                             ).first() is not None
-                        } for Income in Incomes]
+                        } for income in incomes]
                     }
             else:
                 # For single shares
-                Income = Income.query.get(share.Income_id)
-                if Income:
+                income = Income.query.get(share.income_id)
+                if income:
                     # Check if this Income is part of any bulk share
                     is_repeat = SharedIncome.query.filter(
-                        SharedIncome.bulk_Income_ids.like(f'%{Income.id}%'),
+                        SharedIncome.bulk_income_ids.like(f'%{income.id}%'),
                         SharedIncome.shared_with_id == user_id,
                         SharedIncome.is_bulk_share == True
                     ).first() is not None
                     
-                    # Get the user who shared this Income
-                    shared_by_user = User.query.get(Income.user_id)
+                    # Get the user who shared this income
+                    shared_by_user = User.query.get(income.user_id)
                     
                     single_shares.append({
-                        'id': Income.id,
+                        'id': income.id,
                         'shared_id': share.id,
                         'is_bulk': False,
-                        'description': Income.description,
-                        'category': Income.category,
-                        'amount': Income.amount,
-                        'date': Income.date.strftime('%Y-%m-%d'),
+                        'description': income.description,
+                        'category': income.category,
+                        'amount': income.amount,
+                        'date': income.date.strftime('%Y-%m-%d'),
                         'shared_by': shared_by_user.username if shared_by_user else 'Unknown',
                         'is_repeat': is_repeat
                     })
@@ -336,11 +336,11 @@ def cancel_shared_Income():
     data = request.get_json()
     shared_id = data.get('shared_id')
     if not shared_id:
-        return jsonify({'error': 'Shared Income ID is required'}), 400
+        return jsonify({'error': 'Shared income ID is required'}), 400
 
     shared_Income = SharedIncome.query.get(shared_id)
     if not shared_Income:
-        return jsonify({'error': 'Shared Income not found'}), 404
+        return jsonify({'error': 'Shared income not found'}), 404
 
     user_id = session['user']['id']
     
@@ -352,17 +352,17 @@ def cancel_shared_Income():
             return jsonify({'error': 'Unauthorized to cancel this shared Income'}), 403
     else:
         # For single shares, check if the user is either the sharer or the recipient
-        Income = Income.query.get(shared_Income.Income_id)
-        if not Income or (Income.user_id != user_id and shared_Income.shared_with_id != user_id):
-            return jsonify({'error': 'Unauthorized to cancel this shared Income'}), 403
+        income = Income.query.get(shared_Income.Income_id)
+        if not income or (income.user_id != user_id and shared_Income.shared_with_id != user_id):
+            return jsonify({'error': 'Unauthorized to cancel this shared income'}), 403
 
     try:
         db.session.delete(shared_Income)
         db.session.commit()
-        return jsonify({'message': 'Shared Income canceled successfully'})
+        return jsonify({'message': 'Shared income canceled successfully'})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Failed to cancel shared Income: {str(e)}'}), 500
+        return jsonify({'error': f'Failed to cancel shared income: {str(e)}'}), 500
 
 @shareIncome_bp.route('/api/share/income/bulk-cancel', methods=['POST'])
 def bulk_cancel_shares():
@@ -373,7 +373,7 @@ def bulk_cancel_shares():
     Income_ids = data.get('ids', [])
 
     if not Income_ids:
-        return jsonify({'error': 'No Income IDs provided'}), 400
+        return jsonify({'error': 'No income IDs provided'}), 400
 
     # Get all shared Incomes for the current user
     shared_Incomes = SharedIncome.query.join(Income).filter(
