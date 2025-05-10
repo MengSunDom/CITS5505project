@@ -51,6 +51,19 @@ class SharedExpense(db.Model):
     expense = db.relationship('Expense', backref='shares')
     shared_with = db.relationship('User', backref='shared_expenses')
 
+class SharedIncome(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    income_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable=False)
+    shared_with_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date_shared = db.Column(db.DateTime, default=datetime.utcnow)
+    is_bulk_share = db.Column(db.Boolean, default=False)
+    bulk_expense_ids = db.Column(db.String(500))  # Store comma-separated expense IDs for bulk shares
+    is_repeat = db.Column(db.Boolean, default=False)  # Flag to indicate if this is a repeat share
+
+    # Define relationships with backrefs
+    expense = db.relationship('Income', backref='shares')
+    shared_with = db.relationship('User', backref='shared_income')
+
 
 def init_db():
     db.create_all()
@@ -63,7 +76,7 @@ def init_db():
     admin = User.query.filter_by(username='admin').first()
     if not admin:
         admin = User(username='admin',
-                     password=generate_password_hash('admin_salt'),
+                     password=generate_password_hash('admin'),
                      role='admin',
                      permission='admin')
         db.session.add(admin)

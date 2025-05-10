@@ -36,10 +36,10 @@ def add_income():
         return jsonify({'error': 'Date cannot be in the future'}), 400
 
     new_income = Income(amount=float(data['amount']),
-                          category=data['category'],
-                          description=data.get('description', ''),
-                          date=date,
-                          user_id=session['user']['id'])
+                        category=data['category'],
+                        description=data.get('description', ''),
+                        date=date,
+                        user_id=session['user']['id'])
 
     db.session.add(new_income)
     db.session.commit()

@@ -9,6 +9,7 @@ from routes.page_routes import page_bp
 from routes.share_routes import share_bp
 from routes.insights_routes import insights_bp
 from routes.income_routes import income_bp
+from routes.shareIncome_routes import shareIncome_bp
 
 import config
 
@@ -26,6 +27,7 @@ def create_app():
         app.register_blueprint(income_bp)
         app.register_blueprint(page_bp)
         app.register_blueprint(share_bp)
+        app.register_blueprint(shareIncome_bp)
         app.register_blueprint(insights_bp)
 
     return app
