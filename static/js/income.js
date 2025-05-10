@@ -61,7 +61,7 @@ $(document).ready(function () {
         const incomeId = $('#incomeIdToShare').val();
 
         $.ajax({
-            url: `/api/share/${incomeId}`,
+            url: `/api/share/income/${incomeId}`,
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -375,7 +375,7 @@ $('#bulkShareButton').on('click', function () {
     }
 
     $.ajax({
-        url: '/api/share/bulk',
+        url: '/api/share/income/bulk',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ ids: selectedIds, username: username }),

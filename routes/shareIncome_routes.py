@@ -1,10 +1,10 @@
 from flask import Blueprint, session, jsonify, request
 from models.models import db, Income, SharedIncome, User
 
-shareIncome_bp = Blueprint('share', __name__)
+shareIncome_bp = Blueprint('shareIncome', __name__)
 
-@shareIncome_bp.route('/api/share/income/<int:Income_id>', methods=['POST'])
-def share_Income(Income_id):
+@shareIncome_bp.route('/api/share/income/<int:income_id>', methods=['POST'])
+def share_Income(income_id):
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
@@ -20,16 +20,16 @@ def share_Income(Income_id):
     if not shared_with_user:
         return jsonify({'error': 'User not found'}), 404
 
-    Income = Income.query.get(Income_id)
-    if not Income:
+    income  = Income.query.get(income_id)
+    if not income :
         return jsonify({'error': 'Income not found'}), 404
     
-    if Income.user_id != session['user']['id']:
+    if income.user_id != session['user']['id']:
         return jsonify({'error': 'Unauthorized to share this Income'}), 403
 
     # Check if the Income is already shared with the user
     existing_share = SharedIncome.query.filter_by(
-        Income_id=Income_id,
+        income_id=income_id,
         shared_with_id=shared_with_user.id,
         is_bulk_share=False
     ).first()
@@ -40,7 +40,7 @@ def share_Income(Income_id):
     try:
         # Create a single share record
         shared_Income = SharedIncome(
-            Income_id=Income_id,
+            income_id=income_id,
             shared_with_id=shared_with_user.id,
             is_bulk_share=False,
             is_repeat=False

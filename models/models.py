@@ -12,7 +12,7 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False)
     permission = db.Column(db.String(20), default='basic')
     expenses = db.relationship('Expense', backref='user', lazy=True)
-
+    incomes = db.relationship('Income', backref='user', lazy=True)
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +61,7 @@ class SharedIncome(db.Model):
     is_repeat = db.Column(db.Boolean, default=False)  # Flag to indicate if this is a repeat share
 
     # Define relationships with backrefs
-    expense = db.relationship('Income', backref='shares')
+    # income = db.relationship('Income', backref='shares')
     shared_with = db.relationship('User', backref='shared_income')
 
 
