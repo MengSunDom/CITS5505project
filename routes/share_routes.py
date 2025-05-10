@@ -1,6 +1,5 @@
 from flask import Blueprint, session, jsonify, request
 from models.models import db, Expense, SharedExpense, User
-from flask_login import login_required, current_user
 
 share_bp = Blueprint('share', __name__)
 

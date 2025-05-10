@@ -1,3 +1,43 @@
+// Utility: get short remark for display, with ellipsis if too long
+function getShortRemark(desc, maxLen = 20) {
+    if (!desc) return '';
+    return desc.length > maxLen ? desc.slice(0, maxLen) + '...' : desc;
+}
+
+function showCustomTooltip($el, text) {
+    if (!text) return;
+    const $tip = $('<div class="custom-tooltip"></div>').text(text).appendTo('body');
+    const offset = $el.offset();
+    $tip.css({
+        left: offset.left,
+        top: offset.top - $tip.outerHeight() - 10,
+        position: 'absolute',
+        zIndex: 9999,
+        background: 'rgba(30,30,40,0.98)',
+        color: '#fff',
+        padding: '10px 18px',
+        borderRadius: '10px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+        fontSize: '1em',
+        maxWidth: '420px',
+        wordBreak: 'break-all',
+        whiteSpace: 'pre-line',
+        pointerEvents: 'none',
+        opacity: 1,
+        fontFamily: 'Segoe UI, Arial, sans-serif',
+        letterSpacing: '0.01em',
+        lineHeight: '1.5'
+    });
+}
+
+// Register tooltip handler globally, only once
+$(document).off('mouseenter.remark-tooltip mouseleave.remark-tooltip');
+$(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
+    showCustomTooltip($(this), $(this).data('remark'));
+}).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
+    $('.custom-tooltip').remove();
+});
+
 function getFormattedDateTime() {
     const now = new Date();
     const year = now.getFullYear();
@@ -167,7 +207,7 @@ function updateExpenseTable(expenses) {
                 <td><input type="checkbox" data-id="${expense.id}" /></td>
                 <td>${expense.date}</td>
                 <td>${expense.category}</td>
-                <td>${expense.description || ''}</td>
+                <td><span class="remark-tooltip" data-remark="${expense.description || ''}">${getShortRemark(expense.description)}</span></td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
@@ -368,6 +408,124 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     };
 
     reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('uploadPicture').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Show progress bar and disable buttons
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.position = 'fixed';
+    progressBar.style.top = '0';
+    progressBar.style.left = '0';
+    progressBar.style.width = '100%';
+    progressBar.style.height = '5px';
+    progressBar.style.backgroundColor = '#0d6efd';
+    progressBar.style.transition = 'width 0.4s ease';
+    progressBar.style.zIndex = '1050';
+    document.body.appendChild(progressBar);
+
+    const disableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
+    };
+
+    const enableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
+    };
+
+    disableUI();
+
+    $.ajax({
+        url: '/api/expenses/by-ocr',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        xhr: function () {
+            const xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = `${percentComplete}%`;
+                }
+            });
+            return xhr;
+        },
+        success: function (response) {
+            try {
+                if (response.error) {
+                    alert(`Error: ${response.error}`);
+                    return;
+                }
+                const data = JSON.parse(response.result);
+                addExpense(data);
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                alert('An unexpected error occurred. Please try again.');
+            }
+        },
+        error: function (xhr) {
+            console.error('Error:', xhr);
+            alert('An error occurred while processing the Picture.');
+        },
+        complete: function () {
+            document.body.removeChild(progressBar);
+            enableUI();
+
+        }
+    });
+});
+
+async function addExpense(expenseData) {
+    const formData = {
+        amount: expenseData.amount,
+        category: expenseData.category,
+        description: expenseData.description || '',  // Make description optional
+        date: expenseData.date
+    };
+    
+    $.ajax({
+        url: '/api/expenses',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function () {
+            $('#expenseForm')[0].reset();
+            document.getElementById('date').value = getFormattedDateTime();
+            loadExpenses();
+            const offcanvasElement = document.getElementById('addExpenseCanvas');
+            const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+            offcanvasInstance.hide();
+        },
+        error: function (xhr) {
+            alert(xhr.responseJSON?.error || 'Failed to add expense');
+        }
+    });
+}
+
+// Load usernames when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsernames();
+});
+
+// Load usernames when share modal is opened
+$('#shareModal').on('show.bs.modal', function() {
+    loadUsernames();
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('uploadButton').addEventListener('click', function () {
+        document.getElementById('uploadTemplate').click();
+    });
+    document.getElementById('ocrButton').addEventListener('click', function () {
+        const fileInput = document.getElementById('uploadPicture');
+        fileInput.click();
+    });
 });
 
 // Load usernames when the page loads

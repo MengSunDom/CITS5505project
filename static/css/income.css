@@ -12,8 +12,7 @@
 /* Unified button styles */
 #expenseForm button,
 #downloadTemplate,
-#uploadButton,
-#ocrButton {
+#uploadButton {
     background-color: #0d6efd;
     /* Primary blue color */
     color: #ffffff;
@@ -37,8 +36,7 @@
 
 #expenseForm button:hover,
 #downloadTemplate:hover,
-#uploadButton:hover,
-#ocrButton:hover {
+#uploadButton:hover {
     background-color: #0b5ed7;
     /* Darker blue on hover */
 }

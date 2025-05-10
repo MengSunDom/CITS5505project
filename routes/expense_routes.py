@@ -1,6 +1,9 @@
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime
 from models.models import db, Expense, User, SharedExpense
+from utils.llm import process_receipt
+from utils.ocr import ocr_image
+
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -139,6 +142,26 @@ def bulk_delete_expenses():
     return jsonify({'message': 'Selected expenses deleted successfully'})
 
 
+@expense_bp.route('/api/expenses/by-ocr', methods=['POST'])
+def ocr_receipt():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    try:
+        # Read file directly into memory
+        file_stream = file.read()
+        text = ocr_image(file_stream)  # Pass the file stream to the OCR function
+        result = process_receipt(text)
+        return jsonify({'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
 def share_expense(expense_id):
     if 'user' not in session:
