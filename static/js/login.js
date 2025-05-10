@@ -1,56 +1,40 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    const rememberMeCheckbox = document.getElementById('rememberMe');
-    
-    // Check if there's saved credentials
-    const savedUsername = localStorage.getItem('rememberedUsername');
-    const savedPassword = localStorage.getItem('rememberedPassword');
-    if (savedUsername && savedPassword) {
-        document.getElementById('username').value = savedUsername;
-        document.getElementById('password').value = savedPassword;
-        rememberMeCheckbox.checked = true;
-    }
-
-    loginForm.addEventListener('submit', async function(e) {
+$(document).ready(function() {
+    $('#loginForm').on('submit', function(e) {
         e.preventDefault();
         
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const rememberMe = rememberMeCheckbox.checked;
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const username = $('#username').val();
+        const password = $('#password').val();
+        const csrf_token = $('input[name="csrf_token"]').val();
+        const rememberMe = $('#rememberMe').is(':checked');
         
-        // Save or remove credentials based on remember me checkbox
-        if (rememberMe) {
-            localStorage.setItem('rememberedUsername', username);
-            localStorage.setItem('rememberedPassword', password);
-        } else {
-            localStorage.removeItem('rememberedUsername');
-            localStorage.removeItem('rememberedPassword');
-        }
-
-        try {
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username,
-                    password: password,
-                    csrf_token: csrfToken
-                })
-            });
-
-            const data = await response.json();
-            
-            if (response.ok) {
-                window.location.href = '/dashboard';
-            } else {
-                alert(data.error || 'Login failed');
+        $.ajax({
+            url: '/api/login',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password,
+                csrf_token: csrf_token,
+                rememberMe: rememberMe
+            }),
+            success: function(response) {
+                notifications.success('Login successful!');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1000);
+            },
+            error: function(xhr) {
+                let msg = 'Login failed. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.error) msg = data.error;
+                    } catch (e) {}
+                }
+                notifications.error(msg);
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred during login');
-        }
+        });
     });
 }); 

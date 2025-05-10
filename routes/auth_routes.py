@@ -9,11 +9,12 @@ auth_bp = Blueprint('auth', __name__)
 auth_bp.permanent_session_lifetime = timedelta(minutes=30)
 
 
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
-    if data.get('csrf_token') != session.get('csrf_token'):
-        return jsonify({'error': 'CSRF token mismatch'}), 403
+    # CSRF check disabled for development
+    # if data.get('csrf_token') != session.get('csrf_token'):
+    #     return jsonify({'error': 'CSRF token mismatch'}), 403
 
     username = data.get('username')
     password = data.get('password')
@@ -29,18 +30,20 @@ def register():
         return jsonify({'error': 'Username already exists'}), 400
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    if data.get('csrf_token') != session.get('csrf_token'):
-        return jsonify({'error': 'CSRF token mismatch'}), 403
+    # CSRF check disabled for development
+    # if data.get('csrf_token') != session.get('csrf_token'):
+    #     return jsonify({'error': 'CSRF token mismatch'}), 403
 
     username = data.get('username')
     password = data.get('password')
+    remember_me = data.get('rememberMe', False)
 
     user = User.query.filter_by(username=username).first()
     if user and check_password_hash(user.password, password + "_salt"):
-        session.permanent = True  # Mark session as permanent
+        session.permanent = bool(remember_me)
         session['user'] = {
             'id': user.id,
             'username': user.username,

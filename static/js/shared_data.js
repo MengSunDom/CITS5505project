@@ -59,7 +59,6 @@ const fetchSharedWithMe = () => {
 // Render shared-by-me table
 const populateSharedByMeTable = (data, type, methods) => {
     const $tbody = $(`#shared${methods}${type}TableBody`)
-    $tbody.empty();
 
     data.forEach(exp => {
         const isBulk = exp.is_bulk;
@@ -160,21 +159,23 @@ const populateSharedWithMeTable = (data, type, methods) => {
 
 // Cancel share
 const cancelSharedExpense = (sharedId, type) => {
-    if (!confirm('Are you sure you want to cancel this shared expense?')) return;
-    $.ajax({
-        url: `/api/share${type ? "/income" : ""}/cancel`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ shared_id: sharedId }),
-        success: () => {
-            updateTable()
-        },
-        error: xhr => {
-            const errMsg = xhr.responseJSON?.error || 'Failed to cancel';
-            alert(errMsg);
-        }
+    notifications.confirmDelete('share', function() {
+        $.ajax({
+            url: `/api/share${type ? "/income" : ""}/cancel`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ shared_id: sharedId }),
+            success: () => {
+                updateTable();
+            },
+            error: xhr => {
+                const errMsg = xhr.responseJSON?.error || 'Failed to cancel share';
+                notifications.error(errMsg);
+            }
+        });
     });
 }
+window.cancelSharedExpense = cancelSharedExpense;
 
 // Toggle bulk detail row
 const toggleBulkDetails = (id, methods, type = '') => {
