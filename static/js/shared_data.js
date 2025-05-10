@@ -83,7 +83,7 @@ const populateSharedByMeTable = (data, type, methods) => {
                 <td>$${(exp.total_amount || exp.amount).toFixed(2)}</td>
                 <td>${exp.date}</td>
                 <td class="text-end">
-                    <button class="btn btn-danger btn-sm me-2" onclick="cancelSharedExpense(${exp.shared_id})">Cancel Share</button>
+                    <button class="btn btn-danger btn-sm me-2" onclick="cancelSharedExpense(${exp.shared_id},'${type}')">Cancel Share</button>
                     ${exp.is_repeat ? '<span class="badge bg-warning">Repeat</span>' : ''}
                 </td>
             </tr>`
@@ -127,11 +127,10 @@ const populateSharedWithMeTable = (data, type, methods) => {
 }
 
 // Cancel share
-const cancelSharedExpense = (sharedId) => {
+const cancelSharedExpense = (sharedId, type) => {
     if (!confirm('Are you sure you want to cancel this shared expense?')) return;
-
     $.ajax({
-        url: '/api/share/cancel',
+        url: `/api/share${type ? "/income" : ""}/cancel`,
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ shared_id: sharedId }),

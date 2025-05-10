@@ -352,7 +352,7 @@ def cancel_shared_Income():
             return jsonify({'error': 'Unauthorized to cancel this shared Income'}), 403
     else:
         # For single shares, check if the user is either the sharer or the recipient
-        income = Income.query.get(shared_Income.Income_id)
+        income = Income.query.get(shared_Income.income_id)
         if not income or (income.user_id != user_id and shared_Income.shared_with_id != user_id):
             return jsonify({'error': 'Unauthorized to cancel this shared income'}), 403
 
