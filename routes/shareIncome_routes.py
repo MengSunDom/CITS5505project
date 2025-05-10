@@ -87,7 +87,7 @@ def bulk_share_Incomes():
         if len(Income_ids) == 1:
             # Check if already shared
             existing_share = SharedIncome.query.filter_by(
-                Income_id=Income_ids[0],
+                income_id=Income_ids[0],
                 shared_with_id=shared_with_user.id,
                 is_bulk_share=False
             ).first()
@@ -97,7 +97,7 @@ def bulk_share_Incomes():
 
             # Create single share record
             shared_Income = SharedIncome(
-                Income_id=Income_ids[0],
+                income_id=Income_ids[0],
                 shared_with_id=shared_with_user.id,
                 is_bulk_share=False,
                 is_repeat=False
@@ -111,7 +111,7 @@ def bulk_share_Incomes():
             existing_bulk_share = SharedIncome.query.filter(
                 SharedIncome.shared_with_id == shared_with_user.id,
                 SharedIncome.is_bulk_share == True,
-                SharedIncome.bulk_Income_ids == Income_ids_str
+                SharedIncome.bulk_income_ids == Income_ids_str
             ).first()
 
             if existing_bulk_share:
@@ -119,17 +119,17 @@ def bulk_share_Incomes():
 
             # Check if any of the Incomes are already shared individually
             individually_shared = SharedIncome.query.filter(
-                SharedIncome.Income_id.in_(Income_ids),
+                SharedIncome.income_id.in_(Income_ids),
                 SharedIncome.shared_with_id == shared_with_user.id,
                 SharedIncome.is_bulk_share == False
             ).all()
 
             # Create bulk share record
             shared_Income = SharedIncome(
-                Income_id=Income_ids[0],
+                income_id=Income_ids[0],
                 shared_with_id=shared_with_user.id,
                 is_bulk_share=True,
-                bulk_Income_ids=Income_ids_str,
+                bulk_income_ids=Income_ids_str,
                 is_repeat=bool(individually_shared)
             )
         
@@ -246,9 +246,9 @@ def get_shared_with_me_Incomes():
         
         for share in shared_Incomes:
             print(f"Processing share {share.id}")  # Debug log
-            if share.is_bulk_share and share.bulk_Income_ids:
+            if share.is_bulk_share and share.bulk_income_ids:
                 # For bulk shares, group by the combination of Incomes
-                key = share.bulk_Income_ids
+                key = share.bulk_income_ids
                 if key not in bulk_shares:
                     # Get all Incomes in this bulk share
                     Income_ids = [int(id) for id in key.split(',')]
@@ -346,7 +346,7 @@ def cancel_shared_Income():
     
     # For bulk shares, allow both the sharer and the recipient to cancel
     if shared_Income.is_bulk_share:
-        Income_ids = [int(id) for id in shared_Income.bulk_Income_ids.split(',')]
+        Income_ids = [int(id) for id in shared_Income.bulk_income_ids.split(',')]
         first_Income = Income.query.get(Income_ids[0])
         if not first_Income or (first_Income.user_id != user_id and shared_Income.shared_with_id != user_id):
             return jsonify({'error': 'Unauthorized to cancel this shared Income'}), 403
