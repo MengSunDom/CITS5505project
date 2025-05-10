@@ -7,7 +7,7 @@
 {% endblock %} {% block content %}
 <div class="container mt-4">
     <h2>Shared Expenses</h2>
-    
+
     <h3 class="mt-4">Shared By Me</h3>
     <div class="table-responsive">
         <table class="table table-striped">
@@ -41,6 +41,45 @@
                 </tr>
             </thead>
             <tbody id="sharedWithMeTableBody">
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Shared Income</h2>
+    <h3 class="mt-4">Shared By Me</h3>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Shared With</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="sharedByMeIncomeTableBody">
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="mt-4">Shared With Me</h3>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Shared By</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="sharedWithMeIncomeTableBody">
                 <!-- Data will be populated by JavaScript -->
             </tbody>
         </table>

@@ -47,6 +47,13 @@ def expenses():
     return render_template('expenses.html')
 
 
+@page_bp.route('/income')
+def income():
+    if 'user' not in session:
+        return redirect(url_for('page.login_page'))
+    return render_template('income.html')
+
+
 @page_bp.route('/shared-data')
 def shared_data():
     if 'user' not in session:

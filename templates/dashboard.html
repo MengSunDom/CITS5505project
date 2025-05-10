@@ -17,6 +17,7 @@ navbar_right %}
                     </p>
                 </div>
                 <a href="/expenses" class="btn btn-primary mt-3 w-100">Go to Expenses</a>
+                <a href="/income" class="btn btn-primary w-100">Go to Income</a>
             </div>
         </div>
     </div>
@@ -27,37 +28,66 @@ navbar_right %}
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
-                        <div class="card bg-primary text-white shadow-sm border-0">
-                            <div class="card-body">
-                                <h6 class="card-title">Total Expenses</h6>
-                                <h3 class="card-text" id="totalExpenses">$0.00</h3>
+                    <div class="row">
+                        <div class="col-md-4 ">
+                            <div class="card bg-primary text-white shadow-sm border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Expenses</h6>
+                                    <h3 class="card-text" id="totalExpenses">$0.00</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white shadow-sm border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">This Month Expenses</h6>
+                                    <h3 class="card-text" id="monthlyExpenses">$0.00</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white shadow-sm border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">Top Expenses Category</h6>
+                                    <h3 class="card-text" id="topCategory">-</h3>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white shadow-sm border-0">
-                            <div class="card-body">
-                                <h6 class="card-title">This Month</h6>
-                                <h3 class="card-text" id="monthlyExpenses">$0.00</h3>
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white shadow-sm border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Income</h6>
+                                    <h3 class="card-text" id="totalIncome">$0.00</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white shadow-sm border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">This Month Income</h6>
+                                    <h3 class="card-text" id="monthlyIncome">$0.00</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white shadow-sm border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">Top Income Category</h6>
+                                    <h3 class="card-text" id="topIncomeCategory">-</h3>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card bg-info text-white shadow-sm border-0">
-                            <div class="card-body">
-                                <h6 class="card-title">Top Category</h6>
-                                <h3 class="card-text" id="topCategory">-</h3>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
-<div class="row mt-4">
-    <div class="col-12">
+<div class="row mt-2">
+    <div class="col-6">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-light rounded-top border-bottom">
                 <h5 class="card-title mb-0">Recent Expenses</h5>
@@ -74,6 +104,28 @@ navbar_right %}
                             </tr>
                         </thead>
                         <tbody id="recentExpensesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+                <h5 class="card-title mb-0">Recent Income</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentIncomeTable"></tbody>
                     </table>
                 </div>
             </div>
