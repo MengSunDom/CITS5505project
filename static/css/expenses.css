@@ -5,8 +5,60 @@
 }
 
 /* Share modal */
-#shareModal .modal-content {
+#shareModal .modal-content,
+#bulkShareModal .modal-content {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    border: none;
+}
+
+/* User search and select styles */
+.user-select-container {
+    max-height: 200px;
+    position: relative;
+}
+
+.form-select[size] {
+    background-position: right 0.75rem center;
+}
+
+.form-select option {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+}
+
+.form-select option:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.modal-content {
+    border-radius: 12px;
+}
+
+.modal-header {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Share modals styling */
+#shareModal .modal-header,
+#bulkShareModal .modal-header {
+    background-color: #0d6efd;
+    color: white;
+}
+
+#shareModal .modal-header .btn-close,
+#bulkShareModal .modal-header .btn-close {
+    color: white;
+    opacity: 1;
+}
+
+#shareModal .modal-footer,
+#bulkShareModal .modal-footer {
+    background-color: #f8f9fa;
 }
 
 /* Unified button styles */

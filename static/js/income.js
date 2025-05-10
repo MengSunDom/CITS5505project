@@ -248,33 +248,107 @@ let loadUsernames = () => {
     return fetch('/api/users')
         .then(response => response.json())
         .then(data => {
-            populateUserSelect(data);
+            // Store the full user list for filtering
+            window.allUsers = data || [];
+            
+            // Update user count display
+            $('#shareUserCount').text(`${data.length} users`);
+            $('#bulkShareUserCount').text(`${data.length} users`);
+            
+            // Populate selects
+            populateUserSelects(data);
+            
+            // Setup search functionality
+            setupUserSearch();
         })
         .catch(() => {
             notifications.error('Failed to load usernames. Cannot share.');
         });
 }
 
-function populateUserSelect(data) {
-    const select = $('#shareUsername');
-    const bulkSelect = $('#bulkShareUsername');
+// Helper function to populate all user selects
+function populateUserSelects(users) {
+    const selects = ['#shareUsername', '#bulkShareUsername'];
     
-    // Clear existing options
-    select.empty();
-    bulkSelect.empty();
-    
-    // Add placeholder options
-    select.append('<option value="">Select a user...</option>');
-    bulkSelect.append('<option value="">Select a user...</option>');
-    
-    // Add user options
-    data.forEach(user => {
-        const option = $('<option></option>')
-            .attr('value', user.username)
-            .text(user.username);
-        select.append(option);
-        bulkSelect.append(option.clone());
+    selects.forEach(selectId => {
+        const $select = $(selectId);
+        $select.empty();
+        
+        if (!users || users.length === 0) {
+            $select.append('<option value="">No users available</option>');
+            return;
+        }
+        
+        // Sort users alphabetically
+        users.sort((a, b) => a.username.localeCompare(b.username));
+        
+        users.forEach(user => {
+            const option = `<option value="${user.username}">${user.username}</option>`;
+            $select.append(option);
+        });
     });
+}
+
+// Setup user search functionality
+function setupUserSearch() {
+    // For single share modal
+    $('#shareSearch').off('input').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        filterUsers(searchTerm, '#shareUsername');
+    });
+    
+    // For bulk share modal
+    $('#bulkShareSearch').off('input').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        filterUsers(searchTerm, '#bulkShareUsername');
+    });
+    
+    // Clear search when modals are hidden
+    $('#shareModal').on('hidden.bs.modal', function() {
+        $('#shareSearch').val('');
+        filterUsers('', '#shareUsername');
+    });
+    
+    $('#bulkShareModal').on('hidden.bs.modal', function() {
+        $('#bulkShareSearch').val('');
+        filterUsers('', '#bulkShareUsername');
+    });
+}
+
+// Filter users based on search term
+function filterUsers(searchTerm, selectId) {
+    if (!window.allUsers) return;
+    
+    if (!searchTerm) {
+        // If search is empty, show all users
+        populateUserSelects(window.allUsers);
+        $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
+            .text(`${window.allUsers.length} users`);
+        return;
+    }
+    
+    // Filter users based on search term
+    const filteredUsers = window.allUsers.filter(user => 
+        user.username.toLowerCase().includes(searchTerm)
+    );
+    
+    // Update the specific select
+    const $select = $(selectId);
+    $select.empty();
+    
+    if (filteredUsers.length === 0) {
+        $select.append('<option value="">No matching users</option>');
+    } else {
+        filteredUsers.sort((a, b) => a.username.localeCompare(b.username));
+        filteredUsers.forEach(user => {
+            const option = `<option value="${user.username}">${user.username}</option>`;
+            $select.append(option);
+        });
+    }
+    
+    // Update the counter
+    $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
+        .text(`${filteredUsers.length} users`);
 }
 
 $('#shareModal').on('show.bs.modal', function () {
