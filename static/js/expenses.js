@@ -80,19 +80,17 @@ $(document).ready(function () {
             
             if (response.ok) {
                 $('#expenseForm')[0].reset();
-                // Reset date to today after form reset
                 document.getElementById('date').value = getFormattedDateTime();
                 loadExpenses();
-                // Close the offcanvas panel
                 const offcanvasElement = document.getElementById('addExpenseCanvas');
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                 offcanvasInstance.hide();
             } else {
-                alert(data.error || 'Failed to add expense');
+                notifications.error(data.error || 'Failed to add expense');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while adding the expense');
+            notifications.error('An error occurred while adding the expense');
         }
     });
 
@@ -398,75 +396,49 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     reader.readAsArrayBuffer(file);
 });
 
-document.getElementById('uploadPicture').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
+document.getElementById('uploadImageButton').addEventListener('click', async function () {
+    const fileInput = document.getElementById('expenseImage');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        notifications.warning('Please select an image file first');
+        return;
+    }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('image', file);
 
-    // Show progress bar and disable buttons
-    const progressBar = document.createElement('div');
-    progressBar.id = 'progressBar';
-    progressBar.style.position = 'fixed';
-    progressBar.style.top = '0';
-    progressBar.style.left = '0';
-    progressBar.style.width = '100%';
-    progressBar.style.height = '5px';
-    progressBar.style.backgroundColor = '#0d6efd';
-    progressBar.style.transition = 'width 0.4s ease';
-    progressBar.style.zIndex = '1050';
-    document.body.appendChild(progressBar);
-
-    const disableUI = () => {
-        document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
-    };
-
-    const enableUI = () => {
-        document.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
-    };
-
-    disableUI();
-
-    $.ajax({
-        url: '/api/expenses/by-ocr',
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        xhr: function () {
-            const xhr = new window.XMLHttpRequest();
-            xhr.upload.addEventListener('progress', function (e) {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    progressBar.style.width = `${percentComplete}%`;
-                }
-            });
-            return xhr;
-        },
-        success: function (response) {
-            try {
-                if (response.error) {
-                    alert(`Error: ${response.error}`);
-                    return;
-                }
-                const data = JSON.parse(response.result);
-                addExpense(data);
-            } catch (e) {
-                console.error('Error parsing response:', e);
-                alert('An unexpected error occurred. Please try again.');
-            }
-        },
-        error: function (xhr) {
-            console.error('Error:', xhr);
-            alert('An error occurred while processing the Picture.');
-        },
-        complete: function () {
-            document.body.removeChild(progressBar);
-            enableUI();
-
+    try {
+        // Upload file for OCR
+        const response = await fetch('/api/ocr/expense', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            notifications.error(`Error: ${result.error || 'Failed to process image'}`);
+            return;
         }
-    });
+        
+        // Populate form with OCR results
+        if (result.success && result.data) {
+            $('#amount').val(result.data.amount || '');
+            $('#category').val(result.data.category || 'Other');
+            $('#description').val(result.data.description || '');
+            
+            // Scroll to and focus the amount field
+            $('#amount').focus();
+            
+            notifications.success('Successfully extracted data from image');
+        } else {
+            notifications.warning('Could not extract all data from image. Please fill in the form manually.');
+        }
+    } catch (err) {
+        console.error(err);
+        notifications.error('An error occurred while processing the image.');
+    }
 });
 
 async function addExpense(expenseData) {
@@ -491,7 +463,7 @@ async function addExpense(expenseData) {
             offcanvasInstance.hide();
         },
         error: function (xhr) {
-            alert(xhr.responseJSON?.error || 'Failed to add expense');
+            notifications.error(xhr.responseJSON?.error || 'Failed to add expense');
         }
     });
 }
@@ -625,6 +597,36 @@ $('#bulkShareButton').on('click', function() {
         },
         error: function(xhr) {
             notifications.error(xhr.responseJSON.error || 'Failed to share expenses');
+        }
+    });
+});
+
+$('#processClipboardButton').on('click', function() {
+    const clipboardText = $('#clipboardText').val();
+    
+    if (!clipboardText) {
+        notifications.warning('Please paste some text first');
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/expenses/from-clipboard',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ text: clipboardText }),
+        success: function(response) {
+            // Hide modal
+            $('#uploadFromClipboardModal').modal('hide');
+            
+            // Update form with values
+            $('#amount').val(response.amount || '');
+            $('#category').val(response.category || 'Other');
+            $('#description').val(response.description || '');
+            
+            notifications.success('Successfully extracted data from clipboard');
+        },
+        error: function(xhr) {
+            notifications.error(xhr.responseJSON?.error || 'Failed to process clipboard data');
         }
     });
 });

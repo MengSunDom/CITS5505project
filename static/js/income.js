@@ -47,11 +47,11 @@ $(document).ready(function () {
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                 offcanvasInstance.hide();
             } else {
-                alert(data.error || 'Failed to add income');
+                notifications.error(data.error || 'Failed to add income');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while adding the income');
+            notifications.error('An error occurred while adding the income');
         }
     });
 
@@ -59,6 +59,11 @@ $(document).ready(function () {
     $('#shareButton').on('click', function () {
         const username = $('#shareUsername').val();
         const incomeId = $('#incomeIdToShare').val();
+
+        if (!username) {
+            notifications.warning('Please select a user to share with');
+            return;
+        }
 
         $.ajax({
             url: `/api/share/income/${incomeId}`,
@@ -69,10 +74,10 @@ $(document).ready(function () {
             }),
             success: function (response) {
                 $('#shareModal').modal('hide');
-                showNotification('Success', 'Income shared successfully!', 'success');
+                notifications.success(response.message || 'Income shared successfully');
             },
             error: function (xhr) {
-                showNotification('Error', xhr.responseJSON.error || 'Failed to share income', 'error');
+                notifications.error(xhr.responseJSON?.error || 'Failed to share income');
             }
         });
     });
@@ -123,29 +128,25 @@ function openShareModal(incomeId) {
 }
 
 function deleteLine(incomeId) {
-    showConfirmModal(
-        'Delete Income',
-        'Are you sure you want to delete this income?',
-        function() {
-            $.ajax({
-                url: '/api/incomes/delete',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    id: incomeId
-                }),
-                success: function (response) {
-                    $('#incomeForm')[0].reset();
-                    document.getElementById('date').value = getFormattedDateTime();
-                    loadData();
-                    showNotification('Success', 'Income deleted successfully', 'success');
-                },
-                error: function (xhr) {
-                    showNotification('Error', xhr.responseJSON.error || 'Failed to delete income', 'error');
-                }
-            });
-        }
-    );
+    notifications.confirmDelete('income', function() {
+        $.ajax({
+            url: '/api/incomes/delete',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                id: incomeId
+            }),
+            success: function (response) {
+                $('#incomeForm')[0].reset();
+                document.getElementById('date').value = getFormattedDateTime();
+                loadData();
+                notifications.success('Income deleted successfully');
+            },
+            error: function (xhr) {
+                notifications.error(xhr.responseJSON?.error || 'Failed to delete income');
+            }
+        });
+    });
 }
 
 const allowedCategories = ['Food', 'Entertainment', 'Shopping', 'Bills', 'Other'];
@@ -218,7 +219,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         }
 
         if (errors.length > 0) {
-            showNotification('Error', 'Upload failed:\n' + errors.join('\n'), 'error');
+            notifications.error('Upload failed:\n' + errors.join('\n'));
         } else if (validRows.length > 0) {
             $.ajax({
                 url: '/api/incomes/bulk',
@@ -226,17 +227,17 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
-                    showNotification('Success', 'Upload successful!', 'success');
+                    notifications.success('Upload successful!');
                     $('#incomeForm')[0].reset();
                     document.getElementById('date').value = getFormattedDateTime();
                     loadData();
                 },
                 error: function (xhr) {
-                    showNotification('Error', xhr.responseJSON.error || 'Failed to upload incomes', 'error');
+                    notifications.error(xhr.responseJSON?.error || 'Failed to upload incomes');
                 }
             });
         } else {
-            showNotification('Warning', 'No valid data found in the file.', 'warning');
+            notifications.warning('No valid data found in the file.');
         }
     };
 
@@ -244,28 +245,37 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 });
 
 let loadUsernames = () => {
-    $.ajax({
-        url: '/api/users',
-        method: 'GET',
-        success: function (data) {
-            const select = $('#shareUsername');
-            const bulkSelect = $('#bulkShareUsername');
-            select.empty();
-            bulkSelect.empty();
-            data.forEach(function (user) {
-                const option = $('<option></option>')
-                    .attr('value', user.username)
-                    .text(user.username);
-                select.append(option);
-                bulkSelect.append(option.clone());
-            });
-        },
-        error: function (xhr, status, error) {
-            console.error('Failed to load usernames:', error);
-            alert('Failed to load usernames.');
-        }
+    return fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            populateUserSelect(data);
+        })
+        .catch(() => {
+            notifications.error('Failed to load usernames. Cannot share.');
+        });
+}
+
+function populateUserSelect(data) {
+    const select = $('#shareUsername');
+    const bulkSelect = $('#bulkShareUsername');
+    
+    // Clear existing options
+    select.empty();
+    bulkSelect.empty();
+    
+    // Add placeholder options
+    select.append('<option value="">Select a user...</option>');
+    bulkSelect.append('<option value="">Select a user...</option>');
+    
+    // Add user options
+    data.forEach(user => {
+        const option = $('<option></option>')
+            .attr('value', user.username)
+            .text(user.username);
+        select.append(option);
+        bulkSelect.append(option.clone());
     });
-};
+}
 
 $('#shareModal').on('show.bs.modal', function () {
     loadUsernames();
@@ -309,29 +319,25 @@ $('#deleteSelected').on('click', function () {
         .get();
 
     if (selectedIds.length === 0) {
-        showNotification('Warning', 'No incomes selected', 'warning');
+        notifications.warning('No incomes selected');
         return;
     }
 
-    showConfirmModal(
-        'Delete Selected Incomes',
-        `Are you sure you want to delete ${selectedIds.length} selected income(s)?`,
-        function() {
-            $.ajax({
-                url: '/api/incomes/bulk-delete',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ ids: selectedIds }),
-                success: function () {
-                    loadData();
-                    showNotification('Success', 'Selected incomes deleted successfully', 'success');
-                },
-                error: function (xhr) {
-                    showNotification('Error', xhr.responseJSON.error || 'Failed to delete incomes', 'error');
-                }
-            });
-        }
-    );
+    notifications.confirmDelete('incomes', function() {
+        $.ajax({
+            url: '/api/incomes/bulk-delete',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: selectedIds }),
+            success: function () {
+                loadData();
+                notifications.success('Selected incomes deleted successfully');
+            },
+            error: function (xhr) {
+                notifications.error(xhr.responseJSON?.error || 'Failed to delete incomes');
+            }
+        });
+    });
 });
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -349,13 +355,13 @@ $('#bulkShareButton').on('click', function () {
         .get();
 
     if (selectedIds.length === 0) {
-        showNotification('Warning', 'No incomes selected', 'warning');
+        notifications.warning('No incomes selected');
         return;
     }
 
     const username = $('#bulkShareUsername').val();
     if (!username) {
-        showNotification('Warning', 'Please select a username to share with', 'warning');
+        notifications.warning('Please select a username to share with');
         return;
     }
 
@@ -366,7 +372,7 @@ $('#bulkShareButton').on('click', function () {
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {
             $('#bulkShareModal').modal('hide');
-            showNotification('Success', 'Incomes shared successfully!', 'success');
+            notifications.success('Incomes shared successfully');
             // Clear all checkboxes
             $('#incomeTableBody input[type="checkbox"]').prop('checked', false);
             $('#selectAll').prop('checked', false);
@@ -374,7 +380,7 @@ $('#bulkShareButton').on('click', function () {
             loadData();
         },
         error: function (xhr) {
-            showNotification('Error', xhr.responseJSON.error || 'Failed to share incomes', 'error');
+            notifications.error(xhr.responseJSON?.error || 'Failed to share incomes');
         }
     });
 });
@@ -420,42 +426,3 @@ $(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
 }).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
     $('.custom-tooltip').remove();
 });
-
-function showNotification(title, message, type = 'info') {
-    const toast = $('#notificationToast');
-    const toastTitle = $('#toastTitle');
-    const toastMessage = $('#toastMessage');
-    
-    // Set icon based on type
-    let icon = 'fa-info-circle';
-    if (type === 'success') icon = 'fa-check-circle';
-    if (type === 'error') icon = 'fa-exclamation-circle';
-    if (type === 'warning') icon = 'fa-exclamation-triangle';
-    
-    toastTitle.html(`<i class="fas ${icon} me-2"></i>${title}`);
-    toastMessage.text(message);
-    
-    // Add appropriate classes
-    toast.removeClass('bg-success bg-danger bg-warning bg-info')
-         .addClass(`bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'}`);
-    
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-}
-
-function showConfirmModal(title, message, onConfirm) {
-    const modal = $('#confirmModal');
-    $('#confirmModalTitle').text(title);
-    $('#confirmModalBody').text(message);
-    
-    // Remove any existing click handlers
-    $('#confirmModalConfirm').off('click');
-    
-    // Add new click handler
-    $('#confirmModalConfirm').on('click', function() {
-        onConfirm();
-        modal.modal('hide');
-    });
-    
-    modal.modal('show');
-}
