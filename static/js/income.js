@@ -381,7 +381,12 @@ $('#bulkShareButton').on('click', function () {
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {
             $('#bulkShareModal').modal('hide');
-            alert('incomes shared successfully!');
+            alert('Incomes shared successfully!');
+            // Clear all checkboxes
+            $('#incomeTableBody input[type="checkbox"]').prop('checked', false);
+            $('#selectAll').prop('checked', false);
+            // Reload data to refresh the table
+            loadData();
         },
         error: function (xhr) {
             alert('Error sharing incomes: ' + xhr.responseJSON.error);
