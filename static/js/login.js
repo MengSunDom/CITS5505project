@@ -1,4 +1,16 @@
-$(document).ready(function() {
+$(function() {
+    function autofillLogin() {
+        if (localStorage.getItem('rememberMe') === 'true') {
+            $('#username').val(localStorage.getItem('rememberedUsername') || '');
+            $('#password').val(localStorage.getItem('rememberedPassword') || '');
+            $('#rememberMe').prop('checked', true);
+        } else {
+            $('#password').val('');
+            $('#rememberMe').prop('checked', false);
+        }
+    }
+    autofillLogin();
+
     $('#loginForm').on('submit', function(e) {
         e.preventDefault();
         
@@ -7,6 +19,17 @@ $(document).ready(function() {
         const csrf_token = $('input[name="csrf_token"]').val();
         const rememberMe = $('#rememberMe').is(':checked');
         
+        // Save or clear credentials in localStorage
+        if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+            localStorage.setItem('rememberedUsername', username);
+            localStorage.setItem('rememberedPassword', password);
+        } else {
+            localStorage.removeItem('rememberMe');
+            localStorage.removeItem('rememberedUsername');
+            localStorage.removeItem('rememberedPassword');
+        }
+
         $.ajax({
             url: '/api/login',
             method: 'POST',
@@ -37,4 +60,7 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Also autofill on page show (for browser back/forward navigation)
+    $(window).on('pageshow', autofillLogin);
 }); 
