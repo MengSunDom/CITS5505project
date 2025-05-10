@@ -55,6 +55,12 @@ $(document).ready(function () {
 
     // Load expenses on page load
     loadExpenses();
+    
+    // Handle "select all" checkbox with event delegation
+    $(document).on('change', '#selectAll', function() {
+        console.log('Select all changed:', this.checked);
+        $('#expenseTableBody input[type="checkbox"]').prop('checked', this.checked);
+    });
 
     // Handle form submission
     $('#expenseForm').on('submit', async (e) => {
@@ -149,37 +155,36 @@ $(document).ready(function () {
 
     // Handle bulk share button click in modal
     $('#bulkShareButton').off('click').on('click', function() {
-        const selectedIds = document.getElementById('bulkShareModal').dataset.selectedIds.split(',');
-        const username = document.getElementById('bulkShareUsername').value;
-        
-        if (!username) {
-            notifications.warning('Please select a user to share with');
+        const selectedIds = getSelectedExpenseIds();
+
+        if (selectedIds.length === 0) {
+            notifications.warning('No expenses selected');
             return;
         }
-        
-        fetch('/api/share/bulk', {
+
+        const username = $('#bulkShareUsername').val();
+        if (!username) {
+            notifications.warning('Please select a username to share with');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/share/bulk',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ids: selectedIds,
-                username: username
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                notifications.error(data.error);
-            } else {
-                notifications.success(data.message || 'Expenses shared successfully');
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: selectedIds, username: username }),
+            success: function() {
                 $('#bulkShareModal').modal('hide');
-                loadExpenses(); // Refresh the expenses list
+                notifications.success('Expenses shared successfully');
+                // Clear all checkboxes
+                $('#expenseTableBody input[type="checkbox"]').prop('checked', false);
+                $('#selectAll').prop('checked', false);
+                // Reload data to refresh the table
+                loadExpenses();
+            },
+            error: function(xhr) {
+                notifications.error(xhr.responseJSON.error || 'Failed to share expenses');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            notifications.error('Failed to share expenses.');
         });
     });
 });
@@ -241,7 +246,8 @@ window.openShareModal = openShareModal;
 
 // Function to get selected expense IDs
 function getSelectedExpenseIds() {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    // Only select checkboxes within the expense table body, not the header checkbox
+    const checkboxes = document.querySelectorAll('#expenseTableBody input[type="checkbox"]:checked');
     // Only return non-empty, numeric ids
     return Array.from(checkboxes)
         .map(cb => cb.dataset.id)
@@ -522,17 +528,8 @@ $('#searchInput').on('input', filterAndSearchExpenses);
 $('#filterCategory').on('change', filterAndSearchExpenses);
 $('#filterMonth').on('change', filterAndSearchExpenses);
 
-$('#selectAll').on('change', function () {
-    const isChecked = $(this).is(':checked');
-    $('#expenseTableBody input[type="checkbox"]').prop('checked', isChecked);
-});
-
 $('#deleteSelected').on('click', function() {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
-        .map(function() {
-            return $(this).data('id');
-        })
-        .get();
+    const selectedIds = getSelectedExpenseIds();
 
     if (selectedIds.length === 0) {
         notifications.warning('No expenses selected');
@@ -561,44 +558,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     $('#filterMonth').val(`${year}-${month}`);
-});
-
-$('#bulkShareButton').on('click', function() {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
-        .map(function() {
-            return $(this).data('id');
-        })
-        .get();
-
-    if (selectedIds.length === 0) {
-        notifications.warning('No expenses selected');
-        return;
-    }
-
-    const username = $('#bulkShareUsername').val();
-    if (!username) {
-        notifications.warning('Please select a username to share with');
-        return;
-    }
-
-    $.ajax({
-        url: '/api/share/bulk',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ids: selectedIds, username: username }),
-        success: function() {
-            $('#bulkShareModal').modal('hide');
-            notifications.success('Expenses shared successfully');
-            // Clear all checkboxes
-            $('#expenseTableBody input[type="checkbox"]').prop('checked', false);
-            $('#selectAll').prop('checked', false);
-            // Reload data to refresh the table
-            loadExpenses();
-        },
-        error: function(xhr) {
-            notifications.error(xhr.responseJSON.error || 'Failed to share expenses');
-        }
-    });
 });
 
 $('#processClipboardButton').on('click', function() {
