@@ -5,7 +5,7 @@ from models.models import db, Income
 income_bp = Blueprint('income', __name__)
 
 
-@income_bp.route('/api/income', methods=['GET'])
+@income_bp.route('/api/incomes', methods=['GET'])
 def get_income():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
@@ -21,7 +21,7 @@ def get_income():
     } for e in income])
 
 
-@income_bp.route('/api/income', methods=['POST'])
+@income_bp.route('/api/incomes', methods=['POST'])
 def add_income():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401

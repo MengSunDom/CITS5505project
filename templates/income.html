@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %}Expenses - Expense Tracker{% endblock %} {% block
+{% extends "base.html" %} {% block title %}Incomes - Income Tracker{% endblock %} {% block
 extra_head %}
 <link rel="stylesheet" href="/static/css/income.css" />
 {% endblock %} {% block navbar_right %}
@@ -11,10 +11,10 @@ extra_head %}
         <div class="card shadow-sm border-0 h-100">
             <div
                 class="card-header bg-light rounded-top border-bottom d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Expense History</h5>
+                <h5 class="card-title mb-0">Income History</h5>
                 <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="offcanvas"
-                    data-bs-target="#addExpenseCanvas" aria-controls="addExpenseCanvas">
-                    Add New Expense
+                    data-bs-target="#addIncomeCanvas" aria-controls="addIncomeCanvas">
+                    Add New Income
                 </button>
             </div>
             <div class="card-body">
@@ -26,11 +26,11 @@ extra_head %}
                     <div class="col-md-4">
                         <select id="filterCategory" class="form-select">
                             <option value="">All Categories</option>
-                            <option value="Food">Food</option>
-                            <option value="Transportation">Transportation</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Shopping">Shopping</option>
-                            <option value="Bills">Bills</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Bonus">Bonus</option>
+                            <option value="Interest">Interest</option>
+                            <option value="Transfer_family">Transfer_family</option>
+                            <option value="Gift">Gift</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -50,7 +50,7 @@ extra_head %}
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="expenseTableBody" class="text-nowrap"></tbody>
+                        <tbody id="incomeTableBody" class="text-nowrap"></tbody>
                     </table>
                 </div>
                 <div class="d-flex">
@@ -67,14 +67,14 @@ extra_head %}
     </div>
 </div>
 
-<!-- Offcanvas for Add New Expense -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="addExpenseCanvas" aria-labelledby="addExpenseCanvasLabel">
+<!-- Offcanvas for Add New Income -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="addIncomeCanvas" aria-labelledby="addIncomeCanvasLabel">
     <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="addExpenseCanvasLabel">Add New Expense</h5>
+        <h5 class="offcanvas-title" id="addIncomeCanvasLabel">Add New Income</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form id="expenseForm">
+        <form id="incomeForm">
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount</label>
                 <input type="number" class="form-control" id="amount" step="0.01" required />
@@ -82,11 +82,11 @@ extra_head %}
             <div class="mb-3">
                 <label for="category" class="form-label">Category</label>
                 <select class="form-select" id="category" required>
-                    <option value="Food">Food</option>
-                    <option value="Transportation">Transportation</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Shopping">Shopping</option>
-                    <option value="Bills">Bills</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Bonus">Bonus</option>
+                    <option value="Interest">Interest</option>
+                    <option value="Transfer_family">Transfer_family</option>
+                    <option value="Gift">Gift</option>
                     <option value="Other">Other</option>
                 </select>
             </div>
@@ -99,7 +99,7 @@ extra_head %}
                 <input type="datetime-local" class="form-control" id="date" step="1" required />
             </div>
             <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Add Expense</button>
+                <button type="submit" class="btn btn-primary">Add Income</button>
             </div>
         </form>
         <div class="mt-2">
@@ -117,7 +117,7 @@ extra_head %}
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Share Selected Expenses</h5>
+                <h5 class="modal-title">Share Selected Incomes</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -143,7 +143,7 @@ extra_head %}
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Share Expense</h5>
+                <h5 class="modal-title">Share Income</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -152,7 +152,7 @@ extra_head %}
                         <label for="shareUsername" class="form-label">Username to share with</label>
                         <select class="form-select" id="shareUsername" required></select>
                     </div>
-                    <input type="hidden" id="expenseIdToShare" />
+                    <input type="hidden" id="incomeIdToShare" />
                 </form>
             </div>
             <div class="modal-footer">

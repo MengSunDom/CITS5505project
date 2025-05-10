@@ -10,28 +10,18 @@ extra_head %}
     <div class="col-md-12">
         <div class="card shadow-sm border-0 h-100">
             <div
-                class="card-header bg-light rounded-top border-bottom d-flex justify-content-between align-items-center"
-            >
+                class="card-header bg-light rounded-top border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Expense History</h5>
-                <button
-                    class="btn btn-primary btn-sm"
-                    type="button"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#addExpenseCanvas"
-                    aria-controls="addExpenseCanvas"
-                >
+                <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="offcanvas"
+                    data-bs-target="#addExpenseCanvas" aria-controls="addExpenseCanvas">
                     Add New Expense
                 </button>
             </div>
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <input
-                            type="text"
-                            id="searchInput"
-                            class="form-control"
-                            placeholder="Search by description..."
-                        />
+                        <input type="text" id="searchInput" class="form-control"
+                            placeholder="Search by description..." />
                     </div>
                     <div class="col-md-4">
                         <select id="filterCategory" class="form-select">
@@ -67,12 +57,8 @@ extra_head %}
                     <button class="btn btn-danger me-2" id="deleteSelected">
                         <i class="fas fa-trash-alt"></i> Delete Selected
                     </button>
-                    <button
-                        class="btn btn-primary"
-                        id="shareSelected"
-                        data-bs-toggle="modal"
-                        data-bs-target="#bulkShareModal"
-                    >
+                    <button class="btn btn-primary" id="shareSelected" data-bs-toggle="modal"
+                        data-bs-target="#bulkShareModal">
                         <i class="fas fa-share-alt"></i> Share Selected
                     </button>
                 </div>
@@ -82,20 +68,10 @@ extra_head %}
 </div>
 
 <!-- Offcanvas for Add New Expense -->
-<div
-    class="offcanvas offcanvas-end"
-    tabindex="-1"
-    id="addExpenseCanvas"
-    aria-labelledby="addExpenseCanvasLabel"
->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="addExpenseCanvas" aria-labelledby="addExpenseCanvasLabel">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="addExpenseCanvasLabel">Add New Expense</h5>
-        <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="offcanvas"
-            aria-label="Close"
-        ></button>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
         <form id="expenseForm">
@@ -147,9 +123,7 @@ extra_head %}
             <div class="modal-body">
                 <form id="bulkShareForm">
                     <div class="mb-3">
-                        <label for="bulkShareUsername" class="form-label"
-                            >Username to share with</label
-                        >
+                        <label for="bulkShareUsername" class="form-label">Username to share with</label>
                         <select class="form-select" id="bulkShareUsername" required></select>
                     </div>
                 </form>
