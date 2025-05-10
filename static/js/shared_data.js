@@ -1,356 +1,156 @@
-document.addEventListener("DOMContentLoaded", () => {
-    fetchSharedByMeExpenses();
-    fetchSharedWithMeExpenses();
+// Ensure DOM is ready
+$(document).ready(() => {
+    updateTable();
 });
 
-function fetchSharedByMeExpenses() {
-    fetch('/api/share/by-me')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch shared by me expenses');
-            }
-            return response.json();
-        })
-        .then(data => populateSharedByMeTable(data))
-        .catch(error => console.error('Error:', error));
+const updateTable = () => {
+    fetchSharedByMe();
+    fetchSharedWithMe();
 }
 
-function fetchSharedWithMeExpenses() {
-    fetch('/api/share/with-me')
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.error || 'Failed to fetch shared with me expenses');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Shared with me data:', data); // Debug log
-            populateSharedWithMeTable(data);
-        })
-        .catch(error => {
-            console.error('Error fetching shared with me expenses:', error);
-            // Show error to user
-            const tbody = document.getElementById('sharedWithMeTableBody');
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-danger">
-                        Failed to load shared expenses: ${error.message}
-                    </td>
-                </tr>
-            `;
-        });
+// Fetch shared by me
+const fetchSharedByMe = () => {
+    $.ajax({
+        url: '/api/share/by-me',
+        method: 'GET',
+        dataType: 'json',
+        success: data => populateSharedByMeTable(data, '', 'ByMe'),
+        error: err => console.error('Error fetching shared by me:', err)
+    });
+    $.ajax({
+        url: '/api/share/income/by-me',
+        method: 'GET',
+        dataType: 'json',
+        success: data => populateSharedByMeTable(data, 'Income', 'ByMe'),
+        error: err => console.error('Error fetching shared by me:', err)
+    });
 }
 
-function populateSharedByMeTable(expenses) {
-    const tbody = document.getElementById('sharedByMeTableBody');
-    tbody.innerHTML = '';
-
-    expenses.forEach(expense => {
-        if (expense.is_bulk) {
-            // Check if any details have is_repeat flag
-            const hasRepeatedItems = expense.details.some(detail => detail.is_repeat);
-            
-            // Format categories for display
-            const categories = expense.categories;
-            const displayCategories = categories.length > 2 ? 
-                `${categories.slice(0, 2).join(', ')} +${categories.length - 2} more` : 
-                categories.join(', ');
-            
-            // Create main row for bulk share
-            const mainRow = document.createElement('tr');
-            mainRow.innerHTML = `
-                <td style="width: 5%">
-                    <button class="btn btn-link p-0" onclick="toggleBulkDetails(${expense.id})">
-                        <i class="fas fa-chevron-right" id="icon-${expense.id}"></i>
-                    </button>
-                </td>
-                <td style="width: 25%">
-                    <div class="d-flex flex-column">
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">${expense.expense_count} expenses</span>
-                            ${(expense.is_repeat || (typeof hasRepeatedItems !== 'undefined' && hasRepeatedItems)) ?
-                                '<span class="badge bg-warning">Contains individually shared items</span>' : ''}
-                        </div>
-                        <small class="text-muted">${expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by}</small>
-                    </div>
-                </td>
-                <td style="width: 20%">
-                    <span class="categories-tooltip" 
-                          data-bs-toggle="tooltip" 
-                          data-bs-html="true"
-                          data-bs-placement="top"
-                          title="${expense.categories.join('<br>')}">
-                        ${expense.categories.length > 2 ? `${expense.categories.slice(0, 2).join(', ')} +${expense.categories.length - 2} more` : expense.categories.join(', ')}
-                    </span>
-                </td>
-                <td style="width: 15%">$${expense.total_amount.toFixed(2)}</td>
-                <td style="width: 15%">${expense.date}</td>
-                <td style="width: 20%">
-                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
-                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
-                        <span class="badge bg-warning" style="width: 60px; visibility:hidden;">Repeat</span>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(mainRow);
-
-            // Create details row
-            const detailsRow = document.createElement('tr');
-            detailsRow.id = `details-${expense.id}`;
-            detailsRow.style.display = 'none';
-            detailsRow.innerHTML = `
-                <td colspan="6">
-                    <div class="ms-4">
-                        <table class="table table-sm mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width: 20%">Date</th>
-                                    <th style="width: 20%">Category</th>
-                                    <th style="width: 30%">Description</th>
-                                    <th style="width: 15%">Amount</th>
-                                    <th style="width: 15%">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${expense.details.map(detail => `
-                                    <tr>
-                                        <td>${detail.date}</td>
-                                        <td>${detail.category}</td>
-                                        <td>${detail.description}</td>
-                                        <td>$${detail.amount.toFixed(2)}</td>
-                                        <td>
-                                            ${detail.is_repeat ? 
-                                                '<span class="badge bg-warning">Already shared individually</span>' : 
-                                                ''}
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(detailsRow);
-        } else {
-            // Single share
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td style="width: 5%"></td>
-                <td style="width: 25%">
-                    <div class="d-flex flex-column">
-                        <div>${expense.description}</div>
-                        <small class="text-muted">${expense.note ? expense.note : (expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by)}</small>
-                    </div>
-                </td>
-                <td style="width: 20%">${expense.category}</td>
-                <td style="width: 15%">$${expense.amount.toFixed(2)}</td>
-                <td style="width: 15%">${expense.date}</td>
-                <td style="width: 20%">
-                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
-                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
-                        <span class="badge bg-warning" style="width: 60px; ${expense.is_repeat ? '' : 'visibility:hidden;'}">Repeat</span>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(row);
+// Fetch shared with me
+const fetchSharedWithMe = () => {
+    $.ajax({
+        url: '/api/share/with-me',
+        method: 'GET',
+        dataType: 'json',
+        success: data => populateSharedWithMeTable(data, '', 'WithMe'),
+        error: xhr => {
+            const errorMsg = xhr.responseJSON?.error || 'Failed to fetch data';
+            console.error(errorMsg);
+            $('#sharedWithMeTableBody').html(`
+                <tr><td colspan="6" class="text-center text-danger">${errorMsg}</td></tr>
+            `);
         }
     });
-
-    // Initialize tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, {
-            html: true
-        });
-    });
-}
-
-function populateSharedWithMeTable(expenses) {
-    const tbody = document.getElementById('sharedWithMeTableBody');
-    tbody.innerHTML = '';
-
-    if (!expenses || expenses.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center">
-                    No expenses have been shared with you
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    expenses.forEach(expense => {
-        if (expense.is_bulk) {
-            // Check if any details have is_repeat flag
-            const hasRepeatedItems = expense.details.some(detail => detail.is_repeat);
-            
-            // Format categories for display
-            const categories = expense.categories;
-            const displayCategories = categories.length > 2 ? 
-                `${categories.slice(0, 2).join(', ')} +${categories.length - 2} more` : 
-                categories.join(', ');
-            
-            // Create main row for bulk share
-            const mainRow = document.createElement('tr');
-            mainRow.innerHTML = `
-                <td style="width: 5%">
-                    <button class="btn btn-link p-0" onclick="toggleBulkDetails(${expense.id})">
-                        <i class="fas fa-chevron-right" id="icon-${expense.id}"></i>
-                    </button>
-                </td>
-                <td style="width: 25%">
-                    <div class="d-flex flex-column">
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">${expense.expense_count} expenses</span>
-                            ${(expense.is_repeat || (typeof hasRepeatedItems !== 'undefined' && hasRepeatedItems)) ?
-                                '<span class="badge bg-warning">Contains individually shared items</span>' : ''}
-                        </div>
-                        <small class="text-muted">${expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by}</small>
-                    </div>
-                </td>
-                <td style="width: 20%">
-                    <span class="categories-tooltip" 
-                          data-bs-toggle="tooltip" 
-                          data-bs-html="true"
-                          data-bs-placement="top"
-                          title="${expense.categories.join('<br>')}">
-                        ${expense.categories.length > 2 ? `${expense.categories.slice(0, 2).join(', ')} +${expense.categories.length - 2} more` : expense.categories.join(', ')}
-                    </span>
-                </td>
-                <td style="width: 15%">$${expense.total_amount.toFixed(2)}</td>
-                <td style="width: 15%">${expense.date}</td>
-                <td style="width: 20%">
-                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
-                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
-                        <span class="badge bg-warning" style="width: 60px; visibility:hidden;">Repeat</span>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(mainRow);
-
-            // Create details row
-            const detailsRow = document.createElement('tr');
-            detailsRow.id = `details-${expense.id}`;
-            detailsRow.style.display = 'none';
-            detailsRow.innerHTML = `
-                <td colspan="6">
-                    <div class="ms-4">
-                        <table class="table table-sm mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width: 20%">Date</th>
-                                    <th style="width: 20%">Category</th>
-                                    <th style="width: 30%">Description</th>
-                                    <th style="width: 15%">Amount</th>
-                                    <th style="width: 15%">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${expense.details.map(detail => `
-                                    <tr>
-                                        <td>${detail.date}</td>
-                                        <td>${detail.category}</td>
-                                        <td>${detail.description}</td>
-                                        <td>$${detail.amount.toFixed(2)}</td>
-                                        <td>
-                                            ${detail.is_repeat ? 
-                                                '<span class="badge bg-warning">Already shared individually</span>' : 
-                                                ''}
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(detailsRow);
-        } else {
-            // Single share
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td style="width: 5%"></td>
-                <td style="width: 25%">
-                    <div class="d-flex flex-column">
-                        <div>${expense.description}</div>
-                        <small class="text-muted">${expense.note ? expense.note : (expense.shared_with ? 'Shared with: ' + expense.shared_with : 'Shared by: ' + expense.shared_by)}</small>
-                    </div>
-                </td>
-                <td style="width: 20%">${expense.category}</td>
-                <td style="width: 15%">$${expense.amount.toFixed(2)}</td>
-                <td style="width: 15%">${expense.date}</td>
-                <td style="width: 20%">
-                    <div class="d-flex align-items-center justify-content-end" style="min-width: 200px;">
-                        <button class="btn btn-danger btn-sm me-2" style="width: 120px;" onclick="cancelSharedExpense(${expense.shared_id})"> <i class="fas fa-times"></i> Cancel Share</button>
-                        <span class="badge bg-warning" style="width: 60px; ${expense.is_repeat ? '' : 'visibility:hidden;'}">Repeat</span>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(row);
+    $.ajax({
+        url: '/api/share/income/with-me',
+        method: 'GET',
+        dataType: 'json',
+        success: data => populateSharedWithMeTable(data, 'Income', 'WithMe'),
+        error: xhr => {
+            const errorMsg = xhr.responseJSON?.error || 'Failed to fetch data';
+            console.error(errorMsg);
+            $('#sharedWithMeTableBody').html(`
+                <tr><td colspan="6" class="text-center text-danger">${errorMsg}</td></tr>
+            `);
         }
     });
-
-    // Initialize tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, {
-            html: true
-        });
-    });
 }
 
-function cancelSharedExpense(sharedExpenseId) {
-    if (!confirm("Are you sure you want to cancel this shared expense?")) {
-        return;
-    }
+// Render shared-by-me table
+const populateSharedByMeTable = (data, type, methods) => {
+    const $tbody = $(`#shared${methods}${type}TableBody`)
+    $tbody.empty();
 
-    fetch('/api/share/cancel', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ shared_id: sharedExpenseId })
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.error || 'Failed to cancel share');
+    data.forEach(exp => {
+        const isBulk = exp.is_bulk;
+        const categories = isBulk ? exp.categories : [exp.category]; // Unified data structure
+        const displayCategories = categories.length > 2 ? `${categories.slice(0, 2).join(', ')} +${categories.length - 2} more` : categories.join(', ');
+        const sharedLabel = exp.shared_with ? `Shared with: ${exp.shared_with}` : `Shared by: ${exp.shared_by}`;
+
+        const $mainRow = $(
+            `<tr>
+                <td>${isBulk ? `<button class="btn btn-link p-0" onclick="toggleBulkDetails(${exp.id}, '${methods}', '${type}')"><i class="fas fa-chevron-right" id="icon-${methods}-${type}-${exp.id}"></i></button>` : ''}</td>
+                <td>
+                    <div class="d-flex flex-column">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">${isBulk ? `${exp.expense_count} expenses` : exp.description}</span>
+                            ${isBulk && exp.details?.some(d => d.is_repeat)
+                                ? '<span class="badge bg-warning ms-2">Contains individually shared items</span>'
+                                : ''}
+                        </div>
+                        <small class="text-muted">${sharedLabel}</small>
+                    </div>
+                </td>
+                <td><span class="categories-tooltip" data-bs-toggle="tooltip" title="${categories.join('<br>')}">${displayCategories}</span></td>
+                <td>$${(exp.total_amount || exp.amount).toFixed(2)}</td>
+                <td>${exp.date}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <button class="btn btn-danger btn-sm me-2" onclick="cancelSharedExpense(${exp.shared_id},'${type}')">Cancel Share</button>
+                    ${!isBulk && exp.is_repeat ? '<span class="badge bg-warning ms-2">Repeat</span>' : ''}
+                  </div>
+                </td>
+            </tr>`
+        );
+
+        $tbody.append($mainRow);
+
+        if (isBulk) {
+            const $detailsRow = $(`<tr id="details-${methods}-${type}-${exp.id}" style="display: none;"><td colspan="6"></td></tr>`);
+            const $detailsTable = $('<table class="table table-sm mb-0"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody></tbody></table>');
+            exp.details.forEach(detail => {
+                $detailsTable.find('tbody').append(
+                    `<tr>
+                        <td>${detail.date}</td>
+                        <td>${detail.category}</td>
+                        <td>${detail.description}</td>
+                        <td>$${detail.amount.toFixed(2)}</td>
+                        <td>${detail.is_repeat ? '<span class="badge bg-warning">Already shared individually</span>' : ''}</td>
+                    </tr>`
+                );
             });
+            $detailsRow.find('td').append($('<div class="ms-4"></div>').append($detailsTable));
+            $tbody.append($detailsRow);
         }
-        return response.json();
-    })
-    .then(data => {
-        // Refresh both tables to ensure data consistency
-        fetchSharedByMeExpenses();
-        fetchSharedWithMeExpenses();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Show user-friendly error messages
-        if (error.message.includes('Unauthorized')) {
-            alert('You are not authorized to cancel this share');
-        } else if (error.message.includes('not found')) {
-            alert('This share no longer exists');
-        } else {
-            alert('Failed to cancel share: ' + error.message);
+    });
+
+    bootstrap.Tooltip && bootstrap.Tooltip.getInstance &&
+        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]', html: true });
+}
+
+// Same structure for shared-with-me
+const populateSharedWithMeTable = (data, type, methods) => {
+    const $tbody = $(`#shared${methods}${type}TableBody`).empty();
+
+    if (!data || !data.length) {
+        $tbody.html(`<tr><td colspan="6" class="text-center">No ${type} have been shared with you</td></tr>`);
+        return;
+    }
+
+    data.forEach(exp => populateSharedByMeTable([exp], type, methods)); // Reuse same logic
+}
+
+// Cancel share
+const cancelSharedExpense = (sharedId, type) => {
+    if (!confirm('Are you sure you want to cancel this shared expense?')) return;
+    $.ajax({
+        url: `/api/share${type ? "/income" : ""}/cancel`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ shared_id: sharedId }),
+        success: () => {
+            updateTable()
+        },
+        error: xhr => {
+            const errMsg = xhr.responseJSON?.error || 'Failed to cancel';
+            alert(errMsg);
         }
     });
 }
 
-function toggleBulkDetails(expenseId) {
-    const detailsRow = document.getElementById(`details-${expenseId}`);
-    const icon = document.getElementById(`icon-${expenseId}`);
-    
-    if (detailsRow.style.display === 'none') {
-        detailsRow.style.display = 'table-row';
-        icon.classList.remove('fa-chevron-right');
-        icon.classList.add('fa-chevron-down');
-    } else {
-        detailsRow.style.display = 'none';
-        icon.classList.remove('fa-chevron-down');
-        icon.classList.add('fa-chevron-right');
-    }
+// Toggle bulk detail row
+const toggleBulkDetails = (id, methods, type = '') => {
+    const isVisible = $(`#details-${methods}-${type}-${id}`).is(':visible');
+    $(`#details-${methods}-${type}-${id}`).toggle(!isVisible);
+    $(`#icon-${methods}-${type}-${id}`).toggleClass('fa-chevron-right fa-chevron-down');
 }
