@@ -69,7 +69,7 @@ const populateSharedByMeTable = (data, type, methods) => {
 
         const $mainRow = $(
             `<tr>
-                <td>${isBulk ? `<button class="btn btn-link p-0" onclick="toggleBulkDetails(${exp.id})"><i class="fas fa-chevron-right" id="icon-${exp.id}"></i></button>` : ''}</td>
+                <td>${isBulk ? `<button class="btn btn-link p-0" onclick="toggleBulkDetails(${exp.id}, '${methods}', '${type}')"><i class="fas fa-chevron-right" id="icon-${methods}-${type}-${exp.id}"></i></button>` : ''}</td>
                 <td>
                     <div class="d-flex flex-column">
                         <div class="d-flex align-items-center">
@@ -92,7 +92,7 @@ const populateSharedByMeTable = (data, type, methods) => {
         $tbody.append($mainRow);
 
         if (isBulk) {
-            const $detailsRow = $(`<tr id="details-${exp.id}" style="display: none;"><td colspan="6"></td></tr>`);
+            const $detailsRow = $(`<tr id="details-${methods}-${type}-${exp.id}" style="display: none;"><td colspan="6"></td></tr>`);
             const $detailsTable = $('<table class="table table-sm mb-0"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody></tbody></table>');
             exp.details.forEach(detail => {
                 $detailsTable.find('tbody').append(
@@ -146,8 +146,8 @@ const cancelSharedExpense = (sharedId) => {
 }
 
 // Toggle bulk detail row
-const toggleBulkDetails = (id) => {
-    const isVisible = $(`#details-${id}`).is(':visible');
-    $(`#details-${id}`).toggle(!isVisible);
-    $(`#icon-${id}`).toggleClass('fa-chevron-right fa-chevron-down');
+const toggleBulkDetails = (id, methods, type = '') => {
+    const isVisible = $(`#details-${methods}-${type}-${id}`).is(':visible');
+    $(`#details-${methods}-${type}-${id}`).toggle(!isVisible);
+    $(`#icon-${methods}-${type}-${id}`).toggleClass('fa-chevron-right fa-chevron-down');
 }
