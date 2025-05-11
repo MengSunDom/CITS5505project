@@ -1,5 +1,6 @@
 // Ensure DOM is ready
 $(document).ready(() => {
+
     loadAllSharedData();
     
     // Set up manual refresh button if you have one
@@ -199,11 +200,13 @@ function cancelShare(button, sharedId, type) {
     $(button).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
     
     notifications.confirmDelete('share', function() {
+
     $.ajax({
         url: `/api/share${type ? "/income" : ""}/cancel`,
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ shared_id: sharedId }),
+
             success: function(response) {
                 // Completely clear and rebuild all tables to ensure clean state
                 const tables = ['#sharedByMeTableBody', '#sharedByMeIncomeTableBody', 
@@ -231,6 +234,7 @@ function cancelShare(button, sharedId, type) {
                             $('#sharedByMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
                             console.error('Error loading shared by me data:', err);
                             notifications.error('Failed to refresh shared expense data');
+
         }
     });
                     
@@ -333,3 +337,4 @@ $(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
 }).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
     $('.custom-tooltip').remove();
 });
+

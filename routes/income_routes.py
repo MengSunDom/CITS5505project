@@ -1,6 +1,8 @@
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime
+
 from models.models import db, Income, SharedIncome
+
 
 income_bp = Blueprint('income', __name__)
 
@@ -100,6 +102,7 @@ def delete_income():
     if not income:
         return jsonify({'error': 'Income not found'}), 404
 
+
     try:
         # Find all bulk shares containing this income
         bulk_shares = SharedIncome.query.filter(
@@ -154,6 +157,7 @@ def delete_income():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to delete income: {str(e)}'}), 500
+
 
 
 @income_bp.route('/api/incomes/bulk-delete', methods=['POST'])

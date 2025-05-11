@@ -6,6 +6,7 @@ from sqlalchemy import func
 
 insights_bp = Blueprint('insights', __name__)
 
+
 # Helper function to parse date range from request
 def parse_date_range():
     """
@@ -69,6 +70,7 @@ def parse_date_range():
         logging.error(f"Date parsing error: {e}")
         raise ValueError('Invalid date format. Use YYYY-MM-DD.')
 
+
 @insights_bp.route('/api/insights', methods=['GET'])
 def get_insights():
     if 'user' not in session:
@@ -85,7 +87,9 @@ def get_insights():
         func.sum(Expense.amount).label('total')
     ).filter(
         Expense.user_id == user_id,
+
         Expense.type == 'expense',
+
         Expense.date >= start_date,
         Expense.date < end_date
     ).group_by(Expense.category).all()
@@ -99,7 +103,9 @@ def get_insights():
         func.sum(Expense.amount).label('total')
     ).filter(
         Expense.user_id == user_id,
+
         Expense.type == 'expense',
+
         Expense.date >= start_date,
         Expense.date < end_date
     ).group_by(func.date(Expense.date), Expense.category).all()
@@ -115,7 +121,9 @@ def get_insights():
         func.sum(Expense.amount).label('total')
     ).filter(
         Expense.user_id == user_id,
+
         Expense.type == 'expense',
+
         Expense.date >= start_date,
         Expense.date < end_date
     ).group_by(func.date(Expense.date)).order_by(func.date(Expense.date)).all()
@@ -135,6 +143,7 @@ def get_insights():
         date_labels.append(date_str)
         date_values.append(float(expense_total))
     
+
     totalAmount = sum(date_values)
     
     return jsonify({
@@ -157,14 +166,18 @@ def get_expense_summary():
 
     total_entries = Expense.query.filter(
         Expense.user_id == user_id,
+
         Expense.type == 'expense',
+
         Expense.date >= start_date,
         Expense.date < end_date
     ).count()
 
     total_amount = db.session.query(func.sum(Expense.amount)).filter(
         Expense.user_id == user_id,
+
         Expense.type == 'expense',
+
         Expense.date >= start_date,
         Expense.date < end_date
     ).scalar() or 0.0
@@ -173,7 +186,9 @@ def get_expense_summary():
         Expense.category, func.sum(Expense.amount)
     ).filter(
         Expense.user_id == user_id,
+
         Expense.type == 'expense',
+
         Expense.date >= start_date,
         Expense.date < end_date
     ).group_by(Expense.category).all()
@@ -183,9 +198,11 @@ def get_expense_summary():
 
     return jsonify({
         'totalEntries': total_entries,
+
         'totalAmount': float(total_amount),
         'categoryDistribution': {'labels': labels, 'values': values}
     })
+
 
 @insights_bp.route('/api/income-summary', methods=['GET'])
 def get_income_summary():
@@ -197,6 +214,7 @@ def get_income_summary():
         return jsonify({'error': str(e)}), 400
 
     user_id = session['user']['id']
+
 
     total_income = db.session.query(func.sum(Income.amount)).filter(
         Income.user_id == user_id,
@@ -217,6 +235,7 @@ def get_income_summary():
 
     return jsonify({
         'totalAmount': float(total_income),
+
         'categoryDistribution': {'labels': labels, 'values': values}
     })
 
@@ -245,6 +264,7 @@ def income_expense_comparison():
     expense_data = db.session.query(
         func.date(Expense.date).label('date'),
         func.sum(Expense.amount).label('total')
+
     ).filter(
         Expense.user_id == user_id,
         Expense.type == 'expense',
@@ -283,10 +303,12 @@ def income_expense_comparison():
     date_list = sorted(date_set)
 
 
+
     income_list = [income_map.get(d, 0.0) for d in date_list]
     expense_list = [expense_map.get(d, 0.0) for d in date_list]
 
     return jsonify({
+
         'labels': date_list,
         'income': income_list,
         'expense': expense_list
@@ -770,4 +792,5 @@ def get_top_categories():
     return jsonify({
         'labels': labels,
         'values': values
+
     })

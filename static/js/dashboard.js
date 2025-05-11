@@ -1,4 +1,5 @@
 $(document).ready(function () {
+
     // Display current date
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -148,6 +149,7 @@ $(document).ready(function () {
 
     // Function to update transaction tables with enhanced formatting
     const updateTransactionTable = (data, $tbody, type) => {
+
         let total = 0;
         let monthlyTotal = 0;
         const categories = {};
@@ -155,21 +157,24 @@ $(document).ready(function () {
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
+
         // Process transaction data
         data.forEach(transaction => {
             const amount = transaction.amount;
             const date = new Date(transaction.date);
             total += amount;
 
+
             if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
                 monthlyTotal += amount;
             }
 
+
             // Track categories for finding top category
             categories[transaction.category] = (categories[transaction.category] || 0) + amount;
+
         });
 
-        // Find top category
         let topCategory = '-';
         let maxAmount = 0;
         $.each(categories, (category, amount) => {
@@ -179,7 +184,9 @@ $(document).ready(function () {
             }
         });
 
+
         // Sort by date and take recent 5
+
         const recent = data
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .slice(0, 5);
@@ -406,4 +413,5 @@ $(document).ready(function () {
     }).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
         $('.custom-tooltip').remove();
     });
+
 });

@@ -416,6 +416,7 @@
         margin-bottom: 15px;
         /* Add bottom margin for spacing */
     }
+
 }
 
 /* Action Buttons in Transaction Tables */
@@ -578,15 +579,16 @@
 
 /* Tab Navigation Styling */
 .nav-tabs .nav-link {
-    color: #6c757d; /* 浅灰色文字颜色 */
+    color: #6c757d;
     font-weight: 500;
 }
 
 .nav-tabs .nav-link.active {
-    color: #495057; /* 激活标签的深色文字 */
+    color: #495057;
     font-weight: 600;
 }
 
 .nav-tabs .nav-link:hover:not(.active) {
-    color: #495057; /* 悬停时的颜色加深 */
+    color: #495057; 
+
 }

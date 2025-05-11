@@ -5,6 +5,7 @@
 }
 
 /* Share modal */
+
 #shareModal .modal-content,
 #bulkShareModal .modal-content {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -59,7 +60,7 @@
 #shareModal .modal-footer,
 #bulkShareModal .modal-footer {
     background-color: #f8f9fa;
-}
+
 
 /* Unified button styles */
 #expenseForm button,

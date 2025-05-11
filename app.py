@@ -12,7 +12,9 @@ from routes.share_routes import share_bp
 from routes.insights_routes import insights_bp
 from routes.income_routes import income_bp
 from routes.shareIncome_routes import shareIncome_bp
+
 from routes.shared_data_routes import shared_data_bp
+
 
 import config
 

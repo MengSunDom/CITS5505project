@@ -17,6 +17,7 @@ navbar_right %}
                     <i class="far fa-calendar-alt"></i>
                     <span id="currentDate">Loading date...</span>
                 </div>
+
             </div>
         </div>
     </div>
@@ -60,6 +61,7 @@ navbar_right %}
                     <p>Share financial data</p>
                 </a>
             </div>
+
         </div>
     </div>
 
@@ -256,14 +258,17 @@ navbar_right %}
                                 </div>
                                 <div class="text-center mt-3">
                                     <span class="badge bg-info p-2" id="savingsPercentage">0% Complete</span>
+
                                 </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- Recent Transactions -->
     <div class="row">
@@ -358,6 +363,7 @@ navbar_right %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveBudgetBtn">Save Changes</button>
                 </div>
+
             </div>
         </div>
     </div>
@@ -388,6 +394,28 @@ navbar_right %}
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveSavingsGoalBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light rounded-top border-bottom">
+                <h5 class="card-title mb-0">Recent Income</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentIncomeTable"></tbody>
+                    </table>
                 </div>
             </div>
         </div>

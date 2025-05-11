@@ -1,4 +1,5 @@
 $(document).ready(() => {
+
     /**
      * Debug function to log date information
      * @param {string} label - Label for the log entry
@@ -1797,4 +1798,5 @@ $(document).ready(() => {
         // Setup export handlers
         setupExportHandlers();
     });
+
 });

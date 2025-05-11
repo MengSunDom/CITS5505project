@@ -47,11 +47,13 @@ $(document).ready(function () {
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                 offcanvasInstance.hide();
             } else {
+
                 notifications.error(data.error || 'Failed to add income');
             }
         } catch (error) {
             console.error('Error:', error);
             notifications.error('An error occurred while adding the income');
+
         }
     });
 
@@ -60,10 +62,12 @@ $(document).ready(function () {
         const username = $('#shareUsername').val();
         const incomeId = $('#incomeIdToShare').val();
 
+
         if (!username) {
             notifications.warning('Please select a user to share with');
             return;
         }
+
 
         $.ajax({
             url: `/api/share/income/${incomeId}`,
@@ -74,10 +78,12 @@ $(document).ready(function () {
             }),
             success: function (response) {
                 $('#shareModal').modal('hide');
+
                 notifications.success(response.message || 'Income shared successfully');
             },
             error: function (xhr) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to share income');
+
             }
         });
     });
@@ -104,7 +110,9 @@ function updateIncomeTable(incomes) {
                 <td><input type="checkbox" data-id="${income.id}" /></td>
                 <td>${income.date}</td>
                 <td>${income.category}</td>
+
                 <td><span class="remark-tooltip" data-remark="${income.description || ''}">${getShortRemark(income.description)}</span></td>
+
                 <td>$${income.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${income.id})">
@@ -128,7 +136,9 @@ function openShareModal(incomeId) {
 }
 
 function deleteLine(incomeId) {
+
     notifications.confirmDelete('income', function() {
+
     $.ajax({
         url: '/api/incomes/delete',
         method: 'POST',
@@ -138,6 +148,7 @@ function deleteLine(incomeId) {
         }),
         success: function (response) {
             $('#incomeForm')[0].reset();
+
                 document.getElementById('date').value = getFormattedDateTime();
             loadData();
                 notifications.success('Income deleted successfully');
@@ -146,6 +157,7 @@ function deleteLine(incomeId) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to delete income');
         }
         });
+
     });
 }
 
@@ -182,6 +194,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         // Skip header row
         for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
+
             if (!row || row.length < 4) continue;
 
             let date = row[0]?.toString();
@@ -196,10 +209,12 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                     .split('T')[0];
             }
 
+
             if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
                 errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD or YYYY/MM/DD format.`);
                 continue;
             }
+
 
             const normalizedDate = date.replace(/\//g, '-');
             const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
@@ -210,6 +225,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                 continue;
             }
 
+
             if (isNaN(amount) || amount <= 0) {
                 errors.push(`Row ${i + 1}: Invalid amount "${amount}". Must be a positive number.`);
                 continue;
@@ -219,7 +235,9 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         }
 
         if (errors.length > 0) {
+
             notifications.error('Upload failed:\n' + errors.join('\n'));
+
         } else if (validRows.length > 0) {
             $.ajax({
                 url: '/api/incomes/bulk',
@@ -227,6 +245,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
+
                     notifications.success('Upload successful!');
                     $('#incomeForm')[0].reset();
                     document.getElementById('date').value = getFormattedDateTime();
@@ -238,6 +257,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             });
         } else {
             notifications.warning('No valid data found in the file.');
+
         }
     };
 
@@ -245,6 +265,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 });
 
 let loadUsernames = () => {
+
     return fetch('/api/users')
         .then(response => response.json())
         .then(data => {
@@ -351,6 +372,7 @@ function filterUsers(searchTerm, selectId) {
         .text(`${filteredUsers.length} users`);
 }
 
+
 $('#shareModal').on('show.bs.modal', function () {
     loadUsernames();
 });
@@ -393,11 +415,13 @@ $('#deleteSelected').on('click', function () {
         .get();
 
     if (selectedIds.length === 0) {
+
         notifications.warning('No incomes selected');
         return;
     }
 
     notifications.confirmDelete('incomes', function() {
+
     $.ajax({
         url: '/api/incomes/bulk-delete',
         method: 'POST',
@@ -405,12 +429,14 @@ $('#deleteSelected').on('click', function () {
         data: JSON.stringify({ ids: selectedIds }),
         success: function () {
             loadData();
+
                 notifications.success('Selected incomes deleted successfully');
         },
         error: function (xhr) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to delete incomes');
         }
         });
+
     });
 });
 
@@ -429,13 +455,17 @@ $('#bulkShareButton').on('click', function () {
         .get();
 
     if (selectedIds.length === 0) {
+
         notifications.warning('No incomes selected');
+
         return;
     }
 
     const username = $('#bulkShareUsername').val();
     if (!username) {
+
         notifications.warning('Please select a username to share with');
+
         return;
     }
 
@@ -446,6 +476,7 @@ $('#bulkShareButton').on('click', function () {
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {
             $('#bulkShareModal').modal('hide');
+
             notifications.success('Incomes shared successfully');
             // Clear all checkboxes
             $('#incomeTableBody input[type="checkbox"]').prop('checked', false);
@@ -455,6 +486,7 @@ $('#bulkShareButton').on('click', function () {
         },
         error: function (xhr) {
             notifications.error(xhr.responseJSON?.error || 'Failed to share incomes');
+
         }
     });
 });
@@ -462,6 +494,7 @@ $('#bulkShareButton').on('click', function () {
 $('#bulkShareModal').on('show.bs.modal', function () {
     loadUsernames();
 });
+
 
 function getShortRemark(desc, maxLen = 20) {
     if (!desc) return '';
@@ -500,3 +533,4 @@ $(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
 }).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
     $('.custom-tooltip').remove();
 });
+
