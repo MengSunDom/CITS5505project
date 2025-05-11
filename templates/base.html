@@ -21,7 +21,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    {% if session.get('user') %}
+                    {% if current_user %}
                     <li class="nav-item">
                         <a class="nav-link text-dark" href="/dashboard">Dashboard</a>
                     </li>
@@ -40,12 +40,12 @@
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
-                    {% if session.get('user') %}
+                    {% if current_user %}
                     <li class="nav-item">
-                        <span class="nav-link text-dark">Welcome, {{ session['user']['username'] }}</span>
+                        <span class="nav-link text-dark">Welcome, {{ current_user.username }}</span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/logout">Logout</a>
+                        <a class="nav-link text-dark" href="#" id="logoutLink">Logout</a>
                     </li>
                     {% else %}
                     <li class="nav-item">
@@ -59,8 +59,12 @@
             </div>
         </div>
     </nav>
+
     <div style="height: 48px;"></div>
-    <div class="container mt-4">{% block content %}{% endblock %}</div>
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/static/js/notifications.js"></script>
     <script src="/static/js/base.js"></script>
@@ -86,8 +90,7 @@
                     <h5 class="modal-title" id="confirmModalTitle">Confirm Action</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="confirmModalBody">
-                </div>
+                <div class="modal-body" id="confirmModalBody"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="confirmModalConfirm">Confirm</button>

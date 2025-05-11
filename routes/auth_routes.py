@@ -2,6 +2,12 @@ from flask import Blueprint, session, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models.models import db, User
 from datetime import timedelta
+from flask_jwt_extended import (
+    create_access_token, set_access_cookies, jwt_required, get_jwt_identity
+)
+from flask_jwt_extended import unset_jwt_cookies
+from flask_jwt_extended import get_jwt_identity
+
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -30,34 +36,75 @@ def register():
         return jsonify({'error': 'Username already exists'}), 400
 
 
+# @auth_bp.route('/api/login', methods=['POST'])
+# def login():
+#     data = request.get_json()
+#     # CSRF check disabled for development
+#     # if data.get('csrf_token') != session.get('csrf_token'):
+#     #     return jsonify({'error': 'CSRF token mismatch'}), 403
+
+#     username = data.get('username')
+#     password = data.get('password')
+#     remember_me = data.get('rememberMe', False)
+
+#     user = User.query.filter_by(username=username).first()
+#     if user and check_password_hash(user.password, password + "_salt"):
+#         session.permanent = bool(remember_me)
+#         session['user'] = {
+#             'id': user.id,
+#             'username': user.username,
+#             'role': user.role,
+#             'permission': user.permission
+#         }
+#         return jsonify({'message': f"Welcome {user.username}!"})
+#     return jsonify({'error': 'Wrong account or password'}), 401
+
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    # CSRF check disabled for development
-    # if data.get('csrf_token') != session.get('csrf_token'):
-    #     return jsonify({'error': 'CSRF token mismatch'}), 403
-
     username = data.get('username')
     password = data.get('password')
-    remember_me = data.get('rememberMe', False)
 
     user = User.query.filter_by(username=username).first()
+
     if user and check_password_hash(user.password, password + "_salt"):
-        session.permanent = bool(remember_me)
-        session['user'] = {
-            'id': user.id,
-            'username': user.username,
-            'role': user.role,
-            'permission': user.permission
-        }
-        return jsonify({'message': f"Welcome {user.username}!"})
+        access_token = create_access_token(identity=str(user.id))
+        response = jsonify({"message": f"Welcome {user.username}!"})
+        set_access_cookies(response, access_token)
+        return response
     return jsonify({'error': 'Wrong account or password'}), 401
 
 
-@auth_bp.route('/api/users', methods=['GET'])
-def get_users():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+# @auth_bp.route('/api/users', methods=['GET'])
+# def get_users():
+#     if 'user' not in session:
+#         return jsonify({'error': 'Not authenticated'}), 401
 
+#     users = User.query.all()
+#     return jsonify([{'id': u.id, 'username': u.username} for u in users])
+
+@auth_bp.route('/api/users', methods=['GET'])
+@jwt_required()
+def get_users():
     users = User.query.all()
     return jsonify([{'id': u.id, 'username': u.username} for u in users])
+
+
+@auth_bp.route('/api/logout', methods=['POST'])
+def logout():
+    response = jsonify({"message": "Logout successful"})
+    unset_jwt_cookies(response)
+    return response
+
+
+
+@auth_bp.route('/api/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'role': user.role
+    })
