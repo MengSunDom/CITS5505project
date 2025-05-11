@@ -25,39 +25,39 @@ navbar_right %}
     <div class="quick-actions mb-4">
         <div class="row g-3">
             <div class="col-md-3">
-                <a href="/expenses/add" class="quick-action-card bg-gradient-primary">
+                <a href="/expenses" class="quick-action-card bg-gradient-primary">
                     <div class="icon-circle">
-                        <i class="fas fa-plus"></i>
-                    </div>
-                    <h5>Add Expense</h5>
-                    <p>Record a new expense</p>
-                </a>
-            </div>
-            <div class="col-md-3">
-                <a href="/income/add" class="quick-action-card bg-gradient-success">
-                    <div class="icon-circle">
-                        <i class="fas fa-plus"></i>
-                    </div>
-                    <h5>Add Income</h5>
-                    <p>Record a new income</p>
-                </a>
-            </div>
-            <div class="col-md-3">
-                <a href="/expenses" class="quick-action-card bg-gradient-info">
-                    <div class="icon-circle">
-                        <i class="fas fa-list"></i>
+                        <i class="fas fa-file-invoice-dollar"></i>
                     </div>
                     <h5>Expenses</h5>
-                    <p>Manage all expenses</p>
+                    <p>Manage your expenses</p>
                 </a>
             </div>
             <div class="col-md-3">
-                <a href="/income" class="quick-action-card bg-gradient-warning">
+                <a href="/income" class="quick-action-card bg-gradient-success">
                     <div class="icon-circle">
-                        <i class="fas fa-list"></i>
+                        <i class="fas fa-wallet"></i>
                     </div>
                     <h5>Income</h5>
-                    <p>Manage all income</p>
+                    <p>Track your earnings</p>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/insights" class="quick-action-card bg-gradient-info">
+                    <div class="icon-circle">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h5>Analysis</h5>
+                    <p>View financial insights</p>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/shared-data" class="quick-action-card bg-gradient-warning">
+                    <div class="icon-circle">
+                        <i class="fas fa-share-alt"></i>
+                    </div>
+                    <h5>Share</h5>
+                    <p>Share financial data</p>
                 </a>
             </div>
         </div>
@@ -184,6 +184,7 @@ navbar_right %}
                         <ul class="dropdown-menu" aria-labelledby="budgetDropdown">
                             <li><a class="dropdown-item" href="/insights">View Details</a></li>
                             <li><a class="dropdown-item" href="/expenses">Manage Expenses</a></li>
+                            <li><a class="dropdown-item" href="#" id="editBudgetBtn">Edit Budget</a></li>
                         </ul>
                     </div>
                 </div>
@@ -192,7 +193,7 @@ navbar_right %}
                         <div class="category-budget">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Food & Groceries</span>
-                                <span class="spending-ratio"><span id="foodSpent">$0</span> / <span class="budget-amount">$500</span></span>
+                                <span class="spending-ratio"><span id="foodSpent">$0</span> / <span class="budget-amount" data-category="food">$500</span></span>
                             </div>
                             <div class="progress">
                                 <div id="foodProgress" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -202,7 +203,7 @@ navbar_right %}
                         <div class="category-budget mt-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Transportation</span>
-                                <span class="spending-ratio"><span id="transportSpent">$0</span> / <span class="budget-amount">$300</span></span>
+                                <span class="spending-ratio"><span id="transportSpent">$0</span> / <span class="budget-amount" data-category="transport">$300</span></span>
                             </div>
                             <div class="progress">
                                 <div id="transportProgress" class="progress-bar bg-info" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -212,7 +213,7 @@ navbar_right %}
                         <div class="category-budget mt-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Entertainment</span>
-                                <span class="spending-ratio"><span id="entertainmentSpent">$0</span> / <span class="budget-amount">$200</span></span>
+                                <span class="spending-ratio"><span id="entertainmentSpent">$0</span> / <span class="budget-amount" data-category="entertainment">$200</span></span>
                             </div>
                             <div class="progress">
                                 <div id="entertainmentProgress" class="progress-bar bg-warning" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -222,7 +223,7 @@ navbar_right %}
                         <div class="category-budget mt-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Utilities</span>
-                                <span class="spending-ratio"><span id="utilitiesSpent">$0</span> / <span class="budget-amount">$250</span></span>
+                                <span class="spending-ratio"><span id="utilitiesSpent">$0</span> / <span class="budget-amount" data-category="utilities">$250</span></span>
                             </div>
                             <div class="progress">
                                 <div id="utilitiesProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -236,21 +237,27 @@ navbar_right %}
         <div class="col-md-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                    <h5 class="m-0">Top Categories</h5>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-sm btn-outline-primary active" id="topCategoriesExpenses">Expenses</button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="topCategoriesIncome">Income</button>
-                    </div>
+                    <h5 class="m-0">Savings Goal</h5>
+                    <button class="btn btn-sm btn-light" id="editSavingsGoalBtn">
+                        <i class="fas fa-edit"></i> Edit Goal
+                    </button>
                 </div>
                 <div class="card-body">
-                    <div id="topExpenseCategoriesContainer">
-                        <div class="top-categories-list" id="expenseCategoriesList">
-                            <!-- Top expense categories will be populated here -->
-                        </div>
-                    </div>
-                    <div id="topIncomeCategoriesContainer" style="display: none;">
-                        <div class="top-categories-list" id="incomeCategoriesList">
-                            <!-- Top income categories will be populated here -->
+                    <div id="savingsGoalContainer">
+                        <div class="savings-goal-card">
+                            <div class="goal-details">
+                                <h4 id="savingsGoalName">Emergency Fund</h4>
+                                <div class="progress mt-3 mb-2">
+                                    <div id="savingsProgress" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Current: <span id="currentSavings">$0.00</span></span>
+                                    <span>Target: <span id="savingsTarget">$5,000.00</span></span>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <span class="badge bg-info p-2" id="savingsPercentage">0% Complete</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -284,7 +291,6 @@ navbar_right %}
                                             <th>Category</th>
                                             <th>Description</th>
                                             <th class="text-end">Amount</th>
-                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recentExpensesTable"></tbody>
@@ -305,7 +311,6 @@ navbar_right %}
                                             <th>Category</th>
                                             <th>Description</th>
                                             <th class="text-end">Amount</th>
-                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recentIncomeTable"></tbody>
@@ -316,6 +321,73 @@ navbar_right %}
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Budget -->
+    <div class="modal fade" id="editBudgetModal" tabindex="-1" aria-labelledby="editBudgetModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editBudgetModalLabel">Edit Budget</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="budgetForm">
+                        <div class="mb-3">
+                            <label for="foodBudget" class="form-label">Food & Groceries</label>
+                            <input type="number" class="form-control" id="foodBudget" value="500">
+                        </div>
+                        <div class="mb-3">
+                            <label for="transportBudget" class="form-label">Transportation</label>
+                            <input type="number" class="form-control" id="transportBudget" value="300">
+                        </div>
+                        <div class="mb-3">
+                            <label for="entertainmentBudget" class="form-label">Entertainment</label>
+                            <input type="number" class="form-control" id="entertainmentBudget" value="200">
+                        </div>
+                        <div class="mb-3">
+                            <label for="utilitiesBudget" class="form-label">Utilities</label>
+                            <input type="number" class="form-control" id="utilitiesBudget" value="250">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveBudgetBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Savings Goal -->
+    <div class="modal fade" id="editSavingsGoalModal" tabindex="-1" aria-labelledby="editSavingsGoalModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editSavingsGoalModalLabel">Edit Savings Goal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="savingsGoalForm">
+                        <div class="mb-3">
+                            <label for="savingsGoalNameInput" class="form-label">Goal Name</label>
+                            <input type="text" class="form-control" id="savingsGoalNameInput" value="Emergency Fund">
+                        </div>
+                        <div class="mb-3">
+                            <label for="savingsTargetInput" class="form-label">Target Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="savingsTargetInput" value="5000">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveSavingsGoalBtn">Save Changes</button>
                 </div>
             </div>
         </div>

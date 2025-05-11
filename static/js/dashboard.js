@@ -4,11 +4,17 @@ $(document).ready(function () {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     $('#currentDate').text(now.toLocaleDateString('en-US', options));
     
+    // Initialize Bootstrap tabs
+    $('#transactionTabs .nav-link').on('click', function(e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+    
     // Load expense data via AJAX
     $.getJSON('/api/expenses', (data) => {
         const $tbody = $('#recentExpensesTable');
         $tbody.empty();
-        let { topCategory, total, monthlyTotal, allCategories } = updateTransactionTable(data, $tbody, 'expense');
+        let { topCategory, total, monthlyTotal } = updateTransactionTable(data, $tbody, 'expense');
         
         // Update expense metrics
         $('#topCategory').text(topCategory);
@@ -17,43 +23,128 @@ $(document).ready(function () {
         
         // Update budget progress bars
         updateBudgetProgress(data);
-        
-        // Populate expense categories list
-        populateCategoriesList(allCategories, 'expense');
     });
 
     // Load income data via AJAX
     $.getJSON('/api/incomes', (data) => {
         const $tbody = $('#recentIncomeTable');
         $tbody.empty();
-        let { topCategory, total, monthlyTotal, allCategories } = updateTransactionTable(data, $tbody, 'income');
+        let { topCategory, total, monthlyTotal } = updateTransactionTable(data, $tbody, 'income');
         
         // Update income metrics
         $('#topIncomeCategory').text(topCategory);
         $('#totalIncome').text(formatCurrency(total));
         $('#monthlyIncome').text(formatCurrency(monthlyTotal));
         
-        // Populate income categories list
-        populateCategoriesList(allCategories, 'income');
-        
         // Calculate and update balance metrics
         calculateBalance();
     });
     
-    // Toggle between expense and income categories
-    $('#topCategoriesExpenses').on('click', function() {
-        $(this).addClass('active');
-        $('#topCategoriesIncome').removeClass('active');
-        $('#topExpenseCategoriesContainer').show();
-        $('#topIncomeCategoriesContainer').hide();
+    // Budget edit functionality
+    $('#editBudgetBtn').on('click', function() {
+        // Load current values
+        $('#foodBudget').val(parseCurrency($('.budget-amount[data-category="food"]').text()));
+        $('#transportBudget').val(parseCurrency($('.budget-amount[data-category="transport"]').text()));
+        $('#entertainmentBudget').val(parseCurrency($('.budget-amount[data-category="entertainment"]').text()));
+        $('#utilitiesBudget').val(parseCurrency($('.budget-amount[data-category="utilities"]').text()));
+        
+        // Show modal
+        $('#editBudgetModal').modal('show');
     });
     
-    $('#topCategoriesIncome').on('click', function() {
-        $(this).addClass('active');
-        $('#topCategoriesExpenses').removeClass('active');
-        $('#topExpenseCategoriesContainer').hide();
-        $('#topIncomeCategoriesContainer').show();
+    // Save budget changes
+    $('#saveBudgetBtn').on('click', function() {
+        // Get new values
+        const foodBudget = parseFloat($('#foodBudget').val());
+        const transportBudget = parseFloat($('#transportBudget').val());
+        const entertainmentBudget = parseFloat($('#entertainmentBudget').val());
+        const utilitiesBudget = parseFloat($('#utilitiesBudget').val());
+        
+        // Update displayed budget amounts
+        $('.budget-amount[data-category="food"]').text(formatCurrency(foodBudget));
+        $('.budget-amount[data-category="transport"]').text(formatCurrency(transportBudget));
+        $('.budget-amount[data-category="entertainment"]').text(formatCurrency(entertainmentBudget));
+        $('.budget-amount[data-category="utilities"]').text(formatCurrency(utilitiesBudget));
+        
+        // Update progress bars based on new budgets
+        updateBudgetProgress();
+        
+        // Save to localStorage for persistence
+        const budgets = {
+            food: foodBudget,
+            transport: transportBudget,
+            entertainment: entertainmentBudget,
+            utilities: utilitiesBudget
+        };
+        localStorage.setItem('budgets', JSON.stringify(budgets));
+        
+        // Close modal
+        $('#editBudgetModal').modal('hide');
     });
+    
+    // Savings goal edit functionality
+    $('#editSavingsGoalBtn').on('click', function() {
+        // Load current values
+        $('#savingsGoalNameInput').val($('#savingsGoalName').text());
+        $('#savingsTargetInput').val(parseCurrency($('#savingsTarget').text()));
+        
+        // Show modal
+        $('#editSavingsGoalModal').modal('show');
+    });
+    
+    // Save savings goal changes
+    $('#saveSavingsGoalBtn').on('click', function() {
+        // Get new values
+        const goalName = $('#savingsGoalNameInput').val();
+        const targetAmount = parseFloat($('#savingsTargetInput').val());
+        
+        // Update displayed values
+        $('#savingsGoalName').text(goalName);
+        $('#savingsTarget').text(formatCurrency(targetAmount));
+        
+        // Save to localStorage for persistence
+        const savingsGoal = {
+            name: goalName,
+            target: targetAmount
+        };
+        localStorage.setItem('savingsGoal', JSON.stringify(savingsGoal));
+        
+        // Update progress
+        updateSavingsProgress();
+        
+        // Close modal
+        $('#editSavingsGoalModal').modal('hide');
+    });
+    
+    // Load saved values on page load
+    function loadSavedValues() {
+        // Load budgets
+        try {
+            const savedBudgets = JSON.parse(localStorage.getItem('budgets'));
+            if (savedBudgets) {
+                if (savedBudgets.food) $('.budget-amount[data-category="food"]').text(formatCurrency(savedBudgets.food));
+                if (savedBudgets.transport) $('.budget-amount[data-category="transport"]').text(formatCurrency(savedBudgets.transport));
+                if (savedBudgets.entertainment) $('.budget-amount[data-category="entertainment"]').text(formatCurrency(savedBudgets.entertainment));
+                if (savedBudgets.utilities) $('.budget-amount[data-category="utilities"]').text(formatCurrency(savedBudgets.utilities));
+            }
+        } catch (e) {
+            console.log('Error loading saved budgets', e);
+        }
+        
+        // Load savings goal
+        try {
+            const savedGoal = JSON.parse(localStorage.getItem('savingsGoal'));
+            if (savedGoal) {
+                if (savedGoal.name) $('#savingsGoalName').text(savedGoal.name);
+                if (savedGoal.target) $('#savingsTarget').text(formatCurrency(savedGoal.target));
+            }
+        } catch (e) {
+            console.log('Error loading saved savings goal', e);
+        }
+    }
+    
+    // Call on page load
+    loadSavedValues();
 
     // Function to update transaction tables with enhanced formatting
     const updateTransactionTable = (data, $tbody, type) => {
@@ -93,7 +184,7 @@ $(document).ready(function () {
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .slice(0, 5);
 
-        // Generate rows with enhanced styling and action buttons
+        // Generate rows with enhanced styling
         recent.forEach(transaction => {
             // Format date to be more readable
             const transDate = new Date(transaction.date);
@@ -103,117 +194,24 @@ $(document).ready(function () {
                 day: 'numeric'
             });
             
-            // Create table row with action buttons
+            // Create table row without action buttons
             const $row = $(
                 `<tr>
                     <td>${formattedDate}</td>
                     <td><span class="badge rounded-pill ${type === 'income' ? 'bg-success' : 'bg-danger'}">${transaction.category}</span></td>
                     <td><span class="remark-tooltip" data-remark="${transaction.description || ''}">${getShortRemark(transaction.description)}</span></td>
                     <td class="text-end fw-bold">${formatCurrency(transaction.amount)}</td>
-                    <td class="text-center">
-                        <div class="action-buttons">
-                            <button class="btn btn-sm btn-outline-secondary btn-action" data-id="${transaction.id}" data-action="edit" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger btn-action" data-id="${transaction.id}" data-action="delete" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
                 </tr>`
             );
             $tbody.append($row);
         });
         
-        // Set up action button event handlers
-        setupActionButtons(type);
-        
-        // Convert categories to array of objects for sorting
-        const categoriesArray = Object.entries(categories).map(([name, amount]) => ({
-            name,
-            amount
-        })).sort((a, b) => b.amount - a.amount);
-        
         return { 
             topCategory, 
             total, 
-            monthlyTotal,
-            allCategories: categoriesArray
+            monthlyTotal
         };
     };
-    
-    // Populate categories list with real data
-    function populateCategoriesList(categories, type) {
-        const containerId = type === 'expense' ? 'expenseCategoriesList' : 'incomeCategoriesList';
-        const $container = $(`#${containerId}`);
-        $container.empty();
-        
-        // Take top 5 categories
-        const topCategories = categories.slice(0, 5);
-        const total = categories.reduce((sum, cat) => sum + cat.amount, 0);
-        
-        if (topCategories.length === 0) {
-            $container.html('<div class="text-center text-muted py-4">No data available</div>');
-            return;
-        }
-        
-        // Create category items
-        topCategories.forEach((category, index) => {
-            const percentage = total > 0 ? Math.round((category.amount / total) * 100) : 0;
-            const bgClass = type === 'expense' ? 'bg-danger' : 'bg-success';
-            
-            const $item = $(`
-                <div class="category-item mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <div class="d-flex align-items-center">
-                            <div class="category-rank">${index + 1}</div>
-                            <div class="category-name">${category.name}</div>
-                        </div>
-                        <div class="category-amount">${formatCurrency(category.amount)}</div>
-                    </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar ${bgClass}" role="progressbar" style="width: ${percentage}%" 
-                            aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="text-end mt-1">
-                        <small class="text-muted">${percentage}% of total</small>
-                    </div>
-                </div>
-            `);
-            
-            $container.append($item);
-        });
-    }
-    
-    // Setup action buttons for edit and delete
-    function setupActionButtons(type) {
-        // Edit button handler
-        $(`[data-action="edit"]`).on('click', function() {
-            const id = $(this).data('id');
-            window.location.href = `/${type === 'income' ? 'income' : 'expenses'}/edit/${id}`;
-        });
-        
-        // Delete button handler
-        $(`[data-action="delete"]`).on('click', function() {
-            const id = $(this).data('id');
-            const endpoint = type === 'income' ? '/api/incomes/delete' : '/api/expenses/delete';
-            
-            if (confirm("Are you sure you want to delete this item?")) {
-                $.ajax({
-                    url: endpoint,
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
-                    success: function() {
-                        window.location.reload();
-                    },
-                    error: function(xhr) {
-                        alert('Error: ' + (xhr.responseJSON?.error || 'Could not delete item'));
-                    }
-                });
-            }
-        });
-    }
     
     // Calculate and display balance
     function calculateBalance() {
@@ -223,29 +221,90 @@ $(document).ready(function () {
         
         $('#currentBalance').text(formatCurrency(balance));
         
+        // Calculate month-over-month percentage change (using fixed values for now)
+        // In a real implementation, this would compare with previous month's data
+        let percentChange = 0;
+        if (totalIncome > 0) {
+
+            const lastMonthBalance = totalIncome * 0.9 - totalExpenses * 1.1; 
+            if (lastMonthBalance !== 0) {
+                percentChange = Math.round(((balance - lastMonthBalance) / Math.abs(lastMonthBalance)) * 100);
+            }
+        }
+        
         // Update balance trend based on actual value
         const balanceTrend = $('#balanceTrend');
         if (balance >= 0) {
-            balanceTrend.html('<i class="fas fa-arrow-up"></i> 0%');
+            balanceTrend.html(`<i class="fas fa-arrow-up"></i> ${Math.abs(percentChange)}%`);
             balanceTrend.removeClass('negative').addClass('positive');
         } else {
-            balanceTrend.html('<i class="fas fa-arrow-down"></i> 0%');
+            balanceTrend.html(`<i class="fas fa-arrow-down"></i> ${Math.abs(percentChange)}%`);
             balanceTrend.removeClass('positive').addClass('negative');
+        }
+        
+        // Update savings progress with balance as current savings
+        $('#currentSavings').text(formatCurrency(Math.max(0, balance)));
+        updateSavingsProgress();
+    }
+    
+    // Update savings progress
+    function updateSavingsProgress() {
+        const currentSavings = parseCurrency($('#currentSavings').text());
+        const target = parseCurrency($('#savingsTarget').text());
+        
+        // Calculate percentage (capped at 100%)
+        const percentage = target > 0 ? Math.min(100, Math.round((currentSavings / target) * 100)) : 0;
+        
+        // Update progress bar
+        $('#savingsProgress')
+            .css('width', `${percentage}%`)
+            .attr('aria-valuenow', percentage);
+            
+        // Update percentage text
+        $('#savingsPercentage').text(`${percentage}% Complete`);
+        
+        // Change color based on percentage
+        if (percentage >= 75) {
+            $('#savingsProgress').removeClass('bg-info bg-warning').addClass('bg-success');
+        } else if (percentage >= 40) {
+            $('#savingsProgress').removeClass('bg-success bg-warning').addClass('bg-info');
+        } else {
+            $('#savingsProgress').removeClass('bg-success bg-info').addClass('bg-warning');
         }
     }
     
     // Update budget progress bars based on actual spending
     function updateBudgetProgress(expenseData) {
+        if (!expenseData) {
+            // If no data is provided, just update based on current values
+            const foodSpent = parseCurrency($('#foodSpent').text());
+            const transportSpent = parseCurrency($('#transportSpent').text());
+            const entertainmentSpent = parseCurrency($('#entertainmentSpent').text());
+            const utilitiesSpent = parseCurrency($('#utilitiesSpent').text());
+            
+            const foodBudget = parseCurrency($('.budget-amount[data-category="food"]').text());
+            const transportBudget = parseCurrency($('.budget-amount[data-category="transport"]').text());
+            const entertainmentBudget = parseCurrency($('.budget-amount[data-category="entertainment"]').text());
+            const utilitiesBudget = parseCurrency($('.budget-amount[data-category="utilities"]').text());
+            
+            updateProgressBar('food', foodSpent, foodBudget);
+            updateProgressBar('transport', transportSpent, transportBudget);
+            updateProgressBar('entertainment', entertainmentSpent, entertainmentBudget);
+            updateProgressBar('utilities', utilitiesSpent, utilitiesBudget);
+            
+            return;
+        }
+        
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
         
         // Define budget categories and amounts
         const budgetCategories = {
-            'Food': { id: 'food', budget: 500 },
-            'Transportation': { id: 'transport', budget: 300 },
-            'Entertainment': { id: 'entertainment', budget: 200 },
-            'Utilities': { id: 'utilities', budget: 250 }
+            'Food': { id: 'food', budget: parseCurrency($('.budget-amount[data-category="food"]').text()) },
+            'Transportation': { id: 'transport', budget: parseCurrency($('.budget-amount[data-category="transport"]').text()) },
+            'Entertainment': { id: 'entertainment', budget: parseCurrency($('.budget-amount[data-category="entertainment"]').text()) },
+            'Utilities': { id: 'utilities', budget: parseCurrency($('.budget-amount[data-category="utilities"]').text()) }
         };
         
         // Calculate spending by category for current month
@@ -269,38 +328,30 @@ $(document).ready(function () {
                 return total;
             }, 0);
             
-            // Calculate percentage (capped at 100%)
-            const percentage = Math.min(100, Math.round((spentAmount / info.budget) * 100));
+            updateProgressBar(info.id, spentAmount, info.budget);
+        });
+    }
+    
+    // Helper function to update a single progress bar
+    function updateProgressBar(id, spent, budget) {
+        // Calculate percentage (capped at 100%)
+        const percentage = budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
+        
+        // Update DOM elements
+        $(`#${id}Spent`).text(formatCurrency(spent));
+        $(`#${id}Progress`)
+            .css('width', `${percentage}%`)
+            .attr('aria-valuenow', percentage);
             
-            // Update DOM elements
-            $(`#${info.id}Spent`).text(formatCurrency(spentAmount));
-            $(`#${info.id}Progress`)
-                .css('width', `${percentage}%`)
-                .attr('aria-valuenow', percentage);
-                
-            // Change color based on percentage
-            if (percentage >= 85) {
-                $(`#${info.id}Progress`).removeClass('bg-success bg-info bg-warning').addClass('bg-danger');
-            } else if (percentage >= 65) {
-                $(`#${info.id}Progress`).removeClass('bg-success bg-info bg-danger').addClass('bg-warning');
-            }
-        });
+        // Change color based on percentage
+        if (percentage >= 85) {
+            $(`#${id}Progress`).removeClass('bg-success bg-info bg-warning').addClass('bg-danger');
+        } else if (percentage >= 65) {
+            $(`#${id}Progress`).removeClass('bg-success bg-info bg-danger').addClass('bg-warning');
+        } else {
+            $(`#${id}Progress`).removeClass('bg-danger bg-warning').addClass('bg-success');
+        }
     }
-    
-    // Initialize saving goal progress circles
-    initializeSavingGoals();
-    function initializeSavingGoals() {
-        $('.goal-progress-circle').each(function() {
-            const percentage = $(this).data('percentage');
-            $(this).css('--percentage', `${percentage}%`);
-        });
-    }
-    
-    // Add Goal button handler
-    $('#addGoalBtn').on('click', function() {
-        // In a real app, this would open a modal to add a new saving goal
-        alert('This feature will be available in a future update!');
-    });
 
     // Utility: get short remark for display, with ellipsis if too long
     function getShortRemark(desc, maxLen = 20) {

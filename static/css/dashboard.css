@@ -492,3 +492,101 @@
 .financial-summary-card {
     animation-delay: 0.2s;
 }
+
+/* Savings Goal Card */
+.savings-goal-card {
+    background-color: #f8f9fc;
+    border-radius: 10px;
+    padding: 1.5rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.045);
+    border-left: 4px solid #36b9cc;
+}
+
+.goal-details {
+    text-align: center;
+}
+
+.goal-details h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.goal-details .progress {
+    height: 10px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.goal-details .badge {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+/* Budget Edit Modal */
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+/* Budget Progress Section */
+.budget-progress-section {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+}
+
+.budget-progress-section h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.budget-progress-section .progress {
+    height: 1.5rem;
+    border-radius: 1rem;
+    background-color: #eaecf4;
+}
+
+.budget-progress-section .progress-bar {
+    background-color: #007bff;
+}
+
+.budget-progress-section .progress-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Tab Navigation Styling */
+.nav-tabs .nav-link {
+    color: #6c757d; /* 浅灰色文字颜色 */
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #495057; /* 激活标签的深色文字 */
+    font-weight: 600;
+}
+
+.nav-tabs .nav-link:hover:not(.active) {
+    color: #495057; /* 悬停时的颜色加深 */
+}
