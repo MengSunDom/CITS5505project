@@ -5,7 +5,7 @@ $(document).ready(() => {
     // Set up manual refresh button if you have one
     $("#refreshButton").on("click", function() {
         loadAllSharedData();
-    });
+});
 });
 
 // Load all shared data
@@ -154,9 +154,9 @@ function renderTable(data, $tableBody, type, isSharedWith) {
                 </td>
             </tr>
         `;
-        
+
         $tableBody.append(row);
-        
+
         // Add details row for bulk items
         if (isBulk && item.details && item.details.length) {
             const $detailsRow = $(`<tr id="details-${type}-${item.id}" style="display: none;"><td colspan="6"></td></tr>`);
@@ -178,11 +178,11 @@ function renderTable(data, $tableBody, type, isSharedWith) {
             $tableBody.append($detailsRow);
         }
     });
-    
+
     // Initialize tooltips
     if (bootstrap.Tooltip && bootstrap.Tooltip.getInstance) {
         new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]', html: true });
-    }
+}
 }
 
 // Toggle details for bulk items
@@ -199,11 +199,11 @@ function cancelShare(button, sharedId, type) {
     $(button).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
     
     notifications.confirmDelete('share', function() {
-        $.ajax({
-            url: `/api/share${type ? "/income" : ""}/cancel`,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ shared_id: sharedId }),
+    $.ajax({
+        url: `/api/share${type ? "/income" : ""}/cancel`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ shared_id: sharedId }),
             success: function(response) {
                 // Completely clear and rebuild all tables to ensure clean state
                 const tables = ['#sharedByMeTableBody', '#sharedByMeIncomeTableBody', 
@@ -231,8 +231,8 @@ function cancelShare(button, sharedId, type) {
                             $('#sharedByMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
                             console.error('Error loading shared by me data:', err);
                             notifications.error('Failed to refresh shared expense data');
-                        }
-                    });
+        }
+    });
                     
                     // Rebuild shared income by me data
                     $.ajax({

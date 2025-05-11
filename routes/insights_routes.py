@@ -21,7 +21,9 @@ def parse_date_range():
         # Default to current month if no dates provided
         today = datetime.now()
         start_date = datetime(today.year, today.month, 1).strftime('%Y-%m-%d')
-        end_date = datetime(today.year, today.month + 1, 1).strftime('%Y-%m-%d')
+        next_month = datetime(today.year + 1 if today.month == 12 else today.year, 
+                             1 if today.month == 12 else today.month + 1, 1)
+        end_date = next_month.strftime('%Y-%m-%d')
         logging.debug(f"Using default dates: startDate={start_date}, endDate={end_date}")
     
     try:
@@ -29,9 +31,19 @@ def parse_date_range():
         start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
         end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
         
-        # Set both to start of day to ensure consistent range handling
+        # IMPORTANT: For end_date, make it inclusive of the whole day
+        # Instead of setting to 0:00:00, set to 23:59:59 and add one day
         start_date_obj = datetime(start_date_obj.year, start_date_obj.month, start_date_obj.day, 0, 0, 0)
-        end_date_obj = datetime(end_date_obj.year, end_date_obj.month, end_date_obj.day, 0, 0, 0)
+        
+        # Check if end_date is already the first day of next month - common for preset periods
+        if end_date_obj.day == 1 and (start_date_obj.month != end_date_obj.month or 
+                                     start_date_obj.year != end_date_obj.year):
+            # This is already set to first day of next month (exclusive end)
+            pass
+        else:
+            # For custom ranges, add a day to make it inclusive
+            end_date_obj = datetime(end_date_obj.year, end_date_obj.month, end_date_obj.day, 0, 0, 0)
+            end_date_obj = end_date_obj + timedelta(days=1)
         
         logging.debug(f"Parsed date range: {start_date_obj} to {end_date_obj}")
         
@@ -269,7 +281,7 @@ def income_expense_comparison():
     
   
     date_list = sorted(date_set)
-    
+
 
     income_list = [income_map.get(d, 0.0) for d in date_list]
     expense_list = [expense_map.get(d, 0.0) for d in date_list]
@@ -519,6 +531,7 @@ def get_income_by_month():
     user_id = session['user']['id']
     
     # Extract month and year from income dates
+    # Use date_trunc to ensure correct month assignment
     income_by_month = db.session.query(
         func.extract('year', Income.date).label('year'),
         func.extract('month', Income.date).label('month'),
@@ -548,6 +561,9 @@ def get_income_by_month():
             labels.append(f"{month_name} {int(year)}")
             values.append(float(total))
     
+    # Log for debugging
+    logging.debug(f"Income by month: {list(zip(labels, values))}")
+    
     return jsonify({
         'labels': labels,
         'values': values
@@ -570,6 +586,7 @@ def get_expenses_by_month():
     user_id = session['user']['id']
     
     # Extract month and year from expense dates
+    # Use date_trunc to ensure correct month assignment
     expenses_by_month = db.session.query(
         func.extract('year', Expense.date).label('year'),
         func.extract('month', Expense.date).label('month'),
@@ -599,6 +616,9 @@ def get_expenses_by_month():
             month_name = month_names[month_idx]
             labels.append(f"{month_name} {int(year)}")
             values.append(float(total))
+    
+    # Log for debugging
+    logging.debug(f"Expenses by month: {list(zip(labels, values))}")
     
     return jsonify({
         'labels': labels,
@@ -709,4 +729,45 @@ def get_period_summary():
             'count': income_count
         },
         'netBalance': float(total_income_amount) - float(total_expense_amount)
+    })
+
+@insights_bp.route('/api/expense-summary', methods=['GET'])
+def expense_summary_api():
+    """
+    Alias for /api/insights/summary to maintain compatibility with frontend.
+    This endpoint provides expense summary data with the same format as /api/insights/summary.
+    """
+    return get_expense_summary()
+
+@insights_bp.route('/api/insights/top-categories', methods=['GET'])
+def get_top_categories():
+    """
+    Get top 5 expense categories by amount.
+    This endpoint provides data for the Top 5 Categories chart.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    user_id = session['user']['id']
+
+    # Get top 5 expense categories
+    top_categories = db.session.query(
+        Expense.category, func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.user_id == user_id,
+        Expense.type == 'expense',
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).group_by(Expense.category).order_by(db.desc('total')).limit(5).all()
+
+    labels = [item[0] for item in top_categories]
+    values = [float(item[1]) for item in top_categories]
+
+    return jsonify({
+        'labels': labels,
+        'values': values
     })

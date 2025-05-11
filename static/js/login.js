@@ -7,7 +7,7 @@ $(function() {
         } else {
             $('#password').val('');
             $('#rememberMe').prop('checked', false);
-        }
+    }
     }
     autofillLogin();
 
@@ -32,18 +32,18 @@ $(function() {
 
         $.ajax({
             url: '/api/login',
-            method: 'POST',
+                method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                username: username,
-                password: password,
+                    username: username,
+                    password: password,
                 csrf_token: csrf_token,
                 rememberMe: rememberMe
             }),
             success: function(response) {
                 notifications.success('Login successful!');
                 setTimeout(() => {
-                    window.location.href = '/dashboard';
+                window.location.href = '/dashboard';
                 }, 1000);
             },
             error: function(xhr) {

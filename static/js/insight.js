@@ -124,7 +124,32 @@ $(document).ready(() => {
     
     // Apply custom date range
     $('#applyDateRange').on('click', function() {
-        loadAllData();
+        const startDateStr = $('#startDate').val(); // Get start date from input
+        const endDateStr = $('#endDate').val(); // Get end date from input
+
+        // Convert to Date objects for comparison
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+        const today = new Date();
+
+        // Check if start date is after end date
+        if (startDate > endDate) {
+            alert("Invalid period specified: Start date cannot be after end date."); // Show error if start date is after end date
+            return; // Exit the function
+        }
+
+        // Check if both dates are in the future
+        if (startDate > today && endDate > today) {
+            alert("Invalid period specified: Dates cannot be in the future."); // Show error if both dates are in the future
+            return; // Exit the function
+        }
+        
+        // Set the active period to custom
+        $('.period-selector .btn').removeClass('active');
+        $('.period-selector .btn[data-period="custom"]').addClass('active');
+
+        // If validation passes, load data with the selected date range
+        loadAllData(); // Load data if validation passes
     });
     
     // Toggle between data types
@@ -177,8 +202,6 @@ $(document).ready(() => {
         let startDate = startDateStr;
         let endDate, displayEndDate = endDateStr;
         
-        
-        
         // Create date objects for manipulation
         const startDateObj = new Date(startDateStr);
         const endDateObj = new Date(endDateStr);
@@ -205,17 +228,15 @@ $(document).ready(() => {
                 break;
                 
             case 'custom':
-                // For custom range, we need to add one day to include the end date
+                // For custom range, include the end date by setting it to the next day
                 const nextDay = new Date(endDateObj);
                 nextDay.setDate(nextDay.getDate() + 1);
                 endDate = formatDateForInput(nextDay);
                 break;
                 
             default:
-                // Default to adding one day to include the end date
-                const defaultNextDay = new Date(endDateObj);
-                defaultNextDay.setDate(defaultNextDay.getDate() + 1);
-                endDate = formatDateForInput(defaultNextDay);
+                // Default to using the exact end date
+                endDate = endDateStr;
         }
         
         console.log(`Final date range: ${startDate} to ${endDate} (displayed as ${displayEndDate})`);
@@ -235,8 +256,6 @@ $(document).ready(() => {
         
         console.log(`Loading all data for period: ${activePeriod}`);
         console.log(`Date range: ${filters.startDate} to ${filters.endDate} (display: ${filters.displayEndDate})`);
-        
-        
         
         // Store current period for comparison features
         localStorage.setItem('lastActivePeriod', activePeriod);
@@ -259,15 +278,25 @@ $(document).ready(() => {
     // Load summary cards data using the direct period-summary API
     function loadSummaryCards(callback) {
         const activePeriod = $('.period-selector .btn.active').data('period');
+        const filters = getFilterSettings();
         
         console.log(`Loading summary cards for period: ${activePeriod} using direct period API`);
         
-        // Use the direct period-summary API for more consistent results
+        // For custom date range, use the fallback method directly
+        if (activePeriod === 'custom') {
+            console.log('Using fallback method for custom date range');
+            fallbackLoadSummaryCards(callback);
+            return;
+        }
+        
+        // Use the direct period-summary API for standard periods
         $.ajax({
             url: '/api/insights/period-summary',
             method: 'GET',
             data: { 
-                period: activePeriod
+                period: activePeriod,
+                startDate: filters.startDate,
+                endDate: filters.endDate
             },
             dataType: 'json',
             success: (periodData) => {
@@ -283,8 +312,8 @@ $(document).ready(() => {
                     { totalAmount: 0 }, { totalAmount: 0 });
                 
                 // Display average daily income and expenses
-                $('#averageDailyIncome').text(`Average Daily Income: $${averageDailyIncome}`);
-                $('#averageDailyExpense').text(`Average Daily Expense: $${averageDailyExpense}`);
+                $('#averageDailyIncome').text(`Average Daily Income: ${formatCurrency(averageDailyIncome)}`);
+                $('#averageDailyExpense').text(`Average Daily Expense: ${formatCurrency(averageDailyExpense)}`);
                 
                 // Continue with other charts
                 if (callback) callback();
@@ -299,156 +328,13 @@ $(document).ready(() => {
         });
     }
     
-    // Helper function to get the number of days in the selected period
-    function getDaysInPeriod(period) {
-        const today = new Date();
-        switch (period) {
-            case 'month':
-                return new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate(); // Days in current month
-            case 'prev-month':
-                return new Date(today.getFullYear(), today.getMonth(), 0).getDate(); // Days in previous month
-            case 'year':
-                return 365; // Approximation for simplicity
-            default:
-                return 0; // Custom or unknown period
-        }
-    }
-    
-    // Update summary cards with period data and comparisons
-    function updateSummaryCardsWithPeriodData(incomeData, expenseData, prevIncomeData, prevExpenseData) {
-        // Ensure we have valid data objects
-        incomeData = incomeData || { totalAmount: 0, categoryDistribution: { labels: [], values: [] } };
-        expenseData = expenseData || { totalAmount: 0, categoryDistribution: { labels: [], values: [] } };
-        prevIncomeData = prevIncomeData || { totalAmount: 0 };
-        prevExpenseData = prevExpenseData || { totalAmount: 0 };
-        
-        // Ensure properties exist
-        incomeData.totalAmount = incomeData.totalAmount || 0;
-        if (!incomeData.categoryDistribution) {
-            incomeData.categoryDistribution = { labels: [], values: [] };
-        }
-        
-        expenseData.totalAmount = expenseData.totalAmount || 0;
-        if (!expenseData.categoryDistribution) {
-            expenseData.categoryDistribution = { labels: [], values: [] };
-        }
-        
-        // Income card
-        const totalIncome = incomeData.totalAmount;
-        $('#totalIncome').text(totalIncome.toFixed(2));
-        
-        // Calculate income change percentage
-        const prevTotalIncome = prevIncomeData.totalAmount || 0; // Previous period's total income
-        let incomeChangePercent = 0; // Initialize income change percentage
-
-        if (prevTotalIncome === 0 && totalIncome === 0) {
-            incomeChangePercent = 0; // No change if both are zero
-        } else if (prevTotalIncome === 0) {
-            incomeChangePercent = 100; // Change from 0 to a positive value
-        } else if (totalIncome === 0) {
-            incomeChangePercent = -100; // Change from a positive value to 0
-        } else {
-            // Calculate percentage change when both values are greater than 0
-            incomeChangePercent = ((totalIncome - prevTotalIncome) / prevTotalIncome * 100).toFixed(1);
-        }
-
-        const incomeChangeClass = incomeChangePercent >= 0 ? 'positive' : 'negative';
-        const incomeChangeIcon = incomeChangePercent >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-        $('#incomeChange').attr('class', `change-indicator ${incomeChangeClass}`)
-            .html(`<i class="fas ${incomeChangeIcon}"></i> ${Math.abs(incomeChangePercent)}%`);
-        
-        // Expense card
-        const totalExpense = expenseData.totalAmount;
-        $('#totalExpenses').text(totalExpense.toFixed(2));
-        
-        // Calculate expense change percentage
-        const prevTotalExpense = prevExpenseData.totalAmount || 0; // Previous period's total expense
-        let expenseChangePercent = 0; // Initialize expense change percentage
-
-        if (prevTotalExpense === 0 && totalExpense === 0) {
-            expenseChangePercent = 0; // No change if both are zero
-        } else if (prevTotalExpense === 0) {
-            expenseChangePercent = 100; // Change from 0 to a positive value
-        } else if (totalExpense === 0) {
-            expenseChangePercent = -100; // Change from a positive value to 0
-        } else {
-            // Calculate percentage change when both values are greater than 0
-            expenseChangePercent = ((totalExpense - prevTotalExpense) / prevTotalExpense * 100).toFixed(1);
-        }
-
-        // For expenses, decrease is good (positive), increase is bad (negative)
-        const expenseChangeClass = expenseChangePercent <= 0 ? 'positive' : 'negative';
-        const expenseChangeIcon = expenseChangePercent <= 0 ? 'fa-arrow-down' : 'fa-arrow-up';
-        $('#expenseChange').attr('class', `change-indicator ${expenseChangeClass}`)
-            .html(`<i class="fas ${expenseChangeIcon}"></i> ${Math.abs(expenseChangePercent)}%`);
-        
-        // Net balance card
-        const netBalance = totalIncome - totalExpense;
-        $('#netBalance').text(netBalance.toFixed(2));
-        
-        // Calculate net balance change
-        const prevNetBalance = prevTotalIncome - prevTotalExpense;
-        let balanceChangePercent = 0;
-        
-        if (Math.abs(prevNetBalance) > 0) {
-            balanceChangePercent = ((netBalance - prevNetBalance) / Math.abs(prevNetBalance) * 100).toFixed(1);
-        } else if (netBalance !== 0) {
-            balanceChangePercent = netBalance > 0 ? 100 : -100;
-        }
-        
-        const balanceChangeClass = balanceChangePercent >= 0 ? 'positive' : 'negative';
-        const balanceChangeIcon = balanceChangePercent >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-        $('#balanceChange').attr('class', `change-indicator ${balanceChangeClass}`)
-            .html(`<i class="fas ${balanceChangeIcon}"></i> ${Math.abs(balanceChangePercent)}%`);
-        
-        // Top category card
-        let topCategory = { name: 'None', amount: 0, percentage: 0 };
-        let categoryIcon = '🏠';
-        
-        if (expenseData.categoryDistribution.labels && 
-            expenseData.categoryDistribution.labels.length > 0 && 
-            expenseData.totalAmount > 0) {
-            // Find category with highest amount
-            const maxIndex = expenseData.categoryDistribution.values.indexOf(
-                Math.max(...expenseData.categoryDistribution.values)
-            );
-            
-            const categoryName = expenseData.categoryDistribution.labels[maxIndex];
-            const categoryAmount = expenseData.categoryDistribution.values[maxIndex];
-            const categoryPercentage = (categoryAmount / totalExpense * 100).toFixed(1);
-            
-            topCategory = {
-                name: categoryName,
-                amount: categoryAmount,
-                percentage: categoryPercentage
-            };
-            
-            // Select icon based on category
-            switch(categoryName.toLowerCase()) {
-                case 'food': categoryIcon = '🍔'; break;
-                case 'transportation': categoryIcon = '🚗'; break;
-                case 'entertainment': categoryIcon = '🎬'; break;
-                case 'shopping': categoryIcon = '🛍️'; break;
-                case 'bills': categoryIcon = '📝'; break;
-                case 'other': categoryIcon = '📦'; break;
-                default: categoryIcon = '💰';
-            }
-        }
-        
-        $('#topCategoryName').text(topCategory.name);
-        $('#topCategoryAmount').text(topCategory.amount.toFixed(2));
-        $('#topCategoryIcon').text(categoryIcon);
-        $('#categoryPercentage').text(`${topCategory.percentage}% of total`);
-    }
-    
-    // Fallback to the original method in case the direct API fails
+    // Fallback method for loading summary cards
     function fallbackLoadSummaryCards(callback) {
         const filters = getFilterSettings();
-        const activePeriod = $('.period-selector .btn.active').data('period');
         
-        console.log(`Fallback: Loading summary cards for period: ${activePeriod}`);
+        console.log('Using fallback method for summary cards');
         
-        // First get income data
+        // Load income data
         $.ajax({
             url: '/api/income-summary',
             method: 'GET',
@@ -458,11 +344,11 @@ $(document).ready(() => {
             },
             dataType: 'json',
             success: (incomeData) => {
-                console.log(`Fallback: Income data received for period ${activePeriod}:`, incomeData);
+                console.log('Income data received:', incomeData);
                 
-                // Then get expense data
+                // Load expense data
                 $.ajax({
-                    url: '/api/insights/summary',
+                    url: '/api/expense-summary',
                     method: 'GET',
                     data: { 
                         startDate: filters.startDate, 
@@ -470,44 +356,43 @@ $(document).ready(() => {
                     },
                     dataType: 'json',
                     success: (expenseData) => {
-                        console.log(`Fallback: Expense data received for period ${activePeriod}:`, expenseData);
+                        console.log('Expense data received:', expenseData);
                         
-                        // Get previous period data for comparison
-                        getPreviousPeriodData(activePeriod, function(prevIncomeData, prevExpenseData) {
-                            // Update summary cards with both data sets
-                            updateSummaryCardsWithPeriodData(
-                                incomeData, expenseData, 
-                                prevIncomeData, prevExpenseData
-                            );
-                            
-                            // Continue with other charts
-                            if (callback) callback();
-                        });
-                    },
-                    error: (xhr, status, error) => {
-                        console.error("Error fetching expense data:", error, xhr.responseText);
-                        handleAjaxError(xhr, status, error);
+                        // Calculate average daily amounts
+                        const daysInPeriod = getDaysInPeriod($('.period-selector .btn.active').data('period'));
+                        const averageDailyIncome = (incomeData.totalAmount / daysInPeriod).toFixed(2);
+                        const averageDailyExpense = (expenseData.totalAmount / daysInPeriod).toFixed(2);
                         
-                        // Still update cards with income data only
-                        updateSummaryCardsWithPeriodData(
-                            incomeData, 
-                            { totalAmount: 0, categoryDistribution: { labels: [], values: [] } }, 
-                            { totalAmount: 0 }, 
-                            { totalAmount: 0 }
-                        );
+                        // Update the summary cards
+                        updateSummaryCardsWithPeriodData(incomeData, expenseData, 
+                            { totalAmount: 0 }, { totalAmount: 0 });
+                        
+                        // Display average daily amounts
+                        $('#averageDailyIncome').text(`Average Daily Income: ${formatCurrency(averageDailyIncome)}`);
+                        $('#averageDailyExpense').text(`Average Daily Expense: ${formatCurrency(averageDailyExpense)}`);
                         
                         // Continue with other charts
+                        if (callback) callback();
+                    },
+                    error: (xhr, status, error) => {
+                        console.error("Error fetching expense data:", error);
+                        handleAjaxError(xhr, status, error);
+                        
+                        // Still try to update with income data only
+                        updateSummaryCardsWithPeriodData(incomeData, { totalAmount: 0 }, 
+                            { totalAmount: 0 }, { totalAmount: 0 });
+                        
                         if (callback) callback();
                     }
                 });
             },
             error: (xhr, status, error) => {
-                console.error("Error fetching income data:", error, xhr.responseText);
+                console.error("Error fetching income data:", error);
                 handleAjaxError(xhr, status, error);
                 
-                // Try to still get expense data
+                // Try to load expense data anyway
                 $.ajax({
-                    url: '/api/insights/summary',
+                    url: '/api/expense-summary',
                     method: 'GET',
                     data: { 
                         startDate: filters.startDate, 
@@ -515,34 +400,93 @@ $(document).ready(() => {
                     },
                     dataType: 'json',
                     success: (expenseData) => {
-                        // Update with expense data only
-                        updateSummaryCardsWithPeriodData(
-                            { totalAmount: 0, categoryDistribution: { labels: [], values: [] } }, 
-                            expenseData,
-                            { totalAmount: 0 }, 
-                            { totalAmount: 0 }
-                        );
+                        console.log('Expense data received:', expenseData);
                         
-                        // Continue with other charts
+                        // Update with expense data only
+                        updateSummaryCardsWithPeriodData({ totalAmount: 0 }, expenseData, 
+                            { totalAmount: 0 }, { totalAmount: 0 });
+                        
                         if (callback) callback();
                     },
                     error: (xhr, status, error) => {
+                        console.error("Error fetching expense data:", error);
                         handleAjaxError(xhr, status, error);
                         
-                        // Show empty data if both requests fail
-                        updateSummaryCardsWithPeriodData(
-                            { totalAmount: 0, categoryDistribution: { labels: [], values: [] } }, 
-                            { totalAmount: 0, categoryDistribution: { labels: [], values: [] } },
-                            { totalAmount: 0 }, 
-                            { totalAmount: 0 }
-                        );
+                        // Update with empty data
+                        updateSummaryCardsWithPeriodData({ totalAmount: 0 }, { totalAmount: 0 }, 
+                            { totalAmount: 0 }, { totalAmount: 0 });
                         
-                        // Continue with other charts
                         if (callback) callback();
                     }
                 });
             }
         });
+    }
+    
+    // Calculate previous period data based on current period
+    function calculatePreviousPeriodData(filters) {
+        const start = new Date(filters.startDate);
+        const end = new Date(filters.endDate);
+        const periodLength = end - start;
+
+        // Calculate previous period dates
+        const prevEnd = new Date(start);
+        const prevStart = new Date(prevEnd - periodLength);
+
+        // Format dates for API
+        const prevStartStr = prevStart.toISOString().split('T')[0];
+        const prevEndStr = prevEnd.toISOString().split('T')[0];
+
+        // Return empty data structure (will be populated by API calls)
+        return {
+            income: { totalAmount: 0 },
+            expense: { totalAmount: 0 },
+            startDate: prevStartStr,
+            endDate: prevEndStr
+        };
+    }
+    
+    // Update summary cards with period comparison data
+    function updateSummaryCardsWithPeriodData(currentIncome, currentExpense, prevIncome, prevExpense) {
+        // Update income card
+        $('#totalIncome').text(formatCurrency(currentIncome.totalAmount));
+        const incomeChange = calculateChange(currentIncome.totalAmount, prevIncome.totalAmount);
+        updateChangeIndicator('#incomeChange', incomeChange);
+
+        // Update expense card
+        $('#totalExpenses').text(formatCurrency(currentExpense.totalAmount));
+        const expenseChange = calculateChange(currentExpense.totalAmount, prevExpense.totalAmount);
+        updateChangeIndicator('#expenseChange', expenseChange);
+
+        // Update balance card
+        const currentBalance = currentIncome.totalAmount - currentExpense.totalAmount;
+        const prevBalance = prevIncome.totalAmount - prevExpense.totalAmount;
+        $('#netBalance').text(formatCurrency(currentBalance));
+        const balanceChange = calculateChange(currentBalance, prevBalance);
+        updateChangeIndicator('#balanceChange', balanceChange);
+    }
+    
+    // Calculate percentage change
+    function calculateChange(current, previous) {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / Math.abs(previous)) * 100;
+    }
+    
+    // Update change indicator with color and arrow
+    function updateChangeIndicator(selector, change) {
+        const element = $(selector);
+        element.text(`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`);
+        
+        if (change > 0) {
+            element.removeClass('text-danger').addClass('text-success');
+            element.html(`<i class="fas fa-arrow-up"></i> ${change.toFixed(1)}%`);
+        } else if (change < 0) {
+            element.removeClass('text-success').addClass('text-danger');
+            element.html(`<i class="fas fa-arrow-down"></i> ${Math.abs(change).toFixed(1)}%`);
+        } else {
+            element.removeClass('text-success text-danger');
+            element.html(`0%`);
+        }
     }
     
     // Load trend chart
@@ -551,14 +495,11 @@ $(document).ready(() => {
         const trendPeriod = $('.chart-period-selector .btn.active').data('trend-period') || 'daily';
         const activePeriod = $('.period-selector .btn.active').data('period');
         
-        // This chart shows day-by-day income vs expense comparison for the selected period
         console.log(`Loading trend chart data for period: ${activePeriod} (view: ${trendPeriod})`);
         
-         
-        // Calculate end date, ensuring it doesn't include the first day of the next month
-        let endDate = new Date(filters.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-
+        // Use the exact end date from filters
+        const endDate = new Date(filters.endDate);
+        
         // Continue with the AJAX request
         $.ajax({
             url: '/api/income-expense-comparison',
@@ -585,8 +526,6 @@ $(document).ready(() => {
     
     // Draw trend chart with income and expense data
     function drawTrendChart(data, period) {
-        
-         
         let transformedData = data;
         
         // Check if data is valid
@@ -619,9 +558,7 @@ $(document).ready(() => {
                 hoverinfo: 'none'
             }];
         } else {
-
             const labels = transformedData.labels.map(label => {
-                
                 if (typeof label === 'string' && /^\d{4}-\d{2}-\d{2}/.test(label)) {
                     return label; 
                 } else if (label instanceof Date) {
@@ -631,7 +568,6 @@ $(document).ready(() => {
                 }
             });
             
-     
             const incomeValues = transformedData.income.map(val => parseFloat(val) || 0);
             const expenseValues = transformedData.expense.map(val => parseFloat(val) || 0);
             
@@ -707,72 +643,8 @@ $(document).ready(() => {
             Plotly.newPlot('trendChart', traces, layout, {responsive: true});
         } catch (error) {
             console.error('Error plotting trend chart:', error);
-         
             $('#trendChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
         }
-    }
-    
-    // Helper function to group data by week or month
-    function groupDataByPeriod(data, period) {
-        const result = {
-            labels: [],
-            income: [],
-            expense: []
-        };
-        
-        if (data.labels.length === 0) return result;
-        
-        if (period === 'weekly') {
-            // Group by week
-            const weeks = {};
-            data.labels.forEach((dateStr, index) => {
-                const date = new Date(dateStr);
-                const weekNum = getWeekNumber(date);
-                const weekLabel = `Week ${weekNum}`;
-                
-                if (!weeks[weekLabel]) {
-                    weeks[weekLabel] = { income: 0, expense: 0 };
-                }
-                
-                weeks[weekLabel].income += data.income[index];
-                weeks[weekLabel].expense += data.expense[index];
-            });
-            
-            result.labels = Object.keys(weeks);
-            result.labels.forEach(label => {
-                result.income.push(weeks[label].income);
-                result.expense.push(weeks[label].expense);
-            });
-        } else if (period === 'monthly') {
-            // Group by month
-            const months = {};
-            data.labels.forEach((dateStr, index) => {
-                const date = new Date(dateStr);
-                const monthLabel = date.toLocaleString('default', { month: 'short' });
-                
-                if (!months[monthLabel]) {
-                    months[monthLabel] = { income: 0, expense: 0 };
-                }
-                
-                months[monthLabel].income += data.income[index];
-                months[monthLabel].expense += data.expense[index];
-            });
-            
-            result.labels = Object.keys(months);
-            result.labels.forEach(label => {
-                result.income.push(months[label].income);
-                result.expense.push(months[label].expense);
-            });
-        }
-        
-        return result;
-    }
-    
-    // Helper to get week number
-    function getWeekNumber(date) {
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-        return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
     }
     
     // Load and draw category pie chart
@@ -783,12 +655,19 @@ $(document).ready(() => {
         
         console.log(`Loading ${pieType} category distribution data for period: ${activePeriod}`);
         
+        // For custom date ranges, use the fallback method directly
+        if (activePeriod === 'custom') {
+            console.log('Using fallback method for custom date range category pie chart');
+            fallbackLoadCategoryPieChart(pieType, filters);
+            return;
+        }
+        
         // First try to use the period-summary API for standard periods
         if (activePeriod === 'month' || activePeriod === 'prev-month' || activePeriod === 'year') {
             $.ajax({
                 url: '/api/insights/period-summary',
                 method: 'GET',
-                data: { 
+                data: {
                     period: activePeriod
                 },
                 dataType: 'json',
@@ -830,36 +709,32 @@ $(document).ready(() => {
                 }
             });
         } else {
-            // For custom date ranges, use the original method
+            // For other date ranges, use the original method
             fallbackLoadCategoryPieChart(pieType, filters);
         }
     }
     
-    // Fallback method for category pie chart
+    /**
+     * Fallback method to load category pie chart for custom date ranges
+     * @param {string} pieType - 'expense' or 'income'
+     * @param {object} filters - filter settings with startDate and endDate
+     */
     function fallbackLoadCategoryPieChart(pieType, filters) {
-        // Choose API endpoint based on selected chart type (expense or income)
-        let url = pieType === 'expense' ? '/api/insights/summary' : '/api/income-summary';
-        
-        console.log(`Fallback: Loading ${pieType} category distribution data`);
-        
+        let url = pieType === 'expense' ? '/api/expense-summary' : '/api/income-summary';
         $.ajax({
             url: url,
             method: 'GET',
-            data: { 
-                startDate: filters.startDate, 
+            data: {
+                startDate: filters.startDate,
                 endDate: filters.endDate
             },
             dataType: 'json',
             success: (data) => {
-                console.log(`${pieType} category data received with ${data.categoryDistribution ? data.categoryDistribution.labels.length : 0} categories`);
                 drawCategoryPieChart(data, pieType);
             },
             error: (xhr, status, error) => {
                 handleAjaxError(xhr, status, error);
-                // Draw empty pie chart to show the chart frame
-                drawCategoryPieChart({
-                    categoryDistribution: { labels: [], values: [] }
-                }, pieType);
+                drawCategoryPieChart({ categoryDistribution: { labels: [], values: [] } }, pieType);
             }
         });
     }
@@ -871,7 +746,7 @@ $(document).ready(() => {
             if (!data || !data.categoryDistribution || !data.categoryDistribution.labels) {
                 data = { categoryDistribution: { labels: [], values: [] } };
             }
-            
+
             // Get category distribution
             const labels = data.categoryDistribution.labels;
             const values = data.categoryDistribution.values;
@@ -962,437 +837,635 @@ $(document).ready(() => {
         }
     }
     
-    // Load and draw top categories chart
+    // Load top categories chart
     function loadTopCategoriesChart() {
         const filters = getFilterSettings();
-        const dataType = filters.dataType;
-        const activePeriod = $('.period-selector .btn.active').data('period');
+        console.log(`Loading top categories with date range: ${filters.startDate} to ${filters.endDate}`);
         
-        console.log(`Loading top categories for period: ${activePeriod}, data type: ${dataType}`);
-        
-        // First try to use the period-summary API for standard periods
-        if (activePeriod === 'month' || activePeriod === 'prev-month' || activePeriod === 'year') {
-            $.ajax({
-                url: '/api/insights/period-summary',
-                method: 'GET',
-                data: { 
-                    period: activePeriod
-                },
-                dataType: 'json',
-                success: (periodData) => {
-                    console.log(`Period ${activePeriod} summary data received for top categories`);
-                    
-                    if (dataType === 'all') {
-                        // Need to get income category data separately
-                        $.ajax({
-                            url: '/api/income-summary',
-                            method: 'GET',
-                            data: { 
-                                startDate: filters.startDate, 
-                                endDate: filters.endDate
-                            },
-                            dataType: 'json',
-                            success: (incomeData) => {
-                                drawTopCategoriesChart(periodData.expense, incomeData);
-                            },
-                            error: (xhr, status, error) => {
-                                handleAjaxError(xhr, status, error);
-                                // Still draw with expense data only
-                                drawTopCategoriesChart(periodData.expense, null);
-                            }
-                        });
-                    } else if (dataType === 'expense') {
-                        drawTopCategoriesChart(periodData.expense, null);
-                    } else {
-                        // For income only
-                        $.ajax({
-                            url: '/api/income-summary',
-                            method: 'GET',
-                            data: { 
-                                startDate: filters.startDate, 
-                                endDate: filters.endDate
-                            },
-                            dataType: 'json',
-                            success: (incomeData) => {
-                                drawTopCategoriesChart(null, incomeData);
-                            },
-                            error: (xhr, status, error) => {
-                                handleAjaxError(xhr, status, error);
-                                drawTopCategoriesChart(null, null);
-                            }
-                        });
-                    }
-                },
-                error: (xhr, status, error) => {
-                    // Fallback to original method
-                    fallbackLoadTopCategoriesChart(dataType, filters);
-                }
-            });
-        } else {
-            // For custom date ranges, use the original method
-            fallbackLoadTopCategoriesChart(dataType, filters);
+        // Check if the canvas element exists
+        const chartElement = document.getElementById('topCategoriesChart');
+        if (!chartElement) {
+            console.error('Top categories chart element not found in DOM');
+            return;
         }
-    }
-    
-    // Fallback method for top categories chart
-    function fallbackLoadTopCategoriesChart(dataType, filters) {
-        console.log(`Fallback: Loading top categories for data type: ${dataType}`);
+        console.log('Chart element found:', chartElement, 'Type:', chartElement.tagName);
         
-        // Loading logic differs based on whether we're showing all data, expenses only, or income only
-        if (dataType === 'all' || dataType === 'expense') {
-            // Load expense data first if needed
-            $.ajax({
-                url: '/api/insights/summary',
-                method: 'GET',
-                data: { 
-                    startDate: filters.startDate, 
-                    endDate: filters.endDate
-                },
-                dataType: 'json',
-                success: (expenseData) => {
-                    console.log(`Expense category data received with ${expenseData.categoryDistribution ? expenseData.categoryDistribution.labels.length : 0} categories`);
-                    
-                    // If showing all data, also get income data
-                    if (dataType === 'all') {
-                        $.ajax({
-                            url: '/api/income-summary',
-                            method: 'GET',
-                            data: { 
-                                startDate: filters.startDate, 
-                                endDate: filters.endDate
-                            },
-                            dataType: 'json',
-                            success: (incomeData) => {
-                                console.log(`Income category data received with ${incomeData.categoryDistribution ? incomeData.categoryDistribution.labels.length : 0} categories`);
-                                drawTopCategoriesChart(expenseData, incomeData);
-                            },
-                            error: (xhr, status, error) => {
-                                handleAjaxError(xhr, status, error);
-                                // Still draw with expense data only
-                                drawTopCategoriesChart(expenseData);
-                            }
-                        });
-                    } else {
-                        // Just show expense data
-                        drawTopCategoriesChart(expenseData);
-                    }
-                },
-                error: (xhr, status, error) => {
-                    handleAjaxError(xhr, status, error);
-                    
-                    // If showing all data, still try to get income data
-                    if (dataType === 'all') {
-                        $.ajax({
-                            url: '/api/income-summary',
-                            method: 'GET',
-                            data: { 
-                                startDate: filters.startDate, 
-                                endDate: filters.endDate
-                            },
-                            dataType: 'json',
-                            success: (incomeData) => {
-                                drawTopCategoriesChart(null, incomeData);
-                            },
-                            error: (xhr, status, error) => {
-                                handleAjaxError(xhr, status, error);
-                                // Draw empty chart if both fail
-                                drawTopCategoriesChart(null, null);
-                            }
-                        });
-                    } else {
-                        // Draw empty chart
-                        drawTopCategoriesChart(null, null);
-                    }
-                }
-            });
-        } else {
-            // If only showing income data
-            $.ajax({
-                url: '/api/income-summary',
-                method: 'GET',
-                data: { 
-                    startDate: filters.startDate, 
-                    endDate: filters.endDate
-                },
-                dataType: 'json',
-                success: (incomeData) => {
-                    drawTopCategoriesChart(null, incomeData);
-                },
-                error: (xhr, status, error) => {
-                    handleAjaxError(xhr, status, error);
-                    // Draw empty chart
-                    drawTopCategoriesChart(null, null);
-                }
-            });
-        }
-    }
-    
-    // Draw top categories chart
-    function drawTopCategoriesChart(expenseData, incomeData) {
-        try {
-            const TOP_LIMIT = 5; // Show top 5 categories
-            const traces = [];
-            
-            // Process expense data
-            if (expenseData && expenseData.categoryDistribution && expenseData.categoryDistribution.labels && expenseData.categoryDistribution.labels.length > 0) {
-                const categories = [];
-                
-                // Pair categories with values
-                expenseData.categoryDistribution.labels.forEach((label, index) => {
-                    categories.push({
-                        name: label,
-                        value: parseFloat(expenseData.categoryDistribution.values[index]) || 0
-                    });
-                });
-                
-                // Sort by value descending
-                categories.sort((a, b) => b.value - a.value);
-                
-                // Take top N categories
-                const topCategories = categories.slice(0, TOP_LIMIT);
-                
-                // Add expense trace
-                traces.push({
-                    x: topCategories.map(c => c.value),
-                    y: topCategories.map(c => c.name),
-                    name: 'Expenses',
-                type: 'bar',
-                    orientation: 'h',
-                    marker: {
-                        color: 'rgba(220, 53, 69, 0.7)'
-                    },
-                    hovertemplate: '%{y}: $%{x:.2f}<extra></extra>'
-                });
-            }
-            
-            // Process income data
-            if (incomeData && incomeData.categoryDistribution && incomeData.categoryDistribution.labels && incomeData.categoryDistribution.labels.length > 0) {
-                const categories = [];
-                
-                // Pair categories with values
-                incomeData.categoryDistribution.labels.forEach((label, index) => {
-                    categories.push({
-                        name: label,
-                        value: parseFloat(incomeData.categoryDistribution.values[index]) || 0
-                    });
-                });
-                
-                // Sort by value descending
-                categories.sort((a, b) => b.value - a.value);
-                
-                // Take top N categories
-                const topCategories = categories.slice(0, TOP_LIMIT);
-                
-                // Add income trace
-                traces.push({
-                    x: topCategories.map(c => c.value),
-                    y: topCategories.map(c => c.name),
-                    name: 'Income',
-                    type: 'bar',
-                    orientation: 'h',
-                    marker: {
-                        color: 'rgba(25, 135, 84, 0.7)'
-                    },
-                    hovertemplate: '%{y}: $%{x:.2f}<extra></extra>'
-                });
-            }
-            
-            // If no traces (no data), add placeholder trace
-            if (traces.length === 0) {
-                traces.push({
-                    x: [0],
-                    y: ['No data available'],
-                    name: 'No Data',
-                    type: 'bar',
-                    orientation: 'h',
-                    marker: {
-                        color: 'rgba(200, 200, 200, 0.7)'
-                    },
-                    hoverinfo: 'none'
-                });
-            }
-
-            const layout = {
-                margin: { t: 20, r: 20, l: 120, b: 30 },
-                barmode: 'group',
-                xaxis: {
-                    title: 'Amount ($)',
-                    showgrid: true,
-                    gridcolor: 'rgba(0,0,0,0.05)'
-                },
-                legend: {
-                    orientation: 'h',
-                    y: 1.1
-                },
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                annotations: traces.length === 1 && traces[0].name === 'No Data' ? [
-                    {
-                        text: 'No data available for the selected period',
-                        xref: 'paper',
-                        yref: 'paper',
-                        x: 0.5,
-                        y: 0.5,
-                        showarrow: false,
-                        font: {
-                            size: 14,
-                            color: '#888'
-                        }
-                    }
-                ] : []
-            };
-            
-            Plotly.newPlot('topCategoriesChart', traces, layout, {responsive: true});
-        } catch (error) {
-            console.error('Error plotting top categories chart:', error);
-            $('#topCategoriesChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
-        }
-    }
-    
-    // Monthly comparison chart - use real monthly data
-    function loadMonthlyComparisonChart() {
-        const filters = getFilterSettings();
-        const compareType = $('[data-compare-type].active').data('compare-type') || 'expense';
-        const activePeriod = $('.period-selector .btn.active').data('period');
-        
-        console.log(`Loading monthly comparison data for period: ${activePeriod}, type: ${compareType}`);
-        
-        
-        // Get data for the last 6 months
-        const today = new Date();
-        // Start date is 6 months ago from the first day of current month
-        const startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
-        // End date is the first day of next month
-        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-        
-        const formattedStart = formatDateForInput(startDate);
-        const formattedEnd = formatDateForInput(endDate);
-        
-        // Log the date range for debugging
-        console.log(`Loading monthly comparison data from ${formattedStart} to ${formattedEnd}`);
-        
-        // Check if we just changed the period selector
-        const periodChanged = localStorage.getItem('lastActivePeriod') !== activePeriod;
-        if (periodChanged) {
-            localStorage.setItem('lastActivePeriod', activePeriod);
-        }
-        
-        // Use the new monthly data endpoints with consistent range
-        const url = compareType === 'expense' ? '/api/expenses-by-month' : '/api/income-by-month';
-        
-        $.ajax({
-            url: url,
+        // Load both expense and income data
+        const expensePromise = $.ajax({
+            url: '/api/insights/top-categories',
             method: 'GET',
             data: { 
-                startDate: formattedStart, 
-                endDate: formattedEnd
+                startDate: filters.startDate,
+                endDate: filters.endDate
             },
-            dataType: 'json',
-            success: (data) => {
-                console.log(`Monthly ${compareType} data received:`, data);
+            dataType: 'json'
+        });
+        
+        const incomePromise = $.ajax({
+            url: '/api/income-summary',
+            method: 'GET',
+            data: { 
+                startDate: filters.startDate,
+                endDate: filters.endDate
+            },
+            dataType: 'json'
+        });
+        
+        // Use Promise.all to wait for both requests
+        Promise.all([expensePromise, incomePromise])
+            .then(([expenseData, incomeData]) => {
+                console.log('Top expense categories data received:', expenseData);
+                console.log('Income data received:', incomeData);
                 
-                // Highlight the current period on the chart
-                let highlightIndex = -1;
-                if (activePeriod === 'month') {
-                    // Highlight current month
-                    const currentMonthLabel = `${today.toLocaleString('default', { month: 'short' })} ${today.getFullYear()}`;
-                    highlightIndex = data.labels.findIndex(label => label === currentMonthLabel);
-                } else if (activePeriod === 'prev-month') {
-                    // Highlight previous month
-                    const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                    const prevMonthLabel = `${prevMonth.toLocaleString('default', { month: 'short' })} ${prevMonth.getFullYear()}`;
-                    highlightIndex = data.labels.findIndex(label => label === prevMonthLabel);
+                // Update top category in summary card if data exists
+                if (expenseData.labels && expenseData.labels.length > 0) {
+                    const totalExpense = parseFloat($('#totalExpenses').text().replace(/[^0-9.-]+/g, ''));
+                    const topCategoryAmount = expenseData.values[0];
+                    const percentage = totalExpense > 0 ? Math.round((topCategoryAmount / totalExpense) * 100) : 0;
+                    
+                    // Set emoji based on category
+                    let emoji = '🍔'; // Default food emoji
+                    const categoryName = expenseData.labels[0];
+                    if (categoryName) {
+                        const categoryLC = categoryName.toLowerCase();
+                        if (categoryLC.includes('food') || categoryLC.includes('grocery')) {
+                            emoji = '🍔';
+                        } else if (categoryLC.includes('transport') || categoryLC.includes('car')) {
+                            emoji = '🚗';
+                        } else if (categoryLC.includes('house') || categoryLC.includes('rent')) {
+                            emoji = '🏠';
+                        } else if (categoryLC.includes('utility') || categoryLC.includes('bill')) {
+                            emoji = '💡';
+                        } else if (categoryLC.includes('shopping')) {
+                            emoji = '🛍️';
+                        }
+                    }
+                    
+                    $('#topCategoryIcon').text(emoji);
+                    $('#topCategoryName').text(categoryName);
+                    $('#topCategoryAmount').text(formatCurrency(topCategoryAmount));
+                    $('#categoryPercentage').text(`${percentage}% of total`);
                 }
                 
-                drawMonthlyComparisonChartFromMonthlyData(data, compareType, highlightIndex);
+                // Combine and process expense and income data
+                let combinedData = {
+                    labels: [],
+                    values: [],
+                    types: []
+                };
+                
+                // Add expense data
+                if (expenseData.labels && expenseData.labels.length > 0) {
+                    expenseData.labels.forEach((label, index) => {
+                        combinedData.labels.push(label);
+                        combinedData.values.push(expenseData.values[index]);
+                        combinedData.types.push('expense');
+                    });
+                }
+                
+                // Add income data from income categories
+                if (incomeData.categoryDistribution && incomeData.categoryDistribution.labels) {
+                    incomeData.categoryDistribution.labels.forEach((label, index) => {
+                        combinedData.labels.push(label);
+                        combinedData.values.push(incomeData.categoryDistribution.values[index]);
+                        combinedData.types.push('income');
+                    });
+                }
+                
+                // Sort by value (descending) and take top 10 combined
+                let sortedIndices = Array.from({length: combinedData.values.length}, (_, i) => i);
+                sortedIndices.sort((a, b) => combinedData.values[b] - combinedData.values[a]);
+                
+                // Take top 10 (or fewer if not enough data)
+                const topCount = Math.min(10, sortedIndices.length);
+                const topLabels = [];
+                const topValues = [];
+                const topTypes = [];
+                
+                for (let i = 0; i < topCount; i++) {
+                    const idx = sortedIndices[i];
+                    // Add type indicator to label
+                    const typeIndicator = combinedData.types[idx] === 'income' ? '📈 ' : '📉 ';
+                    topLabels.push(typeIndicator + combinedData.labels[idx]);
+                    topValues.push(combinedData.values[idx]);
+                    topTypes.push(combinedData.types[idx]);
+                }
+                
+                // Draw the chart if we have data
+                if (topLabels.length > 0) {
+                    try {
+                        // Add extra verification for the canvas element
+                        if (chartElement.tagName.toLowerCase() !== 'canvas') {
+                            console.error('Element is not a canvas:', chartElement);
+                            $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Chart element is not a canvas element</div>');
+                            return;
+                        }
+                        
+                        // Try to get the context
+                        let ctx;
+                        try {
+                            ctx = chartElement.getContext('2d');
+                            console.log('Canvas context:', ctx);
+                        } catch (contextError) {
+                            console.error('Error getting canvas context:', contextError);
+                            $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
+                            return;
+                        }
+                        
+                        // Properly destroy existing chart if it exists
+                        if (window.topCategoriesChart instanceof Chart) {
+                            console.log('Destroying existing chart');
+                            window.topCategoriesChart.destroy();
+                        }
+                
+                        // Create colors based on type (green for income, red for expense)
+                        const colors = topTypes.map(type => {
+                            if (type === 'income') {
+                                return 'rgba(25, 135, 84, 0.8)'; // green for income
+                            } else {
+                                return 'rgba(220, 53, 69, 0.8)'; // red for expense
+                            }
+                        });
+                        
+                        console.log('Creating new chart with data:', {labels: topLabels, values: topValues, types: topTypes});
+                        window.topCategoriesChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: topLabels,
+                                datasets: [{
+                                    label: 'Amount ($)',
+                                    data: topValues,
+                                    backgroundColor: colors,
+                                    borderColor: colors.map(c => c.replace('0.8', '1')),
+                                    borderWidth: 1,
+                                    maxBarThickness: 30
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                layout: {
+                                    padding: {
+                                        left: 10,
+                                        right: 25,
+                                        top: 0,
+                                        bottom: 0
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const idx = context.dataIndex;
+                                                const type = topTypes[idx];
+                                                let label = type === 'income' ? 'Income' : 'Expense';
+                                                label += ': ' + formatCurrency(context.raw);
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        beginAtZero: true,
+                                        grid: {
+                                            drawBorder: false,
+                                            color: 'rgba(0, 0, 0, 0.05)'
+                                        },
+                                        ticks: {
+                                            callback: function(value) {
+                                                return '$' + value;
+                                            }
+                                        }
+                                    },
+                                    y: {
+                                        grid: {
+                                            display: false,
+                                            drawBorder: false
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        console.log('Top categories chart created successfully');
+                    } catch (error) {
+                        console.error('Error creating top categories chart:', error);
+                        $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error creating chart: ' + error.message + '</div>');
+                    }
+                } else {
+                    console.log('No data for top categories chart');
+                    $('#topCategoriesChart').parent().html('<div class="alert alert-info">No category data available for this period</div>');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading categories data:', error);
+                handleAjaxError(null, 'error', error);
+                $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error loading data</div>');
+            });
+    }
+    
+    // Load monthly comparison chart
+    function loadMonthlyComparisonChart() {
+        const filters = getFilterSettings();
+        const compareType = $('[data-compare-type].active').data('compare-type') || 'income-expense';
+        const activePeriod = $('.period-selector .btn.active').data('period');
+        
+        console.log(`Loading monthly comparison data for ${compareType}, period: ${activePeriod}`);
+        
+        // For custom date ranges, we need to use month-specific endpoints
+        if (activePeriod === 'custom') {
+            // For income vs expense mode
+            if (compareType === 'income-expense') {
+                let expensePromise = $.ajax({
+                    url: '/api/expenses-by-month',
+                    method: 'GET',
+                    data: { 
+                        startDate: filters.startDate,
+                        endDate: filters.endDate
+                    },
+                    dataType: 'json'
+                });
+                
+                let incomePromise = $.ajax({
+                    url: '/api/income-by-month',
+                    method: 'GET',
+                    data: { 
+                        startDate: filters.startDate, 
+                        endDate: filters.endDate
+                    },
+                    dataType: 'json'
+                });
+                
+                // Use Promise.all to wait for both requests
+                Promise.all([incomePromise, expensePromise])
+                    .then(([incomeData, expenseData]) => {
+                        console.log(`Monthly comparison data received for custom period`);
+                        
+                        // Combine the data, ensuring we have all months
+                        let allLabels = [...new Set([...incomeData.labels, ...expenseData.labels])];
+                        allLabels.sort(); // Sort chronologically
+                        
+                        // Create combined data structure
+                        let data = {
+                            labels: allLabels,
+                            series: []
+                        };
+                        
+                        // Add income data
+                        let incomeValues = allLabels.map(label => {
+                            let idx = incomeData.labels.indexOf(label);
+                            return idx >= 0 ? incomeData.values[idx] : 0;
+                        });
+                        data.series.push({
+                            name: 'Income',
+                            data: incomeValues
+                        });
+                        
+                        // Add expense data
+                        let expenseValues = allLabels.map(label => {
+                            let idx = expenseData.labels.indexOf(label);
+                            return idx >= 0 ? expenseData.values[idx] : 0;
+                        });
+                        data.series.push({
+                            name: 'Expenses',
+                            data: expenseValues
+                        });
+                        
+                        // Draw the chart
+                        drawMonthlyComparisonChartFromMonthlyData(data, compareType);
+                    })
+                    .catch(error => {
+                        console.error('Error loading monthly comparison data:', error);
+                        handleAjaxError(null, 'error', error);
+                        drawMonthlyComparisonChartFromMonthlyData({
+                            labels: [],
+                            series: []
+                        }, compareType);
+                    });
+            } else if (compareType === 'monthly-progress') {
+                // For monthly progress, just use the expense data
+                $.ajax({
+                    url: '/api/expenses-by-month',
+                    method: 'GET',
+                    data: { 
+                        startDate: filters.startDate,
+                        endDate: filters.endDate
+                    },
+                    dataType: 'json',
+                    success: (expensesByMonth) => {
+                        console.log(`Monthly progress data received with ${expensesByMonth.labels ? expensesByMonth.labels.length : 0} months`);
+                        
+                        // For monthly progress we just need one series
+                        const monthlyData = {
+                            labels: expensesByMonth.labels,
+                            series: [{
+                                name: 'Monthly Expenses',
+                                data: expensesByMonth.values
+                            }]
+                        };
+                        
+                        // Find current month for highlighting
+                        const currentYear = new Date().getFullYear();
+                        const currentMonthLabel = `${new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date())} ${currentYear}`;
+                        const currentMonthIndex = expensesByMonth.labels.indexOf(currentMonthLabel);
+                        
+                        drawMonthlyComparisonChartFromMonthlyData(monthlyData, compareType, currentMonthIndex);
+                    },
+                    error: (xhr, status, error) => {
+                        handleAjaxError(xhr, status, error);
+                        drawMonthlyComparisonChartFromMonthlyData({
+                            labels: [],
+                            series: []
+                        }, compareType);
+                    }
+                });
+            }
+            return;
+        }
+        
+        // For standard periods, use the month-by-month queries
+        $.ajax({
+            url: '/api/expenses-by-month',
+            method: 'GET',
+            data: { 
+                startDate: filters.startDate, 
+                endDate: filters.endDate
+            },
+            dataType: 'json',
+            success: (expensesByMonth) => {
+                if (compareType === 'income-expense') {
+                    // Also fetch income data for income-expense comparison
+                    $.ajax({
+                        url: '/api/income-by-month',
+                        method: 'GET',
+                        data: { 
+                            startDate: filters.startDate, 
+                            endDate: filters.endDate
+                        },
+                        dataType: 'json',
+                        success: (incomeByMonth) => {
+                            console.log(`Monthly comparison data received: ${expensesByMonth.labels.length} expense months, ${incomeByMonth.labels.length} income months`);
+                            
+                            // Combine the data, ensuring we have all months
+                            let allLabels = [...new Set([...incomeByMonth.labels, ...expensesByMonth.labels])];
+                            allLabels.sort(); // Sort chronologically
+                            
+                            // Create combined data structure
+                            let data = {
+                                labels: allLabels,
+                                series: []
+                            };
+                            
+                            // Add income data
+                            let incomeValues = allLabels.map(label => {
+                                let idx = incomeByMonth.labels.indexOf(label);
+                                return idx >= 0 ? incomeByMonth.values[idx] : 0;
+                            });
+                            data.series.push({
+                                name: 'Income',
+                                data: incomeValues
+                            });
+                            
+                            // Add expense data
+                            let expenseValues = allLabels.map(label => {
+                                let idx = expensesByMonth.labels.indexOf(label);
+                                return idx >= 0 ? expensesByMonth.values[idx] : 0;
+                            });
+                            data.series.push({
+                                name: 'Expenses',
+                                data: expenseValues
+                            });
+                            
+                            // Draw the chart
+                            drawMonthlyComparisonChartFromMonthlyData(data, compareType);
+                        },
+                        error: (xhr, status, error) => {
+                            handleAjaxError(xhr, status, error);
+                            
+                            // Still try to draw with expense data only
+                            const data = {
+                                labels: expensesByMonth.labels,
+                                series: [{
+                                    name: 'Expenses',
+                                    data: expensesByMonth.values
+                                }]
+                            };
+                            drawMonthlyComparisonChartFromMonthlyData(data, compareType);
+                        }
+                    });
+                } else if (compareType === 'monthly-progress') {
+                    // For monthly progress, just use the expense data
+                    console.log(`Monthly progress data received with ${expensesByMonth.labels ? expensesByMonth.labels.length : 0} months`);
+                    
+                    // For monthly progress we just need one series
+                    const monthlyData = {
+                        labels: expensesByMonth.labels,
+                        series: [{
+                            name: 'Monthly Expenses',
+                            data: expensesByMonth.values
+                        }]
+                    };
+                    
+                    // Find current month for highlighting
+                    const currentYear = new Date().getFullYear();
+                    const currentMonthLabel = `${new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date())} ${currentYear}`;
+                    const currentMonthIndex = expensesByMonth.labels.indexOf(currentMonthLabel);
+                    
+                    drawMonthlyComparisonChartFromMonthlyData(monthlyData, compareType, currentMonthIndex);
+                }
             },
             error: (xhr, status, error) => {
                 handleAjaxError(xhr, status, error);
-                // Draw empty chart to show frame
                 drawMonthlyComparisonChartFromMonthlyData({
                     labels: [],
-                    values: []
+                    series: []
                 }, compareType);
             }
         });
     }
     
-    // Draw monthly comparison chart with formatted monthly data from the API
+    // Draw monthly comparison chart from monthly data
     function drawMonthlyComparisonChartFromMonthlyData(data, type, highlightIndex = -1) {
         try {
             // Data should already be grouped by month from the API
             const months = data.labels || [];
-            const values = data.values || [];
             
-            let trace;
+            let traces = [];
             
-            if (months.length === 0) {
-                // No data available, create placeholder
-                trace = {
-                    x: ['No data available'],
-                    y: [0],
-                    type: 'bar',
-                    marker: {
-                        color: 'rgba(200, 200, 200, 0.7)'
-                    },
-                    hoverinfo: 'none'
-                };
-            } else {
-                // Create colors array with highlights
-                const colors = Array(months.length).fill(
-                    type === 'expense' ? 'rgba(220, 53, 69, 0.7)' : 'rgba(25, 135, 84, 0.7)'
-                );
-                
-                // Highlight the current period if specified
-                if (highlightIndex >= 0 && highlightIndex < months.length) {
-                    colors[highlightIndex] = type === 'expense' ? 'rgba(220, 53, 69, 1.0)' : 'rgba(25, 135, 84, 1.0)';
+            // Handle different chart types
+            if (type === 'income-expense') {
+                // Income-expense comparison mode - show both bars
+                if (data.series && data.series.length > 0) {
+                    // Income trace (if available)
+                    if (data.series.length > 0 && data.series[0].name === 'Income') {
+                        traces.push({
+                            x: months,
+                            y: data.series[0].data,
+                            type: 'bar',
+                            name: 'Income',
+                            marker: {
+                                color: 'rgba(25, 135, 84, 0.7)'
+                            }
+                        });
+                    }
+                    
+                    // Expense trace (if available)
+                    if (data.series.length > 1 && data.series[1].name === 'Expenses') {
+                        traces.push({
+                            x: months,
+                            y: data.series[1].data,
+                            type: 'bar',
+                            name: 'Expenses',
+                            marker: {
+                                color: 'rgba(220, 53, 69, 0.7)'
+                            }
+                        });
+                    }
                 }
-                
-                trace = {
-                    x: months,
-                    y: values,
-                    type: 'bar',
-                    marker: {
-                        color: colors
-                    },
-                    hovertemplate: '%{x}: $%{y:.2f}<extra></extra>'
-                };
+            } else if (type === 'monthly-progress') {
+                // Monthly progress mode - show one series with highlighting
+                if (data.series && data.series.length > 0) {
+                    const values = data.series[0].data || [];
+                    
+                    // Set colors array with highlight
+                    let colors = Array(months.length).fill('rgba(13, 110, 253, 0.7)');
+                    
+                    // Highlight the selected index if valid
+                    if (highlightIndex >= 0 && highlightIndex < months.length) {
+                        colors[highlightIndex] = 'rgba(25, 135, 84, 0.9)';
+                    }
+                    
+                    trace = {
+                        x: months,
+                        y: values,
+                        type: 'bar',
+                        marker: {
+                            color: colors
+                        }
+                    };
+                    
+                    traces.push(trace);
+                }
             }
             
+            // If no valid traces, show empty chart
+            if (traces.length === 0) {
+                traces = [{
+                    x: ['No data available'],
+                    y: [0],
+                type: 'bar',
+                    marker: {
+                        color: 'rgba(200, 200, 200, 0.5)'
+                    }
+                }];
+            }
+
             const layout = {
-                margin: { t: 20, r: 20, l: 50, b: 80 },
+                title: type === 'income-expense' ? 'Monthly Income vs Expenses' : 'Monthly Expense Trend',
+                titlefont: {
+                    size: 16,
+                    color: '#333'
+                },
+                margin: { t: 40, r: 20, l: 50, b: 60 },
                 xaxis: {
-                    title: 'Month',
-                    showgrid: false
+                    tickangle: -45
                 },
                 yaxis: {
-                    title: 'Amount ($)',
-                    showgrid: true,
-                    gridcolor: 'rgba(0,0,0,0.05)'
-                },
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                annotations: months.length === 0 ? [
-                    {
-                        text: 'No data available for the selected period',
-                        xref: 'paper',
-                        yref: 'paper',
-                        x: 0.5,
-                        y: 0.5,
-                        showarrow: false,
+                    title: {
+                        text: 'Amount ($)',
                         font: {
-                            size: 14,
-                            color: '#888'
+                            size: 12,
+                            color: '#555'
                         }
                     }
-                ] : []
+                },
+                bargroupgap: 0.3,
+                barmode: type === 'income-expense' ? 'group' : 'stack',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
             };
             
-            Plotly.newPlot('monthlyComparisonChart', [trace], layout, {responsive: true});
+            Plotly.newPlot('monthlyComparisonChart', traces, layout, {responsive: true});
+            
         } catch (error) {
             console.error('Error plotting monthly comparison chart:', error);
             $('#monthlyComparisonChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
         }
+    }
+    
+    // Helper function to group data by week or month
+    function groupDataByPeriod(data, period) {
+        const result = {
+            labels: [],
+            income: [],
+            expense: []
+        };
+        
+        if (data.labels.length === 0) return result;
+        
+        if (period === 'weekly') {
+            // Group by week
+            const weeks = {};
+            data.labels.forEach((dateStr, index) => {
+                const date = new Date(dateStr);
+                const weekNum = getWeekNumber(date);
+                const weekLabel = `Week ${weekNum}`;
+                
+                if (!weeks[weekLabel]) {
+                    weeks[weekLabel] = { income: 0, expense: 0 };
+                }
+                
+                weeks[weekLabel].income += data.income[index];
+                weeks[weekLabel].expense += data.expense[index];
+            });
+            
+            result.labels = Object.keys(weeks);
+            result.labels.forEach(label => {
+                result.income.push(weeks[label].income);
+                result.expense.push(weeks[label].expense);
+            });
+        } else if (period === 'monthly') {
+            // Group by month
+            const months = {};
+            data.labels.forEach((dateStr, index) => {
+                const date = new Date(dateStr);
+                const monthLabel = date.toLocaleString('default', { month: 'short' });
+                
+                if (!months[monthLabel]) {
+                    months[monthLabel] = { income: 0, expense: 0 };
+                }
+                
+                months[monthLabel].income += data.income[index];
+                months[monthLabel].expense += data.expense[index];
+            });
+            
+            result.labels = Object.keys(months);
+            result.labels.forEach(label => {
+                result.income.push(months[label].income);
+                result.expense.push(months[label].expense);
+            });
+        }
+        
+        return result;
+    }
+    
+    // Helper to get week number
+    function getWeekNumber(date) {
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+        return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    }
+    
+    // Format currency
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(amount);
     }
     
     // Export chart to PDF
@@ -1404,7 +1477,7 @@ $(document).ready(() => {
         doc.text('Financial Insights Report', 105, 15, null, null, 'center');
         
         doc.setFontSize(12);
-        doc.text(`Date Range: ${filters.startDate} to ${filters.displayEndDate}`, 105, 25, null, null, 'center');
+        doc.text(`Date Range: ${filters.startDate} to ${filters.endDate}`, 105, 25, null, null, 'center');
         
         doc.setFontSize(16);
         doc.text('Summary', 20, 35);
@@ -1527,7 +1600,7 @@ $(document).ready(() => {
             }
         });
     };
-    
+
     // Add a diagnostic function to check date assignments
     window.checkDateAssignments = function() {
         // Make a call to the date diagnostic endpoint
@@ -1608,7 +1681,7 @@ $(document).ready(() => {
         console.log(`==== DEBUG API REQUEST FOR ${period} ====`);
         console.log(`Start Date: ${filters.startDate}`);
         console.log(`End Date: ${filters.endDate}`);
-        console.log(`Display End Date: ${filters.displayEndDate}`);
+        console.log(`Display End Date: ${filters.endDate}`);
         
         // Make a direct API call to see what data is available
         $.ajax({
@@ -1656,4 +1729,72 @@ $(document).ready(() => {
             }
         });
     }
+
+    /**
+     * Get the number of days in the selected period
+     * @param {string} period - 'month', 'prev-month', 'year', 'custom'
+     * @returns {number}
+     */
+    function getDaysInPeriod(period) {
+        const startDateStr = $('#startDate').val();
+        const endDateStr = $('#endDate').val();
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+
+        if (period === 'month' || period === 'prev-month' || period === 'custom') {
+            // Calculate the number of days between two dates, inclusive
+            const diffTime = endDate.getTime() - startDate.getTime();
+            // +1 to include both start and end dates
+            return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1);
+        } else if (period === 'year') {
+            // From Jan 1st this year to Jan 1st next year
+            const year = startDate.getFullYear();
+            const nextYear = new Date(year + 1, 0, 1);
+            const diffTime = nextYear.getTime() - startDate.getTime();
+            return Math.round(diffTime / (1000 * 60 * 60 * 24));
+        }
+        return 1;
+    }
+
+    // Load all data on document ready
+    $(document).ready(function () {
+        console.log('Document ready, loading data...');
+        
+        // Initialize date handlers
+        initDateHandlers();
+        
+        // Load all data
+        loadAllData();
+        
+        // Test if Chart.js is loaded
+        if (typeof Chart !== 'undefined') {
+            console.log('Chart.js is loaded correctly');
+        } else {
+            console.error('Chart.js is not loaded!');
+        }
+        
+        // Test canvas rendering context
+        setTimeout(function() {
+            const canvas = document.getElementById('topCategoriesChart');
+            if (canvas) {
+                console.log('Canvas found:', canvas);
+                try {
+                    const ctx = canvas.getContext('2d');
+                    console.log('Canvas context:', ctx);
+                    
+                    // Draw a test rectangle on the canvas to verify it works
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.fillRect(10, 10, 50, 50);
+                    console.log('Test rectangle drawn');
+                } catch (e) {
+                    console.error('Error getting canvas context:', e);
+                }
+            } else {
+                console.error('Canvas element not found!');
+            }
+        }, 2000);
+        
+        // Setup export handlers
+        setupExportHandlers();
+    });
 });

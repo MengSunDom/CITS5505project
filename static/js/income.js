@@ -129,22 +129,22 @@ function openShareModal(incomeId) {
 
 function deleteLine(incomeId) {
     notifications.confirmDelete('income', function() {
-        $.ajax({
-            url: '/api/incomes/delete',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                id: incomeId
-            }),
-            success: function (response) {
-                $('#incomeForm')[0].reset();
+    $.ajax({
+        url: '/api/incomes/delete',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            id: incomeId
+        }),
+        success: function (response) {
+            $('#incomeForm')[0].reset();
                 document.getElementById('date').value = getFormattedDateTime();
-                loadData();
+            loadData();
                 notifications.success('Income deleted successfully');
-            },
-            error: function (xhr) {
+        },
+        error: function (xhr) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to delete income');
-            }
+        }
         });
     });
 }
@@ -312,7 +312,7 @@ function setupUserSearch() {
     $('#bulkShareModal').on('hidden.bs.modal', function() {
         $('#bulkShareSearch').val('');
         filterUsers('', '#bulkShareUsername');
-    });
+            });
 }
 
 // Filter users based on search term
@@ -398,18 +398,18 @@ $('#deleteSelected').on('click', function () {
     }
 
     notifications.confirmDelete('incomes', function() {
-        $.ajax({
-            url: '/api/incomes/bulk-delete',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ ids: selectedIds }),
-            success: function () {
-                loadData();
+    $.ajax({
+        url: '/api/incomes/bulk-delete',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ ids: selectedIds }),
+        success: function () {
+            loadData();
                 notifications.success('Selected incomes deleted successfully');
-            },
-            error: function (xhr) {
+        },
+        error: function (xhr) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to delete incomes');
-            }
+        }
         });
     });
 });

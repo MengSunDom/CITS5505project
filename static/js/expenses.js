@@ -167,7 +167,7 @@ $(document).ready(function () {
             notifications.warning('Please select a username to share with');
             return;
         }
-
+        
         $.ajax({
             url: '/api/share/bulk',
             method: 'POST',
@@ -298,7 +298,7 @@ function setupUserSearch() {
     $('#bulkShareModal').on('hidden.bs.modal', function() {
         $('#bulkShareSearch').val('');
         filterUsers('', '#bulkShareUsername');
-    });
+        });
 }
 
 // Filter users based on search term
@@ -341,9 +341,9 @@ function filterUsers(searchTerm, selectId) {
 function openShareModal(expenseId) {
     // Load usernames before showing the modal
     loadUsernames().then(() => {
-        document.getElementById('expenseIdToShare').value = expenseId;
-        const modal = new bootstrap.Modal(document.getElementById('shareModal'));
-        modal.show();
+    document.getElementById('expenseIdToShare').value = expenseId;
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
     }).catch(() => {
         notifications.error('Failed to load user list. Cannot share.');
     });
@@ -362,22 +362,22 @@ function getSelectedExpenseIds() {
 
 function deleteLine(expenseId) {
     notifications.confirmDelete('expense', function() {
-        $.ajax({
-            url: '/api/expenses/delete',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                id: expenseId
-            }),
+    $.ajax({
+        url: '/api/expenses/delete',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            id: expenseId
+        }),
             success: function(response) {
-                $('#expenseForm')[0].reset();
+            $('#expenseForm')[0].reset();
                 document.getElementById('date').value = getFormattedDateTime();
-                loadExpenses();
+            loadExpenses();
                 notifications.success('Expense deleted successfully');
-            },
+        },
             error: function(xhr) {
                 notifications.error(xhr.responseJSON.error || 'Failed to delete expense');
-            }
+        }
         });
     });
 }
@@ -506,8 +506,8 @@ document.getElementById('uploadImageButton').addEventListener('click', async fun
         
         if (!response.ok) {
             notifications.error(`Error: ${result.error || 'Failed to process image'}`);
-            return;
-        }
+                    return;
+                }
         
         // Populate form with OCR results
         if (result.success && result.data) {
@@ -521,7 +521,7 @@ document.getElementById('uploadImageButton').addEventListener('click', async fun
             notifications.success('Successfully extracted data from image');
         } else {
             notifications.warning('Could not extract all data from image. Please fill in the form manually.');
-        }
+            }
     } catch (err) {
         console.error(err);
         notifications.error('An error occurred while processing the image.');
@@ -620,7 +620,7 @@ $('#deleteSelected').on('click', function() {
     notifications.confirmBulkDelete('expense', selectedIds.length, function() {
         $.ajax({
             url: '/api/expenses/bulk-delete',
-            method: 'POST',
+        method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ ids: selectedIds }),
             success: function() {

@@ -236,9 +236,9 @@
 /* Media Queries */
 @media (max-width: 992px) {
     .stats-overview .col-md-3 {
-        margin-bottom: 1rem;
-    }
-    
+    margin-bottom: 1rem;
+}
+
     .date-range-selector, .data-type-filter, .export-options {
         margin-bottom: 1rem;
     }
@@ -279,8 +279,8 @@
     .percentage-indicator,
     .top-category-amount {
         color: #a0aec0;
-    }
-    
+}
+
     .stats-value,
     .chart-card .card-title,
     .tooltip-title {
