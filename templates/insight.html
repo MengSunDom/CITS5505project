@@ -1,7 +1,6 @@
 {% extends "base.html" %} {% block title %}Insights - Expense Tracker{% endblock %} {% block
 extra_head %}
 <link rel="stylesheet" href="/static/css/insight.css" />
-<script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
@@ -14,7 +13,6 @@ extra_head %}
     <!-- Date Range Selection Card -->
     <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-
             <div class="d-flex flex-wrap justify-content-between align-items-center">
                 <div class="date-range-selector">
                     <div class="d-flex align-items-center">
@@ -49,7 +47,6 @@ extra_head %}
                             <li><a class="dropdown-item" href="#" id="exportPDF"><i class="far fa-file-pdf me-2"></i>Export as PDF</a></li>
                             <li><a class="dropdown-item" href="#" id="exportPNG"><i class="far fa-file-image me-2"></i>Export as PNG</a></li>
                         </ul>
-
                     </div>
                 </div>
             </div>
@@ -97,7 +94,6 @@ extra_head %}
                         </p>
                     </div>
                 </div>
-
             </div>
         </div>
         
@@ -207,7 +203,6 @@ extra_head %}
     </div>
 </div>
 
-
     <!-- Charts Row 2 -->
 <div class="row mb-4">
         <!-- Top Categories Bar Chart -->
@@ -239,7 +234,6 @@ extra_head %}
             <div class="card-body">
                     <div id="monthlyComparisonChart" class="chart-container"></div>
                 </div>
-
             </div>
         </div>
     </div>

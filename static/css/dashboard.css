@@ -416,7 +416,6 @@
         margin-bottom: 15px;
         /* Add bottom margin for spacing */
     }
-
 }
 
 /* Action Buttons in Transaction Tables */
@@ -579,16 +578,15 @@
 
 /* Tab Navigation Styling */
 .nav-tabs .nav-link {
-    color: #6c757d;
+    color: #6c757d; 
     font-weight: 500;
 }
 
 .nav-tabs .nav-link.active {
-    color: #495057;
+    color: #495057; 
     font-weight: 600;
 }
 
 .nav-tabs .nav-link:hover:not(.active) {
     color: #495057; 
-
 }

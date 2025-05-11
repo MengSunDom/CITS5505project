@@ -526,7 +526,6 @@ document.getElementById('uploadImageButton').addEventListener('click', async fun
         console.error(err);
         notifications.error('An error occurred while processing the image.');
     }
-
 });
 
 async function addExpense(expenseData) {
@@ -551,9 +550,7 @@ async function addExpense(expenseData) {
             offcanvasInstance.hide();
         },
         error: function (xhr) {
-
             notifications.error(xhr.responseJSON?.error || 'Failed to add expense');
-
         }
     });
 }

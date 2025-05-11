@@ -1,5 +1,4 @@
 $(document).ready(() => {
-
     /**
      * Debug function to log date information
      * @param {string} label - Label for the log entry
@@ -313,8 +312,8 @@ $(document).ready(() => {
                     { totalAmount: 0 }, { totalAmount: 0 });
                 
                 // Display average daily income and expenses
-                $('#averageDailyIncome').text(`Average Daily Income: ${formatCurrency(averageDailyIncome)}`);
-                $('#averageDailyExpense').text(`Average Daily Expense: ${formatCurrency(averageDailyExpense)}`);
+                $('#averageDailyIncome').text(`${formatCurrency(averageDailyIncome)}`);
+                $('#averageDailyExpense').text(`${formatCurrency(averageDailyExpense)}`);
                 
                 // Continue with other charts
                 if (callback) callback();
@@ -369,13 +368,13 @@ $(document).ready(() => {
                             { totalAmount: 0 }, { totalAmount: 0 });
                         
                         // Display average daily amounts
-                        $('#averageDailyIncome').text(`Average Daily Income: ${formatCurrency(averageDailyIncome)}`);
-                        $('#averageDailyExpense').text(`Average Daily Expense: ${formatCurrency(averageDailyExpense)}`);
+                        $('#averageDailyIncome').text(`${formatCurrency(averageDailyIncome)}`);
+                        $('#averageDailyExpense').text(`${formatCurrency(averageDailyExpense)}`);
                         
                         // Continue with other charts
                         if (callback) callback();
-            },
-            error: (xhr, status, error) => {
+                    },
+                    error: (xhr, status, error) => {
                         console.error("Error fetching expense data:", error);
                         handleAjaxError(xhr, status, error);
                         
@@ -512,6 +511,15 @@ $(document).ready(() => {
             dataType: 'json',
             success: (data) => {
                 console.log(`Trend data received with ${data.labels ? data.labels.length : 0} data points`);
+                console.log('Raw trend data:', data);
+                
+                // Check if we need to transform the data
+                if (data.income && data.expense && !data.series) {
+                    console.log('Transforming income/expense arrays to series format');
+                } else if (data.series) {
+                    console.log('Data already has series format:', data.series.length);
+                }
+                
                 drawTrendChart(data, trendPeriod);
             },
             error: (xhr, status, error) => {
@@ -527,121 +535,223 @@ $(document).ready(() => {
     
     // Draw trend chart with income and expense data
     function drawTrendChart(data, period) {
-        let transformedData = data;
-        
-        // Check if data is valid
-        if (!data || !data.labels || data.labels.length === 0) {
-            // Create empty data structure
-            transformedData = {
-                labels: [],
-                income: [],
-                expense: []
-            };
-        }
-        else if (period !== 'daily') {
-            // If not daily and data is valid, group data by week or month
-            transformedData = groupDataByPeriod(data, period);
-        }
-        
-        let traces = [];
-        
-        if (transformedData.labels.length === 0) {
-            // No data, add placeholder annotation
-            traces = [{
-                x: ['No data available'],
-                y: [0],
-                type: 'scatter',
-                mode: 'markers',
-                marker: {
-                    color: 'rgba(200, 200, 200, 0.5)',
-                    size: 10
+        try {
+            // 重新组织数据结构，同时支持新旧格式
+            let transformedData = data;
+            
+            // 检查是否是旧格式（带income和expense数组）
+            if (data.income && data.expense && !data.series) {
+                console.log('Converting legacy data format to Chart.js format');
+                
+                // 如果不是daily且数据有效，按period分组
+                if (period !== 'daily' && data.labels && data.labels.length > 0) {
+                    transformedData = groupDataByPeriod(data, period);
+                }
+                
+                // 转换为Chart.js期望的格式
+                transformedData = {
+                    labels: transformedData.labels,
+                    series: [
+                        {
+                            name: 'Income',
+                            data: transformedData.income.map(val => parseFloat(val) || 0)
+                        },
+                        {
+                            name: 'Expenses',
+                            data: transformedData.expense.map(val => parseFloat(val) || 0)
+                        }
+                    ]
+                };
+            }
+            
+            // 确保数据结构正确
+            if (!transformedData || !transformedData.labels) {
+                console.error('Invalid trend data structure:', data);
+                $('#trendChart').html('<div class="alert alert-danger">Invalid data structure</div>');
+                return;
+            }
+            
+            // 获取容器元素
+            const container = document.getElementById('trendChart');
+            if (!container) {
+                console.error('Trend chart container element not found in DOM');
+                return;
+            }
+            
+            // 检查是否有已存在的canvas，如果没有则创建一个
+            let canvas = container.querySelector('canvas');
+            if (!canvas) {
+                // 先清空容器
+                container.innerHTML = '';
+                
+                // 创建新的canvas元素
+                canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+            }
+            
+            // 应用直接样式到容器
+            if (container) {
+                container.style.backgroundColor = '#ffffff';
+                container.style.border = '1px solid #e0e0e0';
+                container.style.borderRadius = '8px';
+            }
+            
+            // 尝试获取上下文
+            let ctx;
+            try {
+                ctx = canvas.getContext('2d');
+                console.log('Trend Chart canvas context:', ctx);
+            } catch (contextError) {
+                console.error('Error getting canvas context:', contextError);
+                $('#trendChart').html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
+                return;
+            }
+            
+            // 如果存在以前的图表实例，销毁它
+            if (window.trendChart instanceof Chart) {
+                window.trendChart.destroy();
+            }
+            
+            // 生成数据集
+            const datasets = [];
+            const colors = {
+                'Income': {
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    borderColor: 'rgba(25, 135, 84, 0.8)',
+                    pointBackgroundColor: 'rgba(25, 135, 84, 1)'
                 },
-                hoverinfo: 'none'
-            }];
-        } else {
-            const labels = transformedData.labels.map(label => {
-                if (typeof label === 'string' && /^\d{4}-\d{2}-\d{2}/.test(label)) {
-                    return label; 
-                } else if (label instanceof Date) {
-                    return label.toISOString().split('T')[0]; 
-                } else {
-                    return String(label); 
+                'Expenses': {
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderColor: 'rgba(220, 53, 69, 0.8)',
+                    pointBackgroundColor: 'rgba(220, 53, 69, 1)'
+                }
+            };
+
+
+            Chart.defaults.color = '#666666';
+            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+            
+
+            $(canvas).css('background-color', '#ffffff');
+            
+
+            if (transformedData.series && transformedData.series.length > 0) {
+                transformedData.series.forEach(series => {
+                    if (series.name && colors[series.name]) {
+                        datasets.push({
+                            label: series.name,
+                            data: series.data,
+                            fill: true,
+                            backgroundColor: colors[series.name].backgroundColor,
+                            borderColor: colors[series.name].borderColor,
+                            pointBackgroundColor: colors[series.name].pointBackgroundColor,
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3
+                        });
+                    }
+                });
+            }
+
+            if (transformedData.labels.length === 0 || datasets.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No data available for the selected period</div>';
+                return;
+            }
+            
+            console.log('Creating trend chart with data:', {labels: transformedData.labels, datasets: datasets});
+            
+
+            window.trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: transformedData.labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: period.charAt(0).toUpperCase() + period.slice(1),
+                                color: '#555'
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#555',
+                                maxRotation: 45,  
+                                autoSkip: false,  
+                                callback: function(value, index, values) {
+                                    const label = transformedData.labels[index];
+
+                                    return label.length > 10 ? label.substr(0, 8) + '...' : label;
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amount ($)',
+                                color: '#555'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: '#555',
+                                callback: function(value) {
+
+                                    if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(1) + 'k';
+                                    }
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#555',
+                                boxWidth: 12,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            titleColor: '#333',
+                            bodyColor: '#333',
+                            borderColor: '#ccc',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            caretSize: 5,
+                            padding: 10,
+                            callbacks: {
+                                title: function(tooltipItems) {
+
+                                    const index = tooltipItems[0].dataIndex;
+                                    return transformedData.labels[index];
+                                },
+                                label: function(context) {
+
+                                    const value = context.parsed.y;
+                                    return context.dataset.label + ': $' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
                 }
             });
-            
-            const incomeValues = transformedData.income.map(val => parseFloat(val) || 0);
-            const expenseValues = transformedData.expense.map(val => parseFloat(val) || 0);
-            
-            traces = [
-                {
-                    x: labels,
-                    y: incomeValues,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Income',
-                    line: {
-                        color: 'rgba(25, 135, 84, 1)',
-                        width: 3
-                    },
-                    marker: {
-                        size: 6,
-                        color: 'rgba(25, 135, 84, 0.8)'
-                    }
-                },
-                {
-                    x: labels,
-                    y: expenseValues,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Expenses',
-                    line: {
-                        color: 'rgba(220, 53, 69, 1)',
-                        width: 3
-                    },
-                    marker: {
-                        size: 6,
-                        color: 'rgba(220, 53, 69, 0.8)'
-                    }
-                }
-            ];
-        }
-        
-        const layout = {
-            margin: { t: 10, r: 10, l: 50, b: 50 },
-            hovermode: 'closest',
-            xaxis: {
-                title: period.charAt(0).toUpperCase() + period.slice(1),
-                showgrid: false
-            },
-            yaxis: {
-                title: 'Amount ($)',
-                showgrid: true,
-                gridcolor: 'rgba(0,0,0,0.05)'
-            },
-            legend: {
-                orientation: 'h',
-                y: 1.1
-            },
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            annotations: transformedData.labels.length === 0 ? [
-                {
-                    text: 'No data available for the selected period',
-                    xref: 'paper',
-                    yref: 'paper',
-                    x: 0.5,
-                    y: 0.5,
-                    showarrow: false,
-                    font: {
-                        size: 14,
-                        color: '#888'
-                    }
-                }
-            ] : []
-        };
-        
-        try {
-            Plotly.newPlot('trendChart', traces, layout, {responsive: true});
+            console.log('Trend chart created successfully');
         } catch (error) {
             console.error('Error plotting trend chart:', error);
             $('#trendChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
@@ -747,12 +857,12 @@ $(document).ready(() => {
             if (!data || !data.categoryDistribution || !data.categoryDistribution.labels) {
                 data = { categoryDistribution: { labels: [], values: [] } };
             }
-
+            
             // Get category distribution
             const labels = data.categoryDistribution.labels;
             const values = data.categoryDistribution.values;
             
-            // Colors for different categories
+            // Use standard colors
             const colors = [
                 'rgba(25, 135, 84, 0.8)',  // green
                 'rgba(13, 110, 253, 0.8)', // blue
@@ -766,72 +876,155 @@ $(document).ready(() => {
             while(colors.length < labels.length) {
                 colors.push(...colors);
             }
-
-            const layout = {
-                margin: { t: 10, r: 10, l: 10, b: 10 },
-                showlegend: false,
-                annotations: [{
-                    font: {
-                        size: 14,
-                        color: '#555'
-                    },
-                    showarrow: false,
-                    text: type === 'expense' ? 'Expenses' : 'Income',
-                    x: 0.5,
-                    y: 0.5
-                }],
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)'
-            };
             
-            let trace;
-            
-            // If no data available
-            if (labels.length === 0) {
-                trace = {
-                    labels: ['No Data'],
-                    values: [1],
-                    type: 'pie',
-                    textinfo: 'label',
-                    hoverinfo: 'none',
-                    marker: {
-                        colors: ['rgba(200, 200, 200, 0.7)']
-                    },
-                    hole: 0.4
-                };
-                
-                // Add no data annotation
-                layout.annotations.push({
-                    text: 'No data available',
-                    xref: 'paper',
-                    yref: 'paper',
-                    x: 0.5,
-                    y: 0.2,
-                    showarrow: false,
-                    font: {
-                        size: 12,
-                        color: '#888'
-                    }
-                });
-        } else {
-                trace = {
-                    labels: labels,
-                    values: values,
-                    type: 'pie',
-                    textinfo: 'label+percent',
-                    hoverinfo: 'label+value+percent',
-                    marker: {
-                        colors: colors.slice(0, labels.length)
-                    },
-                    hole: 0.4,
-                    textposition: 'outside',
-                    textfont: {
-                        size: 12
-                    }
-                };
+            // Get the container element
+            const container = document.getElementById('categoryPieChart');
+            if (!container) {
+                console.error('Category pie chart container element not found in DOM');
+                return;
             }
             
-            Plotly.newPlot('categoryPieChart', [trace], layout, {responsive: true});
+            // Check if there's an existing canvas, if not create one
+            let canvas = container.querySelector('canvas');
+            if (!canvas) {
+                // Clear container first
+                container.innerHTML = '';
+                
+                // Create a new canvas element
+                canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+            }
+            
+            // Apply direct styling to container
+            if (container) {
+                container.style.backgroundColor = '#ffffff';
+                container.style.border = '1px solid #e0e0e0';
+                container.style.borderRadius = '8px';
+            }
+            
+            // Try to get the context
+            let ctx;
+            try {
+                ctx = canvas.getContext('2d');
+                console.log('Category Pie Chart canvas context:', ctx);
+            } catch (contextError) {
+                console.error('Error getting canvas context:', contextError);
+                $('#categoryPieChart').html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
+                return;
+            }
+            
+            // Destroy previous chart if it exists
+            if (window.categoryPieChart instanceof Chart) {
+                window.categoryPieChart.destroy();
+            }
+            
+            // If no data, show a message
+            if (labels.length === 0 || values.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No data available for the selected period</div>';
+                return;
+            }
+            
+            // Set Chart.js defaults to light mode regardless of system mode
+            Chart.defaults.color = '#666666';
+            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+            
+            // Set specific chart background color to white
+            $(canvas).css('background-color', '#ffffff');
+            
+            console.log('Creating category pie chart with data:', {labels: labels, values: values});
+            
+            // Calculate percentages for labels
+            const total = values.reduce((acc, val) => acc + val, 0);
+            const labelWithPercentages = labels.map((label, i) => {
+                const percentage = ((values[i] / total) * 100).toFixed(1);
+                return `${label} (${percentage}%)`;
+            });
+            
+            // Create the chart
+            window.categoryPieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '40%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#555',
+                                boxWidth: 12,
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: {
+                                    size: 11
+                                },
+
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        const dataset = data.datasets[0];
+                                        const total = dataset.data.reduce((acc, value) => acc + value, 0);
+                                        
+                                        return data.labels.map((label, i) => {
+                                
+                                            const value = dataset.data[i];
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            
+                                           
+                                            let displayLabel = label;
+                                            if (label.length > 15) {
+                                                displayLabel = label.substr(0, 12) + '...';
+                                            }
+                                            
+                                            return {
+                                                text: `${displayLabel} (${percentage}%)`,
+                                                fillStyle: dataset.backgroundColor[i],
+                                                strokeStyle: dataset.backgroundColor[i],  
+                                                lineWidth: 0,  
+                                                hidden: isNaN(dataset.data[i]) || chart.getDataVisibility(i),
+                                                index: i,
+                                                fullText: `${label} (${percentage}%)`
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            titleColor: '#333',
+                            bodyColor: '#333',
+                            borderColor: '#ccc',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            caretSize: 5,
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    const fullLabel = context.label.length > 15 ? context.label : context.label;
+                                    return `${fullLabel}: $${value.toFixed(2)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Category pie chart created successfully');
         } catch (error) {
             console.error('Error plotting pie chart:', error);
             $('#categoryPieChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
@@ -979,7 +1172,10 @@ $(document).ready(() => {
                             window.topCategoriesChart.destroy();
                         }
                 
-                        // Create colors based on type (green for income, red for expense)
+                        // Check if dark mode is enabled
+                        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        
+                        // Create colors based on type - use light mode colors always
                         const colors = topTypes.map(type => {
                             if (type === 'income') {
                                 return 'rgba(25, 135, 84, 0.8)'; // green for income
@@ -988,9 +1184,21 @@ $(document).ready(() => {
                             }
                         });
                         
+                        // Set text color based on mode - always dark for white background
+                        const textColor = '#666666';
+                        const gridColor = 'rgba(0, 0, 0, 0.05)';
+                        
                         console.log('Creating new chart with data:', {labels: topLabels, values: topValues, types: topTypes});
+                        
+                        // Set Chart.js defaults to light mode regardless of system mode
+                        Chart.defaults.color = '#666666';
+                        Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+                        
+                        // Set specific chart background color to white
+                        $(chartElement).css('background-color', '#ffffff');
+                        
                         window.topCategoriesChart = new Chart(ctx, {
-                type: 'bar',
+                            type: 'bar',
                             data: {
                                 labels: topLabels,
                                 datasets: [{
@@ -1016,10 +1224,23 @@ $(document).ready(() => {
                                 },
                                 plugins: {
                                     legend: {
-                                        display: false
+                                        display: false,
+                                        labels: {
+                                            color: textColor
+                                        }
                                     },
                                     tooltip: {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                        titleColor: '#333333',
+                                        bodyColor: '#333333',
+                                        borderColor: 'rgba(0, 0, 0, 0.1)',
+                                        borderWidth: 1,
                                         callbacks: {
+                                            title: function(tooltipItems) {
+                                        
+                                                const index = tooltipItems[0].dataIndex;
+                                                return topLabels[index];
+                                            },
                                             label: function(context) {
                                                 const idx = context.dataIndex;
                                                 const type = topTypes[idx];
@@ -1035,10 +1256,15 @@ $(document).ready(() => {
                                         beginAtZero: true,
                                         grid: {
                                             drawBorder: false,
-                                            color: 'rgba(0, 0, 0, 0.05)'
+                                            color: gridColor
                                         },
                                         ticks: {
+                                            color: textColor,
                                             callback: function(value) {
+
+                                                if (value >= 1000) {
+                                                    return '$' + (value / 1000).toFixed(1) + 'k';
+                                                }
                                                 return '$' + value;
                                             }
                                         }
@@ -1047,6 +1273,17 @@ $(document).ready(() => {
                                         grid: {
                                             display: false,
                                             drawBorder: false
+                                        },
+                                        ticks: {
+                                            color: textColor,
+                                            callback: function(value, index) {
+    
+                                                const label = topLabels[index];
+                                                if (label && label.length > 20) {
+                                                    return label.substr(0, 18) + '...';
+                                                }
+                                                return label;
+                                            }
                                         }
                                     }
                                 }
@@ -1295,103 +1532,221 @@ $(document).ready(() => {
             // Data should already be grouped by month from the API
             const months = data.labels || [];
             
-            let traces = [];
+            // Get the container element
+            const container = document.getElementById('monthlyComparisonChart');
+            if (!container) {
+                console.error('Monthly comparison chart container element not found in DOM');
+                return;
+            }
             
-            // Handle different chart types
+            // Check if there's an existing canvas, if not create one
+            let canvas = container.querySelector('canvas');
+            if (!canvas) {
+                // Clear container first
+                container.innerHTML = '';
+                
+                // Create a new canvas element
+                canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+            }
+            
+            // Apply direct styling to container
+            if (container) {
+                container.style.backgroundColor = '#ffffff';
+                container.style.border = '1px solid #e0e0e0';
+                container.style.borderRadius = '8px';
+            }
+            
+            // Try to get the context
+            let ctx;
+            try {
+                ctx = canvas.getContext('2d');
+                console.log('Monthly Comparison Chart canvas context:', ctx);
+            } catch (contextError) {
+                console.error('Error getting canvas context:', contextError);
+                $('#monthlyComparisonChart').html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
+                return;
+            }
+            
+            // Destroy previous chart if it exists
+            if (window.monthlyComparisonChart instanceof Chart) {
+                window.monthlyComparisonChart.destroy();
+            }
+            
+            // If no data, show a message
+            if (!months.length || !data.series || !data.series.length) {
+                container.innerHTML = '<div class="alert alert-info">No data available for the selected period</div>';
+                return;
+            }
+            
+            // Set Chart.js defaults to light mode regardless of system mode
+            Chart.defaults.color = '#666666';
+            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+            
+            // Set specific chart background color to white
+            $(canvas).css('background-color', '#ffffff');
+            
+            // Prepare datasets based on type
+            const datasets = [];
+            
             if (type === 'income-expense') {
                 // Income-expense comparison mode - show both bars
                 if (data.series && data.series.length > 0) {
                     // Income trace (if available)
                     if (data.series.length > 0 && data.series[0].name === 'Income') {
-                        traces.push({
-                            x: months,
-                            y: data.series[0].data,
-                type: 'bar',
-                            name: 'Income',
-                            marker: {
-                                color: 'rgba(25, 135, 84, 0.7)'
-                            }
+                        datasets.push({
+                            label: 'Income',
+                            data: data.series[0].data,
+                            backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1
                         });
                     }
                     
                     // Expense trace (if available)
                     if (data.series.length > 1 && data.series[1].name === 'Expenses') {
-                        traces.push({
-                            x: months,
-                            y: data.series[1].data,
-                            type: 'bar',
-                            name: 'Expenses',
-                            marker: {
-                                color: 'rgba(220, 53, 69, 0.7)'
-                            }
+                        datasets.push({
+                            label: 'Expenses',
+                            data: data.series[1].data,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
                         });
                     }
                 }
-            } else if (type === 'monthly-progress') {
+            } else {
                 // Monthly progress mode - show one series with highlighting
                 if (data.series && data.series.length > 0) {
                     const values = data.series[0].data || [];
                     
                     // Set colors array with highlight
                     let colors = Array(months.length).fill('rgba(13, 110, 253, 0.7)');
+                    let borderColors = Array(months.length).fill('rgba(13, 110, 253, 1)');
                     
                     // Highlight the selected index if valid
                     if (highlightIndex >= 0 && highlightIndex < months.length) {
                         colors[highlightIndex] = 'rgba(25, 135, 84, 0.9)';
+                        borderColors[highlightIndex] = 'rgba(25, 135, 84, 1)';
                     }
                     
-                    trace = {
-                        x: months,
-                        y: values,
-                        type: 'bar',
-                        marker: {
-                            color: colors
-                        }
-                    };
-                    
-                    traces.push(trace);
+                    datasets.push({
+                        label: 'Amount',
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    });
                 }
             }
             
-            // If no valid traces, show empty chart
-            if (traces.length === 0) {
-                traces = [{
-                    x: ['No data available'],
-                    y: [0],
+            console.log('Creating monthly comparison chart with data:', {
+                type: type,
+                labels: months,
+                datasets: datasets
+            });
+            
+            // Create the chart
+            window.monthlyComparisonChart = new Chart(ctx, {
                 type: 'bar',
-                    marker: {
-                        color: 'rgba(200, 200, 200, 0.5)'
-                    }
-                }];
-            }
+                data: {
+                    labels: months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#555',
+                                boxWidth: 12,
+                                padding: 10
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: type === 'income-expense' ? 'Monthly Income vs Expenses' : 'Monthly Expense Trend',
+                            color: '#333',
+                            font: {
+                                size: 16
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            titleColor: '#333',
+                            bodyColor: '#333',
+                            borderColor: '#ccc',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            caretSize: 5,
+                            padding: 10,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                        
+                                    const index = tooltipItems[0].dataIndex;
+                                    return months[index];
+                                },
+                                label: function(context) {
+                               
+                                    const value = context.parsed.y;
+                                    return `${context.dataset.label}: $${value.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#555',
+                                maxRotation: 45,
+                                minRotation: 45,
 
-            const layout = {
-                title: type === 'income-expense' ? 'Monthly Income vs Expenses' : 'Monthly Expense Trend',
-                titlefont: {
-                    size: 16,
-                    color: '#333'
-                },
-                margin: { t: 40, r: 20, l: 50, b: 60 },
-                xaxis: {
-                    tickangle: -45
-                },
-                yaxis: {
-                    title: {
-                        text: 'Amount ($)',
-                        font: {
-                            size: 12,
-                            color: '#555'
+                                callback: function(value, index) {
+                                    const month = months[index];
+
+                                    if (month && month.length > 10) {
+                                        return month.substr(0, 3) + '...';
+                                    }
+                                    return month;
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: '#555',
+                                callback: function(value) {
+
+                                    if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(1) + 'k';
+                                    }
+                                    return '$' + value;
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Amount ($)',
+                                color: '#555',
+                                font: {
+                                    size: 12
+                                }
+                            }
                         }
                     }
-                },
-                bargroupgap: 0.3,
-                barmode: type === 'income-expense' ? 'group' : 'stack',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)'
-            };
-            
-            Plotly.newPlot('monthlyComparisonChart', traces, layout, {responsive: true});
-            
+                }
+            });
+            console.log('Monthly comparison chart created successfully');
         } catch (error) {
             console.error('Error plotting monthly comparison chart:', error);
             $('#monthlyComparisonChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
@@ -1478,43 +1833,91 @@ $(document).ready(() => {
         doc.text('Financial Insights Report', 105, 15, null, null, 'center');
         
         doc.setFontSize(12);
-        doc.text(`Date Range: ${filters.startDate} to ${filters.endDate}`, 105, 25, null, null, 'center');
+        doc.text(`Date Range: ${filters.startDate} to ${filters.displayEndDate}`, 105, 25, null, null, 'center');
         
         doc.setFontSize(16);
         doc.text('Summary', 20, 35);
         
         doc.setFontSize(12);
-        doc.text(`Total Income: $${$('#totalIncome').text()}`, 20, 45);
-        doc.text(`Total Expenses: $${$('#totalExpenses').text()}`, 20, 55);
-        doc.text(`Net Balance: $${$('#netBalance').text()}`, 20, 65);
-        doc.text(`Largest Category: ${$('#topCategoryName').text()} ($${$('#topCategoryAmount').text()})`, 20, 75);
+        doc.text(`Total Income: ${$('#totalIncome').text()}`, 20, 45);
+        doc.text(`Total Expenses: ${$('#totalExpenses').text()}`, 20, 55);
+        doc.text(`Net Balance: ${$('#netBalance').text()}`, 20, 65);
+        doc.text(`Largest Category: ${$('#topCategoryName').text()} (${$('#topCategoryAmount').text()})`, 20, 75);
         
         // Add charts as images
-        Plotly.toImage(document.getElementById('trendChart'), {format: 'png', width: 800, height: 400})
-            .then(function(dataUrl) {
+        Promise.all([
+            // Get trend chart image
+            new Promise(resolve => {
+                if (window.trendChart instanceof Chart) {
+                    resolve(window.trendChart.toBase64Image());
+                } else {
+                    resolve(null);
+                }
+            }),
+            // Get pie chart image
+            new Promise(resolve => {
+                if (window.categoryPieChart instanceof Chart) {
+                    resolve(window.categoryPieChart.toBase64Image());
+                } else {
+                    resolve(null);
+                }
+            }),
+            // Get top categories chart image
+            new Promise(resolve => {
+                if (window.topCategoriesChart instanceof Chart) {
+                    resolve(window.topCategoriesChart.toBase64Image());
+                } else {
+                    resolve(null);
+                }
+            }),
+            // Get monthly comparison chart image
+            new Promise(resolve => {
+                if (window.monthlyComparisonChart instanceof Chart) {
+                    resolve(window.monthlyComparisonChart.toBase64Image());
+                } else {
+                    resolve(null);
+                }
+            })
+        ]).then(images => {
+            let currentY = 85;
+            
+            // Add trend chart
+            if (images[0]) {
                 doc.addPage();
                 doc.setFontSize(16);
                 doc.text('Income & Expense Trends', 105, 15, null, null, 'center');
-                doc.addImage(dataUrl, 'PNG', 15, 25, 180, 90);
-                
-                return Plotly.toImage(document.getElementById('categoryPieChart'), {format: 'png', width: 400, height: 400});
-            })
-            .then(function(dataUrl) {
+                doc.addImage(images[0], 'PNG', 15, 25, 180, 90);
+            }
+            
+            // Add pie chart
+            if (images[1]) {
                 doc.addPage();
                 doc.setFontSize(16);
                 doc.text('Category Distribution', 105, 15, null, null, 'center');
-                doc.addImage(dataUrl, 'PNG', 55, 25, 100, 100);
-                
-                return Plotly.toImage(document.getElementById('topCategoriesChart'), {format: 'png', width: 800, height: 400});
-            })
-            .then(function(dataUrl) {
+                doc.addImage(images[1], 'PNG', 55, 25, 100, 100);
+            }
+            
+            // Add top categories chart
+            if (images[2]) {
                 doc.addPage();
                 doc.setFontSize(16);
                 doc.text('Top Categories', 105, 15, null, null, 'center');
-                doc.addImage(dataUrl, 'PNG', 15, 25, 180, 90);
-                
-                doc.save('financial-insights.pdf');
-            });
+                doc.addImage(images[2], 'PNG', 15, 25, 180, 90);
+            }
+            
+            // Add monthly comparison chart
+            if (images[3]) {
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.text('Monthly Comparison', 105, 15, null, null, 'center');
+                doc.addImage(images[3], 'PNG', 15, 25, 180, 90);
+            }
+            
+            doc.save('financial-insights.pdf');
+        }).catch(error => {
+            console.error('Error exporting to PDF:', error);
+            notifications.error('Error exporting to PDF: ' + error.message);
+        });
     }
     
     // Export chart to PNG
@@ -1764,12 +2167,119 @@ $(document).ready(() => {
         // Initialize date handlers
         initDateHandlers();
         
+        // Apply direct styling to all chart containers for consistent appearance
+        // regardless of dark/light mode
+        $('.chart-container').each(function() {
+            $(this).css({
+                'background-color': '#ffffff',
+                'border': '1px solid #e0e0e0',
+                'border-radius': '8px'
+            });
+        });
+        
         // Load all data
         loadAllData();
+        
+        // Force white background on Plotly-generated elements when the DOM changes
+        // This uses a MutationObserver to detect when Plotly adds new SVG elements
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    // Force white background on all SVG elements
+                    const svgElements = document.querySelectorAll('svg.main-svg');
+                    for (let svg of svgElements) {
+                        svg.style.backgroundColor = '#ffffff';
+                    }
+                    
+                    // Force white background on all BG elements
+                    const bgElements = document.querySelectorAll('.bg');
+                    for (let bg of bgElements) {
+                        bg.setAttribute('fill', '#ffffff');
+                    }
+                }
+            });
+        });
+        
+        // Start observing the chart containers
+        const chartContainers = document.querySelectorAll('.chart-container');
+        for (let container of chartContainers) {
+            observer.observe(container, { childList: true, subtree: true });
+        }
+        
+        // Detect dark mode changes and refresh charts
+        if (window.matchMedia) {
+            const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            try {
+                // Modern browsers
+                darkModeMediaQuery.addEventListener('change', function(e) {
+                    console.log('Dark mode preference changed, refreshing charts...');
+                    
+                    // Reapply white backgrounds to all chart containers
+                    $('.chart-container').each(function() {
+                        $(this).css({
+                            'background-color': '#ffffff',
+                            'border': '1px solid #e0e0e0',
+                            'border-radius': '8px'
+                        });
+                    });
+                    
+                    // Force white backgrounds on SVG elements
+                    const svgElements = document.querySelectorAll('svg.main-svg');
+                    for (let svg of svgElements) {
+                        svg.style.backgroundColor = '#ffffff';
+                    }
+                    
+                    // Force white backgrounds on BG elements
+                    const bgElements = document.querySelectorAll('.bg');
+                    for (let bg of bgElements) {
+                        bg.setAttribute('fill', '#ffffff');
+                    }
+                    
+                    // Refresh the data
+                    setTimeout(() => {
+                        loadAllData();
+                    }, 100);
+                });
+            } catch (error1) {
+                try {
+                    // Older browsers
+                    darkModeMediaQuery.addListener(function(e) {
+                        console.log('Dark mode preference changed (legacy), refreshing charts...');
+                        
+                        // Reapply white backgrounds to all chart containers
+                        $('.chart-container').each(function() {
+                            $(this).css({
+                                'background-color': '#ffffff',
+                                'border': '1px solid #e0e0e0',
+                                'border-radius': '8px'
+                            });
+                        });
+                        
+                        setTimeout(() => {
+                            loadAllData();
+                        }, 100);
+                    });
+                } catch (error2) {
+                    console.error('Could not add dark mode change listener:', error2);
+                }
+            }
+        }
         
         // Test if Chart.js is loaded
         if (typeof Chart !== 'undefined') {
             console.log('Chart.js is loaded correctly');
+            
+            // Always use light mode colors for Chart.js
+            Chart.defaults.color = '#666666';
+            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+            
+            // Force white backgrounds on all canvas charts
+            setTimeout(() => {
+                $('canvas.chartjs-render-monitor').each(function() {
+                    $(this).css('background-color', '#ffffff');
+                });
+            }, 500);
         } else {
             console.error('Chart.js is not loaded!');
         }
@@ -1787,6 +2297,9 @@ $(document).ready(() => {
                     ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
                     ctx.fillRect(10, 10, 50, 50);
                     console.log('Test rectangle drawn');
+                    
+                    // Set canvas background to white
+                    $(canvas).css('background-color', '#ffffff');
                 } catch (e) {
                     console.error('Error getting canvas context:', e);
                 }
@@ -1797,6 +2310,62 @@ $(document).ready(() => {
         
         // Setup export handlers
         setupExportHandlers();
-    });
+        
 
+        Chart.defaults.font.family = "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#555';
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        Chart.defaults.plugins.tooltip.titleColor = '#333';
+        Chart.defaults.plugins.tooltip.bodyColor = '#333';
+        Chart.defaults.plugins.tooltip.borderColor = 'rgba(0, 0, 0, 0.1)';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.cornerRadius = 4;
+        
+
+        function addTooltipsToText() {
+
+            $('.stats-value span').each(function() {
+                const $this = $(this);
+                const text = $this.text();
+                if (text.length > 10) {
+                    $this.attr('data-bs-toggle', 'tooltip');
+                    $this.attr('data-bs-placement', 'top');
+                    $this.attr('title', text);
+                }
+            });
+            
+
+            $('.card-title').each(function() {
+                const $this = $(this);
+                const text = $this.text().trim();
+                if (text.length > 20) {
+                    $this.attr('data-bs-toggle', 'tooltip');
+                    $this.attr('data-bs-placement', 'top');
+                    $this.attr('title', text);
+                }
+            });
+
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+
+        setTimeout(addTooltipsToText, 1000);
+        
+
+        $(window).on('resize', function() {
+            setTimeout(addTooltipsToText, 500);
+        });
+        
+
+        $('.stats-title, .stats-value, .card-title').addClass('text-truncate');
+        
+        $('.chart-card').on('shown.bs.collapse hidden.bs.collapse', function() {
+            setTimeout(addTooltipsToText, 300);
+        });
+    });
 });

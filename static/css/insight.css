@@ -3,6 +3,31 @@
     width: 100%;
     height: 350px;
     position: relative;
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    padding: 10px;
+    transition: all 0.3s;
+}
+
+/* Text Overflow Handling */
+.stats-card .stats-title,
+.stats-card .stats-value,
+.top-category-details h3,
+.chart-card .card-title,
+.tooltip-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+#topCategoryName {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Overview Stats Cards */
@@ -52,8 +77,11 @@
 }
 
 .stats-value {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     margin-bottom: 0.25rem;
     color: #212529;
 }
@@ -265,38 +293,6 @@
     }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .stats-card,
-    .chart-card,
-    .chart-tooltip {
-        background-color: #2d3748;
-        color: #e2e8f0;
-    }
-    
-    .stats-title,
-    .period-label,
-    .percentage-indicator,
-    .top-category-amount {
-        color: #a0aec0;
-}
-
-    .stats-value,
-    .chart-card .card-title,
-    .tooltip-title {
-        color: #e2e8f0;
-    }
-    
-    .chart-card .card-header {
-        background-color: #2d3748;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .tooltip-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-}
-
 /* Average Income and Expense Cards */
 .average-income-card, .average-expense-card {
     background: linear-gradient(135deg, #f0f9ff 0%, #cbebff 100%);
@@ -317,4 +313,121 @@
 .stats-value {
     font-size: 2rem;
     color: #007bff;
+}
+
+/* Chart.js Specific Styling */
+canvas.chartjs-render-monitor {
+    background-color: #ffffff !important;
+}
+
+/* Plotly Specific Styling */
+.js-plotly-plot, 
+.plotly, 
+.svg-container, 
+svg.main-svg {
+    background-color: #ffffff !important;
+}
+
+.svg-container .main-svg .bg {
+    fill: #ffffff !important;
+}
+
+/* For dark mode, we still need to style the cards */
+@media (prefers-color-scheme: dark) {
+    /* Card backgrounds */
+    .stats-card,
+    .chart-card {
+        background-color: #2c2c2c !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Text colors */
+    .stats-title,
+    .period-label,
+    .percentage-indicator,
+    .top-category-amount {
+        color: #c9c9c9 !important;
+    }
+    
+    .stats-value,
+    #topCategoryName,
+    .chart-card .card-title {
+        color: #ffffff !important;
+    }
+    
+    /* Card headers */
+    .chart-card .card-header {
+        background-color: #333333 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Average cards in dark mode */
+    .average-income-card, .average-expense-card {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0d2b4d 100%) !important;
+    }
+    
+    /* Keep ALL charts with white background */
+    .chart-container, 
+    .js-plotly-plot, 
+    .plotly, 
+    .svg-container, 
+    svg.main-svg,
+    canvas.chartjs-render-monitor {
+        background-color: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+}
+
+
+.card-title {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+
+.chartjs-tooltip {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid #ddd !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+    max-width: 300px !important;
+    z-index: 9999 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+}
+
+
+.chart-legend-item {
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+}
+
+
+.chart-container span,
+.chart-container text,
+.chart-container tspan {
+    fill: #333 !important;
+    color: #333 !important;
+}
+
+
+[data-toggle="tooltip"] {
+    cursor: pointer;
+}
+
+
+.stats-value:hover {
+    overflow: visible !important;
+    white-space: normal !important;
+    z-index: 1 !important;
+    position: relative !important;
 } 
