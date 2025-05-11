@@ -29,6 +29,78 @@ $(document).ready(() => {
     // Make debug function available globally
     window.debugDate = debugDate;
     
+    // Add a function to fix chart text strikethrough issues - add this at document ready
+    function fixChartTextDecorations() {
+        console.log("Applying text decoration fixes");
+        
+        // Fix for Chart.js legend text
+        const fixLegendText = () => {
+            // Target all elements that might have text decorations in charts
+            const selectors = [
+                '.chartjs-legend li', 
+                '.chartjs-legend span',
+                '.chart-legend li', 
+                '.chart-legend span',
+                '#categoryPieChart span',
+                '#categoryPieChart li',
+                '.chart-container span',
+                '.chart-container li'
+            ];
+            
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    // Completely remove all text decoration
+                    el.style.setProperty('text-decoration', 'none', 'important');
+                    el.style.setProperty('border-bottom', 'none', 'important');
+                    el.style.setProperty('text-decoration-line', 'none', 'important');
+                    el.style.setProperty('box-shadow', 'none', 'important');
+                });
+            });
+        };
+        
+        // Run the fix immediately
+        fixLegendText();
+        
+        // Keep checking for new elements and fix them
+        const observer = new MutationObserver(mutations => {
+            fixLegendText();
+        });
+        
+        // Start observing the document
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'style']
+        });
+        
+        // Also inject a global style to prevent the issue
+        const style = document.createElement('style');
+        style.textContent = `
+            /* Force no text decorations on chart elements */
+            .chartjs-legend li, 
+            .chartjs-legend span,
+            .chart-legend li, 
+            .chart-legend span,
+            #categoryPieChart span,
+            #categoryPieChart li,
+            .chart-container span,
+            .chart-container li,
+            .chartjs-render-monitor + div span,
+            .chartjs-render-monitor + div li {
+                text-decoration: none !important;
+                border-bottom: none !important;
+                text-decoration-line: none !important;
+                box-shadow: none !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Run the fix on page load
+    fixChartTextDecorations();
+    
     console.log("Insights page initializing with improved date handling...");
     
     // Set default date range to current month
@@ -884,23 +956,33 @@ $(document).ready(() => {
                 return;
             }
             
-            // Check if there's an existing canvas, if not create one
-            let canvas = container.querySelector('canvas');
-            if (!canvas) {
-                // Clear container first
-                container.innerHTML = '';
-                
-                // Create a new canvas element
-                canvas = document.createElement('canvas');
-                container.appendChild(canvas);
-            }
+            // First, remove all existing content to ensure no styling remains
+            $(container).empty();
             
             // Apply direct styling to container
-            if (container) {
-                container.style.backgroundColor = '#ffffff';
-                container.style.border = '1px solid #e0e0e0';
-                container.style.borderRadius = '8px';
-            }
+            container.style.backgroundColor = '#ffffff';
+            container.style.border = '1px solid #e0e0e0';
+            container.style.borderRadius = '8px';
+            container.style.padding = '10px';
+            container.style.minHeight = '320px';
+            container.style.height = '350px';
+            container.style.display = 'flex'; // Use flex layout for side-by-side arrangement
+            
+            // Create chart container for the left side
+            const chartContainer = document.createElement('div');
+            chartContainer.style.cssText = 'flex: 1; position: relative;';
+            container.appendChild(chartContainer);
+            
+            // Create legend container for the right side
+            const legendContainer = document.createElement('div');
+            legendContainer.style.cssText = 'width: 150px; padding: 10px; display: flex; flex-direction: column; justify-content: center;';
+            container.appendChild(legendContainer);
+            
+            // Create a new canvas element with clean styling
+            const canvas = document.createElement('canvas');
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            chartContainer.appendChild(canvas);
             
             // Try to get the context
             let ctx;
@@ -933,14 +1015,7 @@ $(document).ready(() => {
             
             console.log('Creating category pie chart with data:', {labels: labels, values: values});
             
-            // Calculate percentages for labels
-            const total = values.reduce((acc, val) => acc + val, 0);
-            const labelWithPercentages = labels.map((label, i) => {
-                const percentage = ((values[i] / total) * 100).toFixed(1);
-                return `${label} (${percentage}%)`;
-            });
-            
-            // Create the chart
+            // Create the chart - DISABLE BUILT-IN LEGEND completely
             window.categoryPieChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -958,49 +1033,9 @@ $(document).ready(() => {
                     maintainAspectRatio: false,
                     cutout: '40%',
                     plugins: {
+                        // Disable the built-in legend with strikethrough issues
                         legend: {
-                            position: 'right',
-                            labels: {
-                                color: '#555',
-                                boxWidth: 12,
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                font: {
-                                    size: 11
-                                },
-
-                                generateLabels: function(chart) {
-                                    const data = chart.data;
-                                    if (data.labels.length && data.datasets.length) {
-                                        const dataset = data.datasets[0];
-                                        const total = dataset.data.reduce((acc, value) => acc + value, 0);
-                                        
-                                        return data.labels.map((label, i) => {
-                                
-                                            const value = dataset.data[i];
-                                            const percentage = ((value / total) * 100).toFixed(1);
-                                            
-                                           
-                                            let displayLabel = label;
-                                            if (label.length > 15) {
-                                                displayLabel = label.substr(0, 12) + '...';
-                                            }
-                                            
-                                            return {
-                                                text: `${displayLabel} (${percentage}%)`,
-                                                fillStyle: dataset.backgroundColor[i],
-                                                strokeStyle: dataset.backgroundColor[i],  
-                                                lineWidth: 0,  
-                                                hidden: isNaN(dataset.data[i]) || chart.getDataVisibility(i),
-                                                index: i,
-                                                fullText: `${label} (${percentage}%)`
-                                            };
-                                        });
-                                    }
-                                    return [];
-                                }
-                            }
+                            display: false
                         },
                         tooltip: {
                             backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -1016,14 +1051,75 @@ $(document).ready(() => {
                                     const value = context.parsed;
                                     const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
                                     const percentage = ((value / total) * 100).toFixed(1);
-                                    const fullLabel = context.label.length > 15 ? context.label : context.label;
-                                    return `${fullLabel}: $${value.toFixed(2)} (${percentage}%)`;
+                                    return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
                                 }
                             }
                         }
                     }
                 }
             });
+            
+            // Create our own custom legend in side container (not overlapping the chart)
+            setTimeout(function() {
+                // Create legend title
+                const legendTitle = document.createElement('div');
+                legendTitle.style.cssText = 'font-weight: 500; margin-bottom: 15px; font-size: 14px; color: #333;';
+                legendTitle.textContent = 'Categories';
+                legendContainer.appendChild(legendTitle);
+                
+                // Create legend list
+                const legendList = document.createElement('ul');
+                legendList.style.cssText = 'list-style: none; padding: 0; margin: 0; width: 100%;';
+                
+                // Add items for each data point
+                labels.forEach((label, i) => {
+                    const total = values.reduce((acc, val) => acc + val, 0);
+                    const percentage = ((values[i] / total) * 100).toFixed(1);
+                    
+                    const listItem = document.createElement('li');
+                    listItem.style.cssText = 'display: flex; align-items: center; margin-bottom: 12px; width: 100%;';
+                    
+                    // Create color box
+                    const colorBox = document.createElement('span');
+                    colorBox.style.cssText = `
+                        display: inline-block;
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 50%;
+                        background-color: ${colors[i]};
+                        margin-right: 8px;
+                        flex-shrink: 0;
+                    `;
+                    
+                    // Create text container to handle wrapping
+                    const textContainer = document.createElement('div');
+                    textContainer.style.cssText = 'flex: 1; overflow-wrap: break-word;';
+                    
+                    // Create label text
+                    const labelText = document.createElement('span');
+                    labelText.textContent = label;
+                    labelText.style.cssText = 'font-size: 12px; color: #555; display: block;';
+                    
+                    // Create percentage text
+                    const percentText = document.createElement('span');
+                    percentText.textContent = `${percentage}%`;
+                    percentText.style.cssText = 'font-size: 11px; color: #777; font-weight: 500;';
+                    
+                    // Add elements to DOM
+                    textContainer.appendChild(labelText);
+                    textContainer.appendChild(percentText);
+                    
+                    listItem.appendChild(colorBox);
+                    listItem.appendChild(textContainer);
+                    legendList.appendChild(listItem);
+                });
+                
+                // Add the legend list to container
+                legendContainer.appendChild(legendList);
+                
+                console.log('Added custom side legend to pie chart');
+            }, 100);
+            
             console.log('Category pie chart created successfully');
         } catch (error) {
             console.error('Error plotting pie chart:', error);
