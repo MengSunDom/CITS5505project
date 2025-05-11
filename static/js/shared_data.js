@@ -39,6 +39,7 @@ function loadAllSharedData(cacheBuster) {
         error: function(err) {
             $('#sharedByMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
             console.error('Error loading shared by me data:', err);
+            notifications.error('Failed to load shared expense data');
         }
     });
     
@@ -54,6 +55,7 @@ function loadAllSharedData(cacheBuster) {
         error: function(err) {
             $('#sharedByMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
             console.error('Error loading shared income by me data:', err);
+            notifications.error('Failed to load shared income data');
         }
     });
     
@@ -69,6 +71,7 @@ function loadAllSharedData(cacheBuster) {
         error: function(err) {
             $('#sharedWithMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
             console.error('Error loading shared with me data:', err);
+            notifications.error('Failed to load expenses shared with you');
         }
     });
     
@@ -84,6 +87,7 @@ function loadAllSharedData(cacheBuster) {
         error: function(err) {
             $('#sharedWithMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
             console.error('Error loading shared income with me data:', err);
+            notifications.error('Failed to load income shared with you');
         }
     });
 }
@@ -226,6 +230,7 @@ function cancelShare(button, sharedId, type) {
                         error: function(err) {
                             $('#sharedByMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
                             console.error('Error loading shared by me data:', err);
+                            notifications.error('Failed to refresh shared expense data');
                         }
                     });
                     
@@ -241,6 +246,7 @@ function cancelShare(button, sharedId, type) {
                         error: function(err) {
                             $('#sharedByMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
                             console.error('Error loading shared income by me data:', err);
+                            notifications.error('Failed to refresh shared income data');
                         }
                     });
                     
@@ -256,6 +262,7 @@ function cancelShare(button, sharedId, type) {
                         error: function(err) {
                             $('#sharedWithMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
                             console.error('Error loading shared with me data:', err);
+                            notifications.error('Failed to refresh expenses shared with you');
                         }
                     });
                     
@@ -271,6 +278,7 @@ function cancelShare(button, sharedId, type) {
                         error: function(err) {
                             $('#sharedWithMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
                             console.error('Error loading shared income with me data:', err);
+                            notifications.error('Failed to refresh income shared with you');
                         }
                     });
                     
@@ -280,8 +288,7 @@ function cancelShare(button, sharedId, type) {
             error: function(xhr) {
                 // Re-enable button on error
                 $(button).prop('disabled', false).html('Cancel Share');
-                const errMsg = xhr.responseJSON?.error || 'Failed to cancel share';
-                notifications.error(errMsg);
+                notifications.error(xhr.responseJSON?.error || 'Failed to cancel share');
             }
         });
     });
