@@ -95,7 +95,7 @@ navbar_right %}
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Income Summary -->
                         <div class="col-md-4">
                             <div class="finance-metric-card income-card">
@@ -131,7 +131,7 @@ navbar_right %}
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Expense Summary -->
                         <div class="col-md-4">
                             <div class="finance-metric-card expense-card">
@@ -180,7 +180,8 @@ navbar_right %}
                 <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
                     <h5 class="m-0">Monthly Budget Progress</h5>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-light" type="button" id="budgetDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-sm btn-light" type="button" id="budgetDropdown" data-bs-toggle="dropdown"
+                            aria-expanded="false">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="budgetDropdown">
@@ -195,47 +196,55 @@ navbar_right %}
                         <div class="category-budget">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Food & Groceries</span>
-                                <span class="spending-ratio"><span id="foodSpent">$0</span> / <span class="budget-amount" data-category="food">$500</span></span>
+                                <span class="spending-ratio"><span id="foodSpent">$0</span> / <span
+                                        class="budget-amount" data-category="food">$500</span></span>
                             </div>
                             <div class="progress">
-                                <div id="foodProgress" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="foodProgress" class="progress-bar bg-success" role="progressbar"
+                                    style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-                        
+
                         <div class="category-budget mt-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Transportation</span>
-                                <span class="spending-ratio"><span id="transportSpent">$0</span> / <span class="budget-amount" data-category="transport">$300</span></span>
+                                <span class="spending-ratio"><span id="transportSpent">$0</span> / <span
+                                        class="budget-amount" data-category="transport">$300</span></span>
                             </div>
                             <div class="progress">
-                                <div id="transportProgress" class="progress-bar bg-info" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="transportProgress" class="progress-bar bg-info" role="progressbar"
+                                    style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-                        
+
                         <div class="category-budget mt-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Entertainment</span>
-                                <span class="spending-ratio"><span id="entertainmentSpent">$0</span> / <span class="budget-amount" data-category="entertainment">$200</span></span>
+                                <span class="spending-ratio"><span id="entertainmentSpent">$0</span> / <span
+                                        class="budget-amount" data-category="entertainment">$200</span></span>
                             </div>
                             <div class="progress">
-                                <div id="entertainmentProgress" class="progress-bar bg-warning" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="entertainmentProgress" class="progress-bar bg-warning" role="progressbar"
+                                    style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-                        
+
                         <div class="category-budget mt-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="category-name">Utilities</span>
-                                <span class="spending-ratio"><span id="utilitiesSpent">$0</span> / <span class="budget-amount" data-category="utilities">$250</span></span>
+                                <span class="spending-ratio"><span id="utilitiesSpent">$0</span> / <span
+                                        class="budget-amount" data-category="utilities">$250</span></span>
                             </div>
                             <div class="progress">
-                                <div id="utilitiesProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="utilitiesProgress" class="progress-bar bg-primary" role="progressbar"
+                                    style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
@@ -250,7 +259,8 @@ navbar_right %}
                             <div class="goal-details">
                                 <h4 id="savingsGoalName">Emergency Fund</h4>
                                 <div class="progress mt-3 mb-2">
-                                    <div id="savingsProgress" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div id="savingsProgress" class="progress-bar bg-success" role="progressbar"
+                                        style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span>Current: <span id="currentSavings">$0.00</span></span>
@@ -277,17 +287,22 @@ navbar_right %}
                 <div class="card-header bg-transparent">
                     <ul class="nav nav-tabs card-header-tabs" id="transactionTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="recent-expenses-tab" data-bs-toggle="tab" data-bs-target="#recent-expenses" type="button" role="tab" aria-controls="recent-expenses" aria-selected="true">Recent Expenses</button>
+                            <button class="nav-link active" id="recent-expenses-tab" data-bs-toggle="tab"
+                                data-bs-target="#recent-expenses" type="button" role="tab"
+                                aria-controls="recent-expenses" aria-selected="true">Recent Expenses</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="recent-income-tab" data-bs-toggle="tab" data-bs-target="#recent-income" type="button" role="tab" aria-controls="recent-income" aria-selected="false">Recent Income</button>
+                            <button class="nav-link" id="recent-income-tab" data-bs-toggle="tab"
+                                data-bs-target="#recent-income" type="button" role="tab" aria-controls="recent-income"
+                                aria-selected="false">Recent Income</button>
                         </li>
                     </ul>
                 </div>
                 <div class="card-body">
                     <div class="tab-content" id="transactionTabsContent">
                         <!-- Recent Expenses Tab -->
-                        <div class="tab-pane fade show active" id="recent-expenses" role="tabpanel" aria-labelledby="recent-expenses-tab">
+                        <div class="tab-pane fade show active" id="recent-expenses" role="tabpanel"
+                            aria-labelledby="recent-expenses-tab">
                             <div class="table-responsive transaction-table">
                                 <table class="table table-hover align-middle">
                                     <thead>
@@ -305,9 +320,10 @@ navbar_right %}
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Recent Income Tab -->
-                        <div class="tab-pane fade" id="recent-income" role="tabpanel" aria-labelledby="recent-income-tab">
+                        <div class="tab-pane fade" id="recent-income" role="tabpanel"
+                            aria-labelledby="recent-income-tab">
                             <div class="table-responsive transaction-table">
                                 <table class="table table-hover align-middle">
                                     <thead>
@@ -332,7 +348,8 @@ navbar_right %}
     </div>
 
     <!-- Modal for Editing Budget -->
-    <div class="modal fade" id="editBudgetModal" tabindex="-1" aria-labelledby="editBudgetModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editBudgetModal" tabindex="-1" aria-labelledby="editBudgetModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -369,7 +386,8 @@ navbar_right %}
     </div>
 
     <!-- Modal for Editing Savings Goal -->
-    <div class="modal fade" id="editSavingsGoalModal" tabindex="-1" aria-labelledby="editSavingsGoalModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editSavingsGoalModal" tabindex="-1" aria-labelledby="editSavingsGoalModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -398,7 +416,7 @@ navbar_right %}
             </div>
         </div>
     </div>
-    <div class="col-6">
+    <!-- <div class="col-6">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-light rounded-top border-bottom">
                 <h5 class="card-title mb-0">Recent Income</h5>
@@ -419,7 +437,7 @@ navbar_right %}
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 </div>
 {% endblock %} {% block extra_scripts %}
 <script src="/static/js/dashboard.js"></script>
