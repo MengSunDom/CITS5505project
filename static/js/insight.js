@@ -373,8 +373,8 @@ $(document).ready(() => {
                         
                         // Continue with other charts
                         if (callback) callback();
-                    },
-                    error: (xhr, status, error) => {
+            },
+            error: (xhr, status, error) => {
                         console.error("Error fetching expense data:", error);
                         handleAjaxError(xhr, status, error);
                         
@@ -812,7 +812,7 @@ $(document).ready(() => {
                         color: '#888'
                     }
                 });
-            } else {
+        } else {
                 trace = {
                     labels: labels,
                     values: values,
@@ -989,7 +989,7 @@ $(document).ready(() => {
                         
                         console.log('Creating new chart with data:', {labels: topLabels, values: topValues, types: topTypes});
                         window.topCategoriesChart = new Chart(ctx, {
-                            type: 'bar',
+                type: 'bar',
                             data: {
                                 labels: topLabels,
                                 datasets: [{
@@ -1305,7 +1305,7 @@ $(document).ready(() => {
                         traces.push({
                             x: months,
                             y: data.series[0].data,
-                            type: 'bar',
+                type: 'bar',
                             name: 'Income',
                             marker: {
                                 color: 'rgba(25, 135, 84, 0.7)'

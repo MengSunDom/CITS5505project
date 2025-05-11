@@ -4,129 +4,318 @@ navbar_right %}
     <a class="nav-link text-dark" href="/logout">Logout</a>
 </li>
 {% endblock %} {% block content %}
-<div class="row">
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
-                <div>
-                    <h5 class="card-title text-primary">
-                        Welcome, {{ session['user']['username'] }}!
-                    </h5>
-                    <p class="card-text text-muted">
-                        Track your expenses and manage your budget effectively.
-                    </p>
+<div class="dashboard-wrapper">
+    <!-- Header Section -->
+    <div class="dashboard-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="dashboard-title">Financial Dashboard</h1>
+                <p class="dashboard-subtitle">Track your financial health and spending habits at a glance</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="date-display">
+                    <i class="far fa-calendar-alt"></i>
+                    <span id="currentDate">Loading date...</span>
                 </div>
-                <a href="/expenses" class="btn btn-primary mt-3 w-100">Go to Expenses</a>
-                <a href="/income" class="btn btn-primary w-100">Go to Income</a>
             </div>
         </div>
     </div>
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Expense Summary</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="row">
-                        <div class="col-md-4 ">
-                            <div class="card bg-primary text-white shadow-sm border-0">
-                                <div class="card-body">
-                                    <h6 class="card-title">Total Expenses</h6>
-                                    <h3 class="card-text" id="totalExpenses">$0.00</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-success text-white shadow-sm border-0">
-                                <div class="card-body">
-                                    <h6 class="card-title">This Month Expenses</h6>
-                                    <h3 class="card-text" id="monthlyExpenses">$0.00</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-info text-white shadow-sm border-0">
-                                <div class="card-body">
-                                    <h6 class="card-title">Top Expenses Category</h6>
-                                    <h3 class="card-text" id="topCategory">-</h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-4">
-                            <div class="card bg-primary text-white shadow-sm border-0">
-                                <div class="card-body">
-                                    <h6 class="card-title">Total Income</h6>
-                                    <h3 class="card-text" id="totalIncome">$0.00</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-success text-white shadow-sm border-0">
-                                <div class="card-body">
-                                    <h6 class="card-title">This Month Income</h6>
-                                    <h3 class="card-text" id="monthlyIncome">$0.00</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-info text-white shadow-sm border-0">
-                                <div class="card-body">
-                                    <h6 class="card-title">Top Income Category</h6>
-                                    <h3 class="card-text" id="topIncomeCategory">-</h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
+    <!-- Quick Action Buttons -->
+    <div class="quick-actions mb-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <a href="/expenses/add" class="quick-action-card bg-gradient-primary">
+                    <div class="icon-circle">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h5>Add Expense</h5>
+                    <p>Record a new expense</p>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/income/add" class="quick-action-card bg-gradient-success">
+                    <div class="icon-circle">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h5>Add Income</h5>
+                    <p>Record a new income</p>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/expenses" class="quick-action-card bg-gradient-info">
+                    <div class="icon-circle">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <h5>Expenses</h5>
+                    <p>Manage all expenses</p>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/income" class="quick-action-card bg-gradient-warning">
+                    <div class="icon-circle">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <h5>Income</h5>
+                    <p>Manage all income</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0 financial-summary-card">
+                <div class="card-header bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0">Financial Summary</h5>
+                        <div class="badge bg-primary-subtle text-primary p-2">Updated just now</div>
+                    </div>
+                </div>
+                <div class="card-body py-4">
+                    <div class="row g-4">
+                        <!-- Balance Card -->
+                        <div class="col-md-4">
+                            <div class="finance-metric-card balance-card">
+                                <div class="metric-icon">
+                                    <i class="fas fa-wallet"></i>
+                                </div>
+                                <div class="metric-data">
+                                    <h3 class="metric-title">Current Balance</h3>
+                                    <div class="metric-value" id="currentBalance">$0.00</div>
+                                    <div class="metric-trend">
+                                        <span id="balanceTrend" class="positive">
+                                            <i class="fas fa-arrow-up"></i> 0%
+                                        </span>
+                                        <span class="trend-period">vs. last month</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Income Summary -->
+                        <div class="col-md-4">
+                            <div class="finance-metric-card income-card">
+                                <div class="metric-data-wrap">
+                                    <div class="metric-header">
+                                        <h3 class="metric-title">Income</h3>
+                                        <div class="metric-icon">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </div>
+                                    </div>
+                                    <div class="metric-body">
+                                        <div class="row g-3">
+                                            <div class="col-6">
+                                                <div class="metric-sub-item">
+                                                    <div class="sub-label">Monthly</div>
+                                                    <div class="sub-value" id="monthlyIncome">$0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="metric-sub-item">
+                                                    <div class="sub-label">Total</div>
+                                                    <div class="sub-value" id="totalIncome">$0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="metric-sub-item">
+                                                    <div class="sub-label">Top Source</div>
+                                                    <div class="sub-value" id="topIncomeCategory">-</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expense Summary -->
+                        <div class="col-md-4">
+                            <div class="finance-metric-card expense-card">
+                                <div class="metric-data-wrap">
+                                    <div class="metric-header">
+                                        <h3 class="metric-title">Expenses</h3>
+                                        <div class="metric-icon">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </div>
+                                    </div>
+                                    <div class="metric-body">
+                                        <div class="row g-3">
+                                            <div class="col-6">
+                                                <div class="metric-sub-item">
+                                                    <div class="sub-label">Monthly</div>
+                                                    <div class="sub-value" id="monthlyExpenses">$0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="metric-sub-item">
+                                                    <div class="sub-label">Total</div>
+                                                    <div class="sub-value" id="totalExpenses">$0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="metric-sub-item">
+                                                    <div class="sub-label">Top Category</div>
+                                                    <div class="sub-value" id="topCategory">-</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<div class="row mt-2">
-    <div class="col-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Recent Expenses</h5>
+
+    <!-- Monthly Progress Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="m-0">Monthly Budget Progress</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light" type="button" id="budgetDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="budgetDropdown">
+                            <li><a class="dropdown-item" href="/insights">View Details</a></li>
+                            <li><a class="dropdown-item" href="/expenses">Manage Expenses</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="budget-progress-container">
+                        <div class="category-budget">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="category-name">Food & Groceries</span>
+                                <span class="spending-ratio"><span id="foodSpent">$0</span> / <span class="budget-amount">$500</span></span>
+                            </div>
+                            <div class="progress">
+                                <div id="foodProgress" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="category-budget mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="category-name">Transportation</span>
+                                <span class="spending-ratio"><span id="transportSpent">$0</span> / <span class="budget-amount">$300</span></span>
+                            </div>
+                            <div class="progress">
+                                <div id="transportProgress" class="progress-bar bg-info" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="category-budget mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="category-name">Entertainment</span>
+                                <span class="spending-ratio"><span id="entertainmentSpent">$0</span> / <span class="budget-amount">$200</span></span>
+                            </div>
+                            <div class="progress">
+                                <div id="entertainmentProgress" class="progress-bar bg-warning" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="category-budget mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="category-name">Utilities</span>
+                                <span class="spending-ratio"><span id="utilitiesSpent">$0</span> / <span class="budget-amount">$250</span></span>
+                            </div>
+                            <div class="progress">
+                                <div id="utilitiesProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>Date</th>
-                                <th>Category</th>
-                                <th>Description</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentExpensesTable"></tbody>
-                    </table>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="m-0">Top Categories</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" id="topCategoriesExpenses">Expenses</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="topCategoriesIncome">Income</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="topExpenseCategoriesContainer">
+                        <div class="top-categories-list" id="expenseCategoriesList">
+                            <!-- Top expense categories will be populated here -->
+                        </div>
+                    </div>
+                    <div id="topIncomeCategoriesContainer" style="display: none;">
+                        <div class="top-categories-list" id="incomeCategoriesList">
+                            <!-- Top income categories will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Recent Income</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>Date</th>
-                                <th>Category</th>
-                                <th>Description</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentIncomeTable"></tbody>
-                    </table>
+
+    <!-- Recent Transactions -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent">
+                    <ul class="nav nav-tabs card-header-tabs" id="transactionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="recent-expenses-tab" data-bs-toggle="tab" data-bs-target="#recent-expenses" type="button" role="tab" aria-controls="recent-expenses" aria-selected="true">Recent Expenses</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="recent-income-tab" data-bs-toggle="tab" data-bs-target="#recent-income" type="button" role="tab" aria-controls="recent-income" aria-selected="false">Recent Income</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="transactionTabsContent">
+                        <!-- Recent Expenses Tab -->
+                        <div class="tab-pane fade show active" id="recent-expenses" role="tabpanel" aria-labelledby="recent-expenses-tab">
+                            <div class="table-responsive transaction-table">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Category</th>
+                                            <th>Description</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentExpensesTable"></tbody>
+                                </table>
+                                <div class="text-center mt-3">
+                                    <a href="/expenses" class="btn btn-outline-primary btn-sm">View All Expenses</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Income Tab -->
+                        <div class="tab-pane fade" id="recent-income" role="tabpanel" aria-labelledby="recent-income-tab">
+                            <div class="table-responsive transaction-table">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Category</th>
+                                            <th>Description</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentIncomeTable"></tbody>
+                                </table>
+                                <div class="text-center mt-3">
+                                    <a href="/income" class="btn btn-outline-primary btn-sm">View All Income</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

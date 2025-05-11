@@ -1,3 +1,349 @@
+/* Dashboard Layout */
+.dashboard-wrapper {
+    padding: 1rem 0;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    margin-bottom: 2rem;
+}
+
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+    font-weight: 300;
+}
+
+.date-display {
+    display: inline-flex;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.date-display i {
+    margin-right: 0.5rem;
+    color: #6c757d;
+}
+
+/* Quick Action Cards */
+.quick-actions {
+    margin-bottom: 2rem;
+}
+
+.quick-action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    border-radius: 12px;
+    color: white;
+    transition: all 0.3s ease;
+    height: 100%;
+    text-decoration: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    color: white;
+}
+
+.icon-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 1rem;
+}
+
+.icon-circle i {
+    font-size: 1.5rem;
+}
+
+.quick-action-card h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.quick-action-card p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 0;
+}
+
+/* Background Gradients */
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4e73df, #224abe);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #1cc88a, #0fa167);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(45deg, #36b9cc, #258391);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(45deg, #f6c23e, #dda20a);
+}
+
+/* Finance Metric Cards */
+.financial-summary-card {
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.05);
+}
+
+.badge.bg-primary-subtle {
+    background-color: rgba(13, 110, 253, 0.1);
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.finance-metric-card {
+    position: relative;
+    padding: 1.5rem;
+    border-radius: 12px;
+    height: 100%;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.3s ease;
+}
+
+.finance-metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.balance-card {
+    background-color: #f8f9fc;
+    border-left: 4px solid #4e73df;
+}
+
+.income-card {
+    background-color: #f8fbfa;
+    border-left: 4px solid #1cc88a;
+}
+
+.expense-card {
+    background-color: #fef9f9;
+    border-left: 4px solid #e74a3b;
+}
+
+.metric-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    margin-right: 1rem;
+    background-color: rgba(78, 115, 223, 0.1);
+    color: #4e73df;
+}
+
+.balance-card .metric-icon {
+    background-color: rgba(78, 115, 223, 0.1);
+    color: #4e73df;
+}
+
+.income-card .metric-icon {
+    background-color: rgba(28, 200, 138, 0.1);
+    color: #1cc88a;
+}
+
+.expense-card .metric-icon {
+    background-color: rgba(231, 74, 59, 0.1);
+    color: #e74a3b;
+}
+
+.metric-data {
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-data-wrap {
+    width: 100%;
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.metric-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #5a5c69;
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.metric-trend {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.metric-trend .positive {
+    color: #1cc88a;
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+.metric-trend .negative {
+    color: #e74a3b;
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+.metric-trend i {
+    margin-right: 0.25rem;
+}
+
+.trend-period {
+    color: #6c757d;
+}
+
+/* Metric Sub Items */
+.metric-sub-item {
+    padding: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+    height: 100%;
+}
+
+.sub-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.sub-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Budget Progress Styles */
+.category-budget {
+    padding: 0.25rem 0;
+}
+
+.category-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.spending-ratio {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.budget-amount {
+    font-weight: 500;
+}
+
+.progress {
+    height: 0.6rem;
+    border-radius: 1rem;
+    background-color: #eaecf4;
+}
+
+/* Saving Goals Styles */
+.saving-goal {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+}
+
+.goal-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.goal-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.goal-progress-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: conic-gradient(#1cc88a 0% var(--percentage), #eaecf4 var(--percentage) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.goal-progress-circle::before {
+    content: '';
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: white;
+}
+
+.progress-text {
+    position: relative;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.goal-status {
+    font-size: 0.85rem;
+    color: #1cc88a;
+    font-weight: 500;
+}
+
+/* Transaction Table */
+.transaction-table {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.transaction-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    z-index: 1;
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.75rem 1rem;
+}
+
 /* Stats cards */
 .card.text-white {
     transition: transform 0.2s;
@@ -70,4 +416,79 @@
         margin-bottom: 15px;
         /* Add bottom margin for spacing */
     }
+}
+
+/* Action Buttons in Transaction Tables */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .dashboard-title {
+        font-size: 1.75rem;
+    }
+    
+    .quick-action-card {
+        padding: 1.25rem 0.75rem;
+    }
+    
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        text-align: center;
+    }
+    
+    .date-display {
+        margin-top: 1rem;
+    }
+    
+    .col-md-4 {
+        margin-bottom: 15px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+    
+    .finance-metric-card {
+        padding: 1rem;
+    }
+}
+
+/* Animation for key elements */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-header,
+.quick-actions,
+.financial-summary-card {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.quick-actions {
+    animation-delay: 0.1s;
+}
+
+.financial-summary-card {
+    animation-delay: 0.2s;
 }
