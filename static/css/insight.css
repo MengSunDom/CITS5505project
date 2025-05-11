@@ -1,65 +1,433 @@
-#expenseChart {
+/* Base Chart Styling */
+.chart-container {
     width: 100%;
-    height: 400px;
-}
-
-#categoryDistributionList {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.distribution-item {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+    height: 350px;
+    position: relative;
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
     padding: 10px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
 }
 
-.distribution-label-container {
+/* Text Overflow Handling */
+.stats-card .stats-title,
+.stats-card .stats-value,
+.top-category-details h3,
+.chart-card .card-title,
+.tooltip-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+#topCategoryName {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Overview Stats Cards */
+.stats-overview {
+    margin-bottom: 2rem;
+}
+
+.stats-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+}
+
+.stats-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+}
+
+.stats-info {
+    flex: 1;
+}
+
+.stats-title {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.stats-value {
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin-bottom: 0.25rem;
+    color: #212529;
+}
+
+.stats-change {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+    font-size: 0.75rem;
+}
+
+.change-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    font-weight: 500;
+}
+
+.change-indicator i {
+    margin-right: 0.25rem;
+    font-size: 0.7rem;
+}
+
+.period-label {
+    color: #6c757d;
+}
+
+/* Card Type Styling */
+.income-card .stats-icon {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+.expense-card .stats-icon {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.balance-card .stats-icon {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
+.category-card .stats-icon {
+    background-color: rgba(111, 66, 193, 0.1);
+    color: #6f42c1;
+}
+
+/* Indicator Colors */
+.positive {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+.negative {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.percentage-indicator {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Top Category Display */
+.top-category-display {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+#topCategoryIcon {
+    font-size: 1.75rem;
+    margin-right: 0.75rem;
+}
+
+.top-category-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.top-category-amount {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* Chart Cards */
+.chart-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+.chart-card .card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1rem 1.25rem;
+}
+
+.chart-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0;
+}
+
+.chart-card .card-body {
+    padding: 1.25rem;
+}
+
+/* Date Range Selection */
+.date-range-selector {
+    display: flex;
     align-items: center;
 }
 
-.distribution-label {
-    font-size: 14px;
+.custom-date-range {
+    display: flex;
+    align-items: center;
+}
+
+/* Chart Tooltips */
+.chart-tooltip {
+    position: absolute;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 6px;
+    padding: 0.75rem;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    max-width: 250px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.tooltip-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.tooltip-title {
+    font-weight: 600;
+    color: #212529;
+}
+
+.tooltip-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.tooltip-percentage {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Button Group Styles */
+.btn-group-sm .btn-outline-secondary, 
+.btn-group-sm .btn-outline-primary {
+    font-size: 0.8125rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-outline-secondary:focus, 
+.btn-outline-primary:focus {
+    box-shadow: none;
+}
+
+/* Period Selector */
+.period-selector .btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Media Queries */
+@media (max-width: 992px) {
+    .stats-overview .col-md-3 {
+    margin-bottom: 1rem;
+}
+
+    .date-range-selector, .data-type-filter, .export-options {
+        margin-bottom: 1rem;
+    }
+    
+    .d-flex.flex-wrap.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+    
+    .stats-card .card-body {
+        padding: 1rem;
+    }
+    
+    .stats-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+/* Average Income and Expense Cards */
+.average-income-card, .average-expense-card {
+    background: linear-gradient(135deg, #f0f9ff 0%, #cbebff 100%);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.average-income-card:hover, .average-expense-card:hover {
+    transform: scale(1.05);
+}
+
+.stats-title {
     font-weight: bold;
     color: #333;
 }
 
-.distribution-percentage {
-    font-size: 14px;
-    color: #666;
+.stats-value {
+    font-size: 2rem;
+    color: #007bff;
 }
 
-.distribution-bar-container {
-    background-color: #f0f0f0;
-    border-radius: 5px;
+/* Chart.js Specific Styling */
+canvas.chartjs-render-monitor {
+    background-color: #ffffff !important;
+}
+
+/* Plotly Specific Styling */
+.js-plotly-plot, 
+.plotly, 
+.svg-container, 
+svg.main-svg {
+    background-color: #ffffff !important;
+}
+
+.svg-container .main-svg .bg {
+    fill: #ffffff !important;
+}
+
+/* For dark mode, we still need to style the cards */
+@media (prefers-color-scheme: dark) {
+    /* Card backgrounds */
+    .stats-card,
+    .chart-card {
+        background-color: #2c2c2c !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Text colors */
+    .stats-title,
+    .period-label,
+    .percentage-indicator,
+    .top-category-amount {
+        color: #c9c9c9 !important;
+    }
+    
+    .stats-value,
+    #topCategoryName,
+    .chart-card .card-title {
+        color: #ffffff !important;
+    }
+    
+    /* Card headers */
+    .chart-card .card-header {
+        background-color: #333333 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Average cards in dark mode */
+    .average-income-card, .average-expense-card {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0d2b4d 100%) !important;
+    }
+    
+    /* Keep ALL charts with white background */
+    .chart-container, 
+    .js-plotly-plot, 
+    .plotly, 
+    .svg-container, 
+    svg.main-svg,
+    canvas.chartjs-render-monitor {
+        background-color: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+}
+
+
+.card-title {
+    text-overflow: ellipsis;
     overflow: hidden;
-    height: 6px;
-    position: relative;
+    white-space: nowrap;
 }
 
-.distribution-bar {
-    height: 100%;
-    background-color: #4caf50;
-    transition: width 0.5s ease-in-out;
+
+.chartjs-tooltip {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid #ddd !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+    max-width: 300px !important;
+    z-index: 9999 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
 }
 
-.card {
-    margin-bottom: 1rem;
+
+.chart-legend-item {
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
 }
 
-.card .card-title {
-    font-size: 1.25rem;
-    margin-bottom: 0.75rem;
+
+.chart-container span,
+.chart-container text,
+.chart-container tspan {
+    fill: #333 !important;
+    color: #333 !important;
 }
 
-.form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+
+[data-toggle="tooltip"] {
+    cursor: pointer;
+}
+
+
+.stats-value:hover {
+    overflow: visible !important;
+    white-space: normal !important;
+    z-index: 1 !important;
+    position: relative !important;
 } 

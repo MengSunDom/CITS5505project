@@ -1,0 +1,192 @@
+from flask import Blueprint, session, jsonify, request, render_template, redirect, url_for
+from models.models import db, Expense, Income, SharedExpense, SharedIncome, User
+
+shared_data_bp = Blueprint('shared_data', __name__)
+
+@shared_data_bp.route('/api/shared-expenses/by-me')
+def get_shared_expenses_by_me():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+
+    shared_expenses = db.session.query(
+        SharedExpense, Expense, User
+    ).join(
+        Expense, SharedExpense.expense_id == Expense.id
+    ).join(
+        User, SharedExpense.shared_with_id == User.id
+    ).filter(
+        Expense.user_id == user_id
+    ).all()
+    
+    result = []
+    for shared, expense, user in shared_expenses:
+        result.append({
+            'id': shared.id,
+            'expense_id': expense.id,
+            'description': expense.description,
+            'category': expense.category,
+            'amount': float(expense.amount),
+            'date': expense.date.strftime('%Y-%m-%d %H:%M:%S'),
+            'shared_with': user.username,
+            'shared_with_id': user.id,
+            'is_repeat': shared.is_repeat,
+            'is_bulk_share': shared.is_bulk_share
+        })
+    
+    return jsonify(result)
+
+@shared_data_bp.route('/api/shared-expenses/with-me')
+def get_shared_expenses_with_me():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+
+    shared_expenses = db.session.query(
+        SharedExpense, Expense, User
+    ).join(
+        Expense, SharedExpense.expense_id == Expense.id
+    ).join(
+        User, Expense.user_id == User.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id
+    ).all()
+    
+    result = []
+    for shared, expense, user in shared_expenses:
+        result.append({
+            'id': shared.id,
+            'expense_id': expense.id,
+            'description': expense.description,
+            'category': expense.category,
+            'amount': float(expense.amount),
+            'date': expense.date.strftime('%Y-%m-%d %H:%M:%S'),
+            'shared_by': user.username,
+            'shared_by_id': user.id,
+            'is_repeat': shared.is_repeat,
+            'is_bulk_share': shared.is_bulk_share
+        })
+    
+    return jsonify(result)
+
+@shared_data_bp.route('/api/shared-incomes/by-me')
+def get_shared_incomes_by_me():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+
+    shared_incomes = db.session.query(
+        SharedIncome, Income, User
+    ).join(
+        Income, SharedIncome.income_id == Income.id
+    ).join(
+        User, SharedIncome.shared_with_id == User.id
+    ).filter(
+        Income.user_id == user_id
+    ).all()
+    
+    result = []
+    for shared, income, user in shared_incomes:
+        result.append({
+            'id': shared.id,
+            'income_id': income.id,
+            'description': income.description,
+            'category': income.category,
+            'amount': float(income.amount),
+            'date': income.date.strftime('%Y-%m-%d %H:%M:%S'),
+            'shared_with': user.username,
+            'shared_with_id': user.id,
+            'is_repeat': shared.is_repeat,
+            'is_bulk_share': shared.is_bulk_share
+        })
+    
+    return jsonify(result)
+
+@shared_data_bp.route('/api/shared-incomes/with-me')
+def get_shared_incomes_with_me():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+
+    shared_incomes = db.session.query(
+        SharedIncome, Income, User
+    ).join(
+        Income, SharedIncome.income_id == Income.id
+    ).join(
+        User, Income.user_id == User.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id
+    ).all()
+    
+    result = []
+    for shared, income, user in shared_incomes:
+        result.append({
+            'id': shared.id,
+            'income_id': income.id,
+            'description': income.description,
+            'category': income.category,
+            'amount': float(income.amount),
+            'date': income.date.strftime('%Y-%m-%d %H:%M:%S'),
+            'shared_by': user.username,
+            'shared_by_id': user.id,
+            'is_repeat': shared.is_repeat,
+            'is_bulk_share': shared.is_bulk_share
+        })
+    
+    return jsonify(result)
+
+
+@shared_data_bp.route('/api/shared-expenses/cancel/<int:share_id>', methods=['DELETE'])
+def cancel_shared_expense(share_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+
+    shared_expense = SharedExpense.query.join(
+        Expense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.id == share_id,
+        Expense.user_id == user_id
+    ).first()
+    
+    if not shared_expense:
+        return jsonify({'error': 'Share not found or not authorized'}), 404
+    
+    db.session.delete(shared_expense)
+    db.session.commit()
+    
+    return jsonify({'message': 'Share canceled successfully'})
+
+
+@shared_data_bp.route('/api/shared-incomes/cancel/<int:share_id>', methods=['DELETE'])
+def cancel_shared_income(share_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+
+    shared_income = SharedIncome.query.join(
+        Income, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.id == share_id,
+        Income.user_id == user_id
+    ).first()
+    
+    if not shared_income:
+        return jsonify({'error': 'Share not found or not authorized'}), 404
+    
+    db.session.delete(shared_income)
+    db.session.commit()
+    
+    return jsonify({'message': 'Share canceled successfully'}) 

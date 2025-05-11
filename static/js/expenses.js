@@ -1,3 +1,43 @@
+// Utility: get short remark for display, with ellipsis if too long
+function getShortRemark(desc, maxLen = 20) {
+    if (!desc) return '';
+    return desc.length > maxLen ? desc.slice(0, maxLen) + '...' : desc;
+}
+
+function showCustomTooltip($el, text) {
+    if (!text) return;
+    const $tip = $('<div class="custom-tooltip"></div>').text(text).appendTo('body');
+    const offset = $el.offset();
+    $tip.css({
+        left: offset.left,
+        top: offset.top - $tip.outerHeight() - 10,
+        position: 'absolute',
+        zIndex: 9999,
+        background: 'rgba(30,30,40,0.98)',
+        color: '#fff',
+        padding: '10px 18px',
+        borderRadius: '10px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+        fontSize: '1em',
+        maxWidth: '420px',
+        wordBreak: 'break-all',
+        whiteSpace: 'pre-line',
+        pointerEvents: 'none',
+        opacity: 1,
+        fontFamily: 'Segoe UI, Arial, sans-serif',
+        letterSpacing: '0.01em',
+        lineHeight: '1.5'
+    });
+}
+
+// Register tooltip handler globally, only once
+$(document).off('mouseenter.remark-tooltip mouseleave.remark-tooltip');
+$(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
+    showCustomTooltip($(this), $(this).data('remark'));
+}).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
+    $('.custom-tooltip').remove();
+});
+
 function getFormattedDateTime() {
     const now = new Date();
     const year = now.getFullYear();
@@ -15,6 +55,12 @@ $(document).ready(function () {
 
     // Load expenses on page load
     loadExpenses();
+    
+    // Handle "select all" checkbox with event delegation
+    $(document).on('change', '#selectAll', function() {
+        console.log('Select all changed:', this.checked);
+        $('#expenseTableBody input[type="checkbox"]').prop('checked', this.checked);
+    });
 
     // Handle form submission
     $('#expenseForm').on('submit', async (e) => {
@@ -40,19 +86,17 @@ $(document).ready(function () {
             
             if (response.ok) {
                 $('#expenseForm')[0].reset();
-                // Reset date to today after form reset
                 document.getElementById('date').value = getFormattedDateTime();
                 loadExpenses();
-                // Close the offcanvas panel
                 const offcanvasElement = document.getElementById('addExpenseCanvas');
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                 offcanvasInstance.hide();
             } else {
-                alert(data.error || 'Failed to add expense');
+                notifications.error(data.error || 'Failed to add expense');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while adding the expense');
+            notifications.error('An error occurred while adding the expense');
         }
     });
 
@@ -62,7 +106,7 @@ $(document).ready(function () {
         const username = document.getElementById('shareUsername').value;
         
         if (!username) {
-            alert('Please select a user to share with');
+            notifications.warning('Please select a user to share with');
             return;
         }
         
@@ -78,16 +122,16 @@ $(document).ready(function () {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                alert(data.error);
+                notifications.error(data.error);
             } else {
-                alert(data.message || 'Expense shared successfully');
+                notifications.success(data.message || 'Expense shared successfully');
                 $('#shareModal').modal('hide');
                 loadExpenses(); // Refresh the expenses list
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to share expense. Please try again.');
+            notifications.error('Failed to share expense. Please try again.');
         });
     });
 
@@ -95,7 +139,7 @@ $(document).ready(function () {
     $('#shareSelected').off('click').on('click', function() {
         const selectedIds = getSelectedExpenseIds();
         if (selectedIds.length === 0) {
-            alert('Please select at least one expense to share');
+            notifications.warning('Please select at least one expense to share');
             return;
         }
         
@@ -111,37 +155,36 @@ $(document).ready(function () {
 
     // Handle bulk share button click in modal
     $('#bulkShareButton').off('click').on('click', function() {
-        const selectedIds = document.getElementById('bulkShareModal').dataset.selectedIds.split(',');
-        const username = document.getElementById('bulkShareUsername').value;
-        
+        const selectedIds = getSelectedExpenseIds();
+
+        if (selectedIds.length === 0) {
+            notifications.warning('No expenses selected');
+            return;
+        }
+
+        const username = $('#bulkShareUsername').val();
         if (!username) {
-            alert('Please select a user to share with');
+            notifications.warning('Please select a username to share with');
             return;
         }
         
-        fetch('/api/share/bulk', {
+        $.ajax({
+            url: '/api/share/bulk',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ids: selectedIds,
-                username: username
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
-            } else {
-                alert(data.message);
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: selectedIds, username: username }),
+            success: function() {
                 $('#bulkShareModal').modal('hide');
-                loadExpenses(); // Refresh the expenses list
+                notifications.success('Expenses shared successfully');
+                // Clear all checkboxes
+                $('#expenseTableBody input[type="checkbox"]').prop('checked', false);
+                $('#selectAll').prop('checked', false);
+                // Reload data to refresh the table
+                loadExpenses();
+            },
+            error: function(xhr) {
+                notifications.error(xhr.responseJSON.error || 'Failed to share expenses');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to share expenses');
         });
     });
 });
@@ -167,7 +210,7 @@ function updateExpenseTable(expenses) {
                 <td><input type="checkbox" data-id="${expense.id}" /></td>
                 <td>${expense.date}</td>
                 <td>${expense.category}</td>
-                <td>${expense.description || ''}</td>
+                <td><span class="remark-tooltip" data-remark="${expense.description || ''}">${getShortRemark(expense.description)}</span></td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
@@ -187,55 +230,138 @@ let currentExpenses = [];
 
 // Function to load usernames for sharing
 function loadUsernames() {
-    fetch('/api/users')
+    return fetch('/api/users')
         .then(response => response.json())
         .then(data => {
-            const select = document.getElementById('shareUsername');
-            const bulkSelect = document.getElementById('bulkShareUsername');
+            // Store the full user list for filtering
+            window.allUsers = data || [];
             
-            // Clear existing options
-            select.innerHTML = '<option value="">Select a user...</option>';
-            bulkSelect.innerHTML = '<option value="">Select a user...</option>';
+            // Update user count display
+            $('#shareUserCount').text(`${data.length} users`);
+            $('#bulkShareUserCount').text(`${data.length} users`);
             
-            // Add new options
-            data.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.username;
-                option.textContent = user.username;
-                select.appendChild(option);
-                bulkSelect.appendChild(option.cloneNode(true));
-            });
+            // Populate selects
+            populateUserSelects(data);
+            
+            // Setup search functionality
+            setupUserSearch();
         })
         .catch(error => {
             console.error('Failed to load usernames:', error);
-            alert('Failed to load usernames.');
+            notifications.error('Failed to load usernames.');
         });
+}
+
+// Helper function to populate all user selects
+function populateUserSelects(users) {
+    const selects = ['#shareUsername', '#bulkShareUsername'];
+    
+    selects.forEach(selectId => {
+        const $select = $(selectId);
+        $select.empty();
+        
+        if (!users || users.length === 0) {
+            $select.append('<option value="">No users available</option>');
+            return;
+        }
+        
+        // Sort users alphabetically
+        users.sort((a, b) => a.username.localeCompare(b.username));
+        
+        users.forEach(user => {
+            const option = `<option value="${user.username}">${user.username}</option>`;
+            $select.append(option);
+        });
+    });
+}
+
+// Setup user search functionality
+function setupUserSearch() {
+    // For single share modal
+    $('#shareSearch').off('input').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        filterUsers(searchTerm, '#shareUsername');
+    });
+    
+    // For bulk share modal
+    $('#bulkShareSearch').off('input').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        filterUsers(searchTerm, '#bulkShareUsername');
+    });
+    
+    // Clear search when modals are hidden
+    $('#shareModal').on('hidden.bs.modal', function() {
+        $('#shareSearch').val('');
+        filterUsers('', '#shareUsername');
+    });
+    
+    $('#bulkShareModal').on('hidden.bs.modal', function() {
+        $('#bulkShareSearch').val('');
+        filterUsers('', '#bulkShareUsername');
+        });
+}
+
+// Filter users based on search term
+function filterUsers(searchTerm, selectId) {
+    if (!window.allUsers) return;
+    
+    if (!searchTerm) {
+        // If search is empty, show all users
+        populateUserSelects(window.allUsers);
+        $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
+            .text(`${window.allUsers.length} users`);
+        return;
+    }
+    
+    // Filter users based on search term
+    const filteredUsers = window.allUsers.filter(user => 
+        user.username.toLowerCase().includes(searchTerm)
+    );
+    
+    // Update the specific select
+    const $select = $(selectId);
+    $select.empty();
+    
+    if (filteredUsers.length === 0) {
+        $select.append('<option value="">No matching users</option>');
+    } else {
+        filteredUsers.sort((a, b) => a.username.localeCompare(b.username));
+        filteredUsers.forEach(user => {
+            const option = `<option value="${user.username}">${user.username}</option>`;
+            $select.append(option);
+        });
+    }
+    
+    // Update the counter
+    $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
+        .text(`${filteredUsers.length} users`);
 }
 
 // Handle share button click for single expense
 function openShareModal(expenseId) {
     // Load usernames before showing the modal
-    loadUsernames();
-    
-    // Set the expense ID in the hidden input
+    loadUsernames().then(() => {
     document.getElementById('expenseIdToShare').value = expenseId;
-    
-    // Show the modal
     const modal = new bootstrap.Modal(document.getElementById('shareModal'));
     modal.show();
+    }).catch(() => {
+        notifications.error('Failed to load user list. Cannot share.');
+    });
 }
+window.openShareModal = openShareModal;
 
 // Function to get selected expense IDs
 function getSelectedExpenseIds() {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-    return Array.from(checkboxes).map(cb => cb.dataset.id);
+    // Only select checkboxes within the expense table body, not the header checkbox
+    const checkboxes = document.querySelectorAll('#expenseTableBody input[type="checkbox"]:checked');
+    // Only return non-empty, numeric ids
+    return Array.from(checkboxes)
+        .map(cb => cb.dataset.id)
+        .filter(id => id && !isNaN(Number(id)));
 }
 
 function deleteLine(expenseId) {
-    if (!confirm("Are you sure you want to delete this expense?")) {
-        return;
-    }
-
+    notifications.confirmDelete('expense', function() {
     $.ajax({
         url: '/api/expenses/delete',
         method: 'POST',
@@ -243,24 +369,19 @@ function deleteLine(expenseId) {
         data: JSON.stringify({
             id: expenseId
         }),
-        success: function (response) {
+            success: function(response) {
             $('#expenseForm')[0].reset();
-            // Reset date to today after form reset
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const hours = String(today.getHours()).padStart(2, '0');
-            const minutes = String(today.getMinutes()).padStart(2, '0');
-            const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-            document.getElementById('date').value = formattedDate;
+                document.getElementById('date').value = getFormattedDateTime();
             loadExpenses();
+                notifications.success('Expense deleted successfully');
         },
-        error: function (xhr) {
-            alert('Error deleting expense: ' + xhr.responseJSON.error);
+            error: function(xhr) {
+                notifications.error(xhr.responseJSON.error || 'Failed to delete expense');
         }
+        });
     });
 }
+window.deleteLine = deleteLine;
 
 const allowedCategories = ['Food', 'Entertainment', 'Shopping', 'Bills', 'Other'];
 
@@ -337,7 +458,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         }
 
         if (errors.length > 0) {
-            alert('Upload failed:\n' + errors.join('\n'));
+            notifications.error('Upload failed:\n' + errors.join('\n'));
         } else if (validRows.length > 0) {
             $.ajax({
                 url: '/api/expenses/bulk',
@@ -345,100 +466,66 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
-                    alert('Upload successful!');
+                    notifications.success('Upload successful!');
                     $('#expenseForm')[0].reset();
-                    // Reset date to today after form reset
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    const hours = String(today.getHours()).padStart(2, '0');
-                    const minutes = String(today.getMinutes()).padStart(2, '0');
-                    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-                    document.getElementById('date').value = formattedDate;
+                    document.getElementById('date').value = getFormattedDateTime();
                     loadExpenses();
                 },
                 error: function (xhr) {
-                    alert('Error uploading expenses: ' + xhr.responseJSON.error);
+                    notifications.error(xhr.responseJSON.error || 'Failed to upload expenses');
                 }
             });
         } else {
-            alert('No valid data found in the file.');
+            notifications.warning('No valid data found in the file.');
         }
     };
 
     reader.readAsArrayBuffer(file);
 });
 
-document.getElementById('uploadPicture').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
+document.getElementById('uploadImageButton').addEventListener('click', async function () {
+    const fileInput = document.getElementById('expenseImage');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        notifications.warning('Please select an image file first');
+        return;
+    }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('image', file);
 
-    // Show progress bar and disable buttons
-    const progressBar = document.createElement('div');
-    progressBar.id = 'progressBar';
-    progressBar.style.position = 'fixed';
-    progressBar.style.top = '0';
-    progressBar.style.left = '0';
-    progressBar.style.width = '100%';
-    progressBar.style.height = '5px';
-    progressBar.style.backgroundColor = '#0d6efd';
-    progressBar.style.transition = 'width 0.4s ease';
-    progressBar.style.zIndex = '1050';
-    document.body.appendChild(progressBar);
-
-    const disableUI = () => {
-        document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
-    };
-
-    const enableUI = () => {
-        document.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
-    };
-
-    disableUI();
-
-    $.ajax({
-        url: '/api/expenses/by-ocr',
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        xhr: function () {
-            const xhr = new window.XMLHttpRequest();
-            xhr.upload.addEventListener('progress', function (e) {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    progressBar.style.width = `${percentComplete}%`;
-                }
-            });
-            return xhr;
-        },
-        success: function (response) {
-            try {
-                if (response.error) {
-                    alert(`Error: ${response.error}`);
+    try {
+        // Upload file for OCR
+        const response = await fetch('/api/ocr/expense', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            notifications.error(`Error: ${result.error || 'Failed to process image'}`);
                     return;
                 }
-                const data = JSON.parse(response.result);
-                addExpense(data);
-            } catch (e) {
-                console.error('Error parsing response:', e);
-                alert('An unexpected error occurred. Please try again.');
+        
+        // Populate form with OCR results
+        if (result.success && result.data) {
+            $('#amount').val(result.data.amount || '');
+            $('#category').val(result.data.category || 'Other');
+            $('#description').val(result.data.description || '');
+            
+            // Scroll to and focus the amount field
+            $('#amount').focus();
+            
+            notifications.success('Successfully extracted data from image');
+        } else {
+            notifications.warning('Could not extract all data from image. Please fill in the form manually.');
             }
-        },
-        error: function (xhr) {
-            console.error('Error:', xhr);
-            alert('An error occurred while processing the Picture.');
-        },
-        complete: function () {
-            document.body.removeChild(progressBar);
-            enableUI();
-
-        }
-    });
+    } catch (err) {
+        console.error(err);
+        notifications.error('An error occurred while processing the image.');
+    }
 });
 
 async function addExpense(expenseData) {
@@ -463,7 +550,7 @@ async function addExpense(expenseData) {
             offcanvasInstance.hide();
         },
         error: function (xhr) {
-            alert(xhr.responseJSON?.error || 'Failed to add expense');
+            notifications.error(xhr.responseJSON?.error || 'Failed to add expense');
         }
     });
 }
@@ -522,46 +609,28 @@ $('#searchInput').on('input', filterAndSearchExpenses);
 $('#filterCategory').on('change', filterAndSearchExpenses);
 $('#filterMonth').on('change', filterAndSearchExpenses);
 
-$('#selectAll').on('change', function () {
-    const isChecked = $(this).is(':checked');
-    $('#expenseTableBody input[type="checkbox"]').prop('checked', isChecked);
-});
-
-$('#deleteSelected').on('click', function () {
-    const selectedIds = $('#expenseTableBody input[type="checkbox"]:checked')
-        .map(function () {
-            return $(this).data('id');
-        })
-        .get();
+$('#deleteSelected').on('click', function() {
+    const selectedIds = getSelectedExpenseIds();
 
     if (selectedIds.length === 0) {
-        alert('No expenses selected.');
+        notifications.warning('No expenses selected');
         return;
     }
 
-    if (!confirm('Are you sure you want to delete the selected expenses?')) {
-        return;
-    }
-
-    fetch('/api/expenses/bulk-delete', {
+    notifications.confirmBulkDelete('expense', selectedIds.length, function() {
+        $.ajax({
+            url: '/api/expenses/bulk-delete',
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ids: selectedIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            alert('Selected expenses deleted successfully');
-            loadExpenses();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while deleting expenses');
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: selectedIds }),
+            success: function() {
+                loadExpenses();
+                notifications.success('Selected expenses deleted successfully');
+            },
+            error: function(xhr) {
+                notifications.error(xhr.responseJSON.error || 'Failed to delete expenses');
+            }
+        });
     });
 });
 
@@ -572,6 +641,32 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#filterMonth').val(`${year}-${month}`);
 });
 
-$('#bulkShareButton').on('click', shareSelectedExpenses);
-$('#deleteSelected').on('click', deleteSelectedExpenses);
-$('#cancelSelected').on('click', cancelSelectedShares);
+$('#processClipboardButton').on('click', function() {
+    const clipboardText = $('#clipboardText').val();
+    
+    if (!clipboardText) {
+        notifications.warning('Please paste some text first');
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/expenses/from-clipboard',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ text: clipboardText }),
+        success: function(response) {
+            // Hide modal
+            $('#uploadFromClipboardModal').modal('hide');
+            
+            // Update form with values
+            $('#amount').val(response.amount || '');
+            $('#category').val(response.category || 'Other');
+            $('#description').val(response.description || '');
+            
+            notifications.success('Successfully extracted data from clipboard');
+        },
+        error: function(xhr) {
+            notifications.error(xhr.responseJSON?.error || 'Failed to process clipboard data');
+        }
+    });
+});

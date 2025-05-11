@@ -1,130 +1,256 @@
 {% extends "base.html" %} {% block title %}Insights - Expense Tracker{% endblock %} {% block
 extra_head %}
 <link rel="stylesheet" href="/static/css/insight.css" />
-<script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 {% endblock %} {% block navbar_right %}
 <li class="nav-item">
     <a class="nav-link text-dark" href="/logout">Logout</a>
 </li>
 {% endblock %} {% block content %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card shadow-sm border-0">
+<div class="container">
+    <!-- Date Range Selection Card -->
+    <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-                <div class="d-flex flex-wrap gap-4">
-                    <!-- time selector -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <div class="date-range-selector">
                     <div class="d-flex align-items-center">
-                        <div class="d-flex align-items-center gap-3">
-                            <label for="startDate" class="form-label mb-0 me-2">Start Date</label>
-                            <input type="date" id="startDate" class="form-control" style="width: auto;" />
-
-                            <label for="endDate" class="form-label mb-0 mx-2">End Date</label>
-                            <input type="date" id="endDate" class="form-control" style="width: auto;" />
+                        <div class="btn-group period-selector me-3">
+                            <button type="button" class="btn btn-outline-primary active" data-period="month">This Month</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="prev-month">Last Month</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="year">This Year</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="custom">Custom</button>
+                        </div>
+                        
+                        <div class="custom-date-range" style="display: none;">
+                            <div class="d-flex align-items-center">
+                                <input type="date" id="startDate" class="form-control form-control-sm" />
+                                <span class="mx-2">to</span>
+                                <input type="date" id="endDate" class="form-control form-control-sm" />
+                                <button class="btn btn-sm btn-primary ms-2" id="applyDateRange">
+                                    <i class="fas fa-check"></i> Apply
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- chart selector -->
-                    <!-- <div class="d-flex align-items-center">
-                        <label for="chartType" class="form-label me-2 mb-0">Chart</label>
-                        <select id="chartType" class="form-select" style="width: auto;">
-                            <option value="pie">Category Distribution</option>
-                            <option value="bar">Date and Category</option>
-                            <option value="line">Daily Trends</option>
-                        </select>
-                    </div> -->
-
-                    <!-- Type selector -->
-                    <div class="d-flex align-items-center">
-                        <label for="chartType" class="form-label me-2 mb-0">Transaction</label>
-                        <select id="dataType" class="form-select" style="width: auto;">
-                            <option value="all" selected>All</option>
-                            <option value="income">Income</option>
-                            <option value="expense">Expenses</option>
-                        </select>
                     </div>
 
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-primary btn-sm me-2" type="button" id="search">Search</button>
-                        <button class="btn btn-primary btn-sm" type="button">Cancel</button>
+
+                
+                <div class="export-options">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download me-1"></i> Export
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                            <li><a class="dropdown-item" href="#" id="exportPDF"><i class="far fa-file-pdf me-2"></i>Export as PDF</a></li>
+                            <li><a class="dropdown-item" href="#" id="exportPNG"><i class="far fa-file-image me-2"></i>Export as PNG</a></li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Overview Stats Cards -->
+    <div class="row stats-overview mb-4">
+        <!-- Total Income Card -->
+        <div class="col-md-3">
+            <div class="card stats-card income-card">
+                <div class="card-body">
+                    <div class="stats-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="stats-info">
+                        <h5 class="stats-title">Total Income</h5>
+                        <h3 class="stats-value"><span id="totalIncome">0.00</span></h3>
+                        <p class="stats-change">
+                            <span id="incomeChange" class="change-indicator positive">
+                                <i class="fas fa-arrow-up"></i> 0%
+                            </span>
+                            <span class="period-label">vs. previous period</span>
+                        </p>
+    </div>
+</div>
+            </div>
+        </div>
+        
+        <!-- Total Expense Card -->
+        <div class="col-md-3">
+            <div class="card stats-card expense-card">
+            <div class="card-body">
+                    <div class="stats-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="stats-info">
+                        <h5 class="stats-title">Total Expenses</h5>
+                        <h3 class="stats-value"><span id="totalExpenses">0.00</span></h3>
+                        <p class="stats-change">
+                            <span id="expenseChange" class="change-indicator negative">
+                                <i class="fas fa-arrow-down"></i> 0%
+                            </span>
+                            <span class="period-label">vs. previous period</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Net Balance Card -->
+        <div class="col-md-3">
+            <div class="card stats-card balance-card">
+                <div class="card-body">
+                    <div class="stats-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stats-info">
+                        <h5 class="stats-title">Net Balance</h5>
+                        <h3 class="stats-value"><span id="netBalance">0.00</span></h3>
+                        <p class="stats-change">
+                            <span id="balanceChange" class="change-indicator positive">
+                                <i class="fas fa-arrow-up"></i> 0%
+                            </span>
+                            <span class="period-label">vs. previous period</span>
+                        </p>
+        </div>
+    </div>
+            </div>
+        </div>
+        
+        <!-- Top Category Card -->
+        <div class="col-md-3">
+            <div class="card stats-card category-card">
+            <div class="card-body">
+                    <div class="stats-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="stats-info">
+                        <h5 class="stats-title">Largest Category</h5>
+                        <div class="top-category-display">
+                            <span id="topCategoryIcon">🍔</span>
+                            <div class="top-category-details">
+                                <h3 class="stats-value" id="topCategoryName">Food</h3>
+                                <p class="top-category-amount"><span id="topCategoryAmount">0.00</span></p>
+                            </div>
+                        </div>
+                        <p class="stats-change">
+                            <span id="categoryPercentage" class="percentage-indicator">0% of total</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Daily Income Card -->
+        <div class="col-md-6">
+            <div class="card stats-card average-income-card">
+                <div class="card-body">
+                    <h5 class="stats-title">Average Daily Income</h5>
+                    <h3 class="stats-value" id="averageDailyIncome">0.00</h3>
+        </div>
+    </div>
 </div>
 
+        <!-- Average Daily Expense Card -->
+    <div class="col-md-6">
+            <div class="card stats-card average-expense-card">
+                <div class="card-body">
+                    <h5 class="stats-title">Average Daily Expense</h5>
+                    <h3 class="stats-value" id="averageDailyExpense">0.00</h3>
+            </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <!-- Income & Expense Trend Chart -->
+        <div class="col-lg-8">
+            <div class="card chart-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Income & Expense Trends
+                    </h5>
+                    <div class="chart-period-selector btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary active" data-trend-period="daily">Daily</button>
+                        <button type="button" class="btn btn-outline-secondary" data-trend-period="weekly">Weekly</button>
+                        <button type="button" class="btn btn-outline-secondary" data-trend-period="monthly">Monthly</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="trendChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Distribution Pie Chart -->
+        <div class="col-lg-4">
+            <div class="card chart-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Category Distribution
+                    </h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" data-pie-type="expense">Expenses</button>
+                        <button type="button" class="btn btn-outline-secondary" data-pie-type="income">Income</button>
+                    </div>
+            </div>
+            <div class="card-body">
+                    <div id="categoryPieChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Charts Row 2 -->
 <div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Expense Summary</h5>
+        <!-- Top Categories Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Top Categories (Income & Expenses)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="topCategoriesChart" class="chart-container" style="width:100%; height:250px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Comparison -->
+        <div class="col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Monthly Comparison
+                    </h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" data-compare-type="income-expense">Income vs Expense</button>
+                        <button type="button" class="btn btn-outline-secondary" data-compare-type="monthly-progress">Monthly Progress</button>
+    </div>
             </div>
             <div class="card-body">
-                <p><strong>Total Entries:</strong> <span id="totalEntries">0</span></p>
-                <p><strong>Total Amount:</strong> $<span id="totalAmount">0.00</span></p>
-                <p><strong>Average Amount:</strong> $<span id="averageAmount">0.00</span></p>
+                    <div id="monthlyComparisonChart" class="chart-container"></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Category Distribution</h5>
-            </div>
-            <div class="card-body">
-                <div id="categoryDistributionList"></div>
-            </div>
+
+    <!-- Tooltip Template -->
+    <div id="chartTooltip" class="chart-tooltip" style="display: none;">
+        <div class="tooltip-header">
+            <span class="tooltip-title"></span>
+        </div>
+        <div class="tooltip-body">
+            <div class="tooltip-value"></div>
+            <div class="tooltip-percentage"></div>
         </div>
     </div>
 </div>
 
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Expense ratio</h5>
-            </div>
-            <div class="card-body">
-                <div id="pieChart" style="height: 400px"></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">Expense trend</h5>
-            </div>
-            <div class="card-body">
-                <div id="lineChart" style="height: 400px"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">MoM Analysis</h5>
-            </div>
-            <div class="card-body">
-                <div id="momChart" style="height: 400px"></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light rounded-top border-bottom">
-                <h5 class="card-title mb-0">YoY Analysis</h5>
-            </div>
-            <div class="card-body">
-                <div id="yoyChart" style="height: 400px"></div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %} {% block extra_scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="/static/js/insight.js"></script>
 {% endblock %}

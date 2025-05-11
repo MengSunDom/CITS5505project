@@ -1,56 +1,66 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    const rememberMeCheckbox = document.getElementById('rememberMe');
-    
-    // Check if there's saved credentials
-    const savedUsername = localStorage.getItem('rememberedUsername');
-    const savedPassword = localStorage.getItem('rememberedPassword');
-    if (savedUsername && savedPassword) {
-        document.getElementById('username').value = savedUsername;
-        document.getElementById('password').value = savedPassword;
-        rememberMeCheckbox.checked = true;
+$(function() {
+    function autofillLogin() {
+        if (localStorage.getItem('rememberMe') === 'true') {
+            $('#username').val(localStorage.getItem('rememberedUsername') || '');
+            $('#password').val(localStorage.getItem('rememberedPassword') || '');
+            $('#rememberMe').prop('checked', true);
+        } else {
+            $('#password').val('');
+            $('#rememberMe').prop('checked', false);
     }
+    }
+    autofillLogin();
 
-    loginForm.addEventListener('submit', async function(e) {
+    $('#loginForm').on('submit', function(e) {
         e.preventDefault();
         
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const rememberMe = rememberMeCheckbox.checked;
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const username = $('#username').val();
+        const password = $('#password').val();
+        const csrf_token = $('input[name="csrf_token"]').val();
+        const rememberMe = $('#rememberMe').is(':checked');
         
-        // Save or remove credentials based on remember me checkbox
+        // Save or clear credentials in localStorage
         if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
             localStorage.setItem('rememberedUsername', username);
             localStorage.setItem('rememberedPassword', password);
         } else {
+            localStorage.removeItem('rememberMe');
             localStorage.removeItem('rememberedUsername');
             localStorage.removeItem('rememberedPassword');
         }
 
-        try {
-            const response = await fetch('/login', {
+        $.ajax({
+            url: '/api/login',
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            contentType: 'application/json',
+            data: JSON.stringify({
                     username: username,
                     password: password,
-                    csrf_token: csrfToken
-                })
-            });
-
-            const data = await response.json();
-            
-            if (response.ok) {
+                csrf_token: csrf_token,
+                rememberMe: rememberMe
+            }),
+            success: function(response) {
+                notifications.success('Login successful!');
+                setTimeout(() => {
                 window.location.href = '/dashboard';
-            } else {
-                alert(data.error || 'Login failed');
+                }, 1000);
+            },
+            error: function(xhr) {
+                let msg = 'Login failed. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.error) msg = data.error;
+                    } catch (e) {}
+                }
+                notifications.error(msg);
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred during login');
-        }
+        });
     });
+
+    // Also autofill on page show (for browser back/forward navigation)
+    $(window).on('pageshow', autofillLogin);
 }); 

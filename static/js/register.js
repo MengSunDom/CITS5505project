@@ -1,39 +1,44 @@
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
+$(document).ready(function() {
+    $('#registerForm').on('submit', function(e) {
     e.preventDefault();
     
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
+        const username = $('#username').val();
+        const password = $('#password').val();
+        const confirmPassword = $('#confirmPassword').val();
+        const csrf_token = $('input[name="csrf_token"]').val();
 
     if (password !== confirmPassword) {
-        alert('Passwords do not match');
+            notifications.error('Passwords do not match!');
         return;
     }
 
-    const formData = {
-        username: document.getElementById('username').value,
-        password: password,
-        csrf_token: document.querySelector('input[name="csrf_token"]').value
-    };
-
-    try {
-        const response = await fetch('/register', {
+        $.ajax({
+            url: '/api/register',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password,
+                csrf_token: csrf_token
+            }),
+            success: function(response) {
+                notifications.success('Registration successful! Please login.');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
             },
-            body: JSON.stringify(formData)
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-            alert(data.message);
-            window.location.href = '/login'; // Redirect to login page after successful registration
-        } else {
-            alert(data.error);
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred during registration');
+            error: function(xhr) {
+                let msg = 'Registration failed. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.error) msg = data.error;
+                    } catch (e) {}
+                }
+                notifications.error(msg);
     }
+        });
+    });
 }); 

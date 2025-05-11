@@ -47,11 +47,11 @@ $(document).ready(function () {
                 const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                 offcanvasInstance.hide();
             } else {
-                alert(data.error || 'Failed to add income');
+                notifications.error(data.error || 'Failed to add income');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while adding the income');
+            notifications.error('An error occurred while adding the income');
         }
     });
 
@@ -59,6 +59,11 @@ $(document).ready(function () {
     $('#shareButton').on('click', function () {
         const username = $('#shareUsername').val();
         const incomeId = $('#incomeIdToShare').val();
+
+        if (!username) {
+            notifications.warning('Please select a user to share with');
+            return;
+        }
 
         $.ajax({
             url: `/api/share/income/${incomeId}`,
@@ -69,10 +74,10 @@ $(document).ready(function () {
             }),
             success: function (response) {
                 $('#shareModal').modal('hide');
-                alert('Income shared successfully!');
+                notifications.success(response.message || 'Income shared successfully');
             },
             error: function (xhr) {
-                alert('Error sharing income: ' + xhr.responseJSON.error);
+                notifications.error(xhr.responseJSON?.error || 'Failed to share income');
             }
         });
     });
@@ -99,7 +104,7 @@ function updateIncomeTable(incomes) {
                 <td><input type="checkbox" data-id="${income.id}" /></td>
                 <td>${income.date}</td>
                 <td>${income.category}</td>
-                <td>${income.description || ''}</td>
+                <td><span class="remark-tooltip" data-remark="${income.description || ''}">${getShortRemark(income.description)}</span></td>
                 <td>$${income.amount.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${income.id})">
@@ -123,10 +128,7 @@ function openShareModal(incomeId) {
 }
 
 function deleteLine(incomeId) {
-    if (!confirm("Are you sure you want to delete this income?")) {
-        return;
-    }
-
+    notifications.confirmDelete('income', function() {
     $.ajax({
         url: '/api/incomes/delete',
         method: 'POST',
@@ -136,20 +138,14 @@ function deleteLine(incomeId) {
         }),
         success: function (response) {
             $('#incomeForm')[0].reset();
-            // Reset date to today after form reset
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const hours = String(today.getHours()).padStart(2, '0');
-            const minutes = String(today.getMinutes()).padStart(2, '0');
-            const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-            document.getElementById('date').value = formattedDate;
+                document.getElementById('date').value = getFormattedDateTime();
             loadData();
+                notifications.success('Income deleted successfully');
         },
         error: function (xhr) {
-            alert('Error deleting income: ' + xhr.responseJSON.error);
+                notifications.error(xhr.responseJSON?.error || 'Failed to delete income');
         }
+        });
     });
 }
 
@@ -186,39 +182,34 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         // Skip header row
         for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
-            if (!row || row.length < 4) continue;  // Skip empty rows or rows with insufficient data
+            if (!row || row.length < 4) continue;
 
-            let date = row[0]?.toString(); // Ensure date is a string
+            let date = row[0]?.toString();
             const category = row[1];
-            const description = row[2] || '';  // Make description optional
+            const description = row[2] || '';
             const amount = parseFloat(row[3]);
 
-            // Handle Excel numeric date format
             if (!isNaN(date) && date.length <= 5) {
-                const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel epoch starts on 1899-12-30
-                date = new Date(excelEpoch.getTime() + date * 86400000) // Convert days to milliseconds
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                date = new Date(excelEpoch.getTime() + date * 86400000)
                     .toISOString()
-                    .split('T')[0]; // Extract YYYY-MM-DD
+                    .split('T')[0];
             }
 
-            // Validate date
             if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
                 errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD or YYYY/MM/DD format.`);
                 continue;
             }
 
-            // Normalize date to YYYY-MM-DD format
             const normalizedDate = date.replace(/\//g, '-');
             const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
             const dateWithTime = `${year}-${month}-${day}T00:00`;
 
-            // Validate category
             if (!allowedCategories.includes(category)) {
                 errors.push(`Row ${i + 1}: Invalid category "${category}". Allowed categories: ${allowedCategories.join(', ')}`);
                 continue;
             }
 
-            // Validate amount
             if (isNaN(amount) || amount <= 0) {
                 errors.push(`Row ${i + 1}: Invalid amount "${amount}". Must be a positive number.`);
                 continue;
@@ -228,7 +219,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         }
 
         if (errors.length > 0) {
-            alert('Upload failed:\n' + errors.join('\n'));
+            notifications.error('Upload failed:\n' + errors.join('\n'));
         } else if (validRows.length > 0) {
             $.ajax({
                 url: '/api/incomes/bulk',
@@ -236,25 +227,17 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
-                    alert('Upload successful!');
+                    notifications.success('Upload successful!');
                     $('#incomeForm')[0].reset();
-                    // Reset date to today after form reset
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    const hours = String(today.getHours()).padStart(2, '0');
-                    const minutes = String(today.getMinutes()).padStart(2, '0');
-                    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-                    document.getElementById('date').value = formattedDate;
+                    document.getElementById('date').value = getFormattedDateTime();
                     loadData();
                 },
                 error: function (xhr) {
-                    alert('Error uploading incomes: ' + xhr.responseJSON.error);
+                    notifications.error(xhr.responseJSON?.error || 'Failed to upload incomes');
                 }
             });
         } else {
-            alert('No valid data found in the file.');
+            notifications.warning('No valid data found in the file.');
         }
     };
 
@@ -262,28 +245,111 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 });
 
 let loadUsernames = () => {
-    $.ajax({
-        url: '/api/users',
-        method: 'GET',
-        success: function (data) {
-            const select = $('#shareUsername');
-            const bulkSelect = $('#bulkShareUsername');
-            select.empty();
-            bulkSelect.empty();
-            data.forEach(function (user) {
-                const option = $('<option></option>')
-                    .attr('value', user.username)
-                    .text(user.username);
-                select.append(option);
-                bulkSelect.append(option.clone());
-            });
-        },
-        error: function (xhr, status, error) {
-            console.error('Failed to load usernames:', error);
-            alert('Failed to load usernames.');
+    return fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            // Store the full user list for filtering
+            window.allUsers = data || [];
+            
+            // Update user count display
+            $('#shareUserCount').text(`${data.length} users`);
+            $('#bulkShareUserCount').text(`${data.length} users`);
+            
+            // Populate selects
+            populateUserSelects(data);
+            
+            // Setup search functionality
+            setupUserSearch();
+        })
+        .catch(() => {
+            notifications.error('Failed to load usernames. Cannot share.');
+        });
+}
+
+// Helper function to populate all user selects
+function populateUserSelects(users) {
+    const selects = ['#shareUsername', '#bulkShareUsername'];
+    
+    selects.forEach(selectId => {
+        const $select = $(selectId);
+        $select.empty();
+        
+        if (!users || users.length === 0) {
+            $select.append('<option value="">No users available</option>');
+            return;
         }
+        
+        // Sort users alphabetically
+        users.sort((a, b) => a.username.localeCompare(b.username));
+        
+        users.forEach(user => {
+            const option = `<option value="${user.username}">${user.username}</option>`;
+            $select.append(option);
+        });
     });
-};
+}
+
+// Setup user search functionality
+function setupUserSearch() {
+    // For single share modal
+    $('#shareSearch').off('input').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        filterUsers(searchTerm, '#shareUsername');
+    });
+    
+    // For bulk share modal
+    $('#bulkShareSearch').off('input').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        filterUsers(searchTerm, '#bulkShareUsername');
+    });
+    
+    // Clear search when modals are hidden
+    $('#shareModal').on('hidden.bs.modal', function() {
+        $('#shareSearch').val('');
+        filterUsers('', '#shareUsername');
+    });
+    
+    $('#bulkShareModal').on('hidden.bs.modal', function() {
+        $('#bulkShareSearch').val('');
+        filterUsers('', '#bulkShareUsername');
+            });
+}
+
+// Filter users based on search term
+function filterUsers(searchTerm, selectId) {
+    if (!window.allUsers) return;
+    
+    if (!searchTerm) {
+        // If search is empty, show all users
+        populateUserSelects(window.allUsers);
+        $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
+            .text(`${window.allUsers.length} users`);
+        return;
+    }
+    
+    // Filter users based on search term
+    const filteredUsers = window.allUsers.filter(user => 
+        user.username.toLowerCase().includes(searchTerm)
+    );
+    
+    // Update the specific select
+    const $select = $(selectId);
+    $select.empty();
+    
+    if (filteredUsers.length === 0) {
+        $select.append('<option value="">No matching users</option>');
+    } else {
+        filteredUsers.sort((a, b) => a.username.localeCompare(b.username));
+        filteredUsers.forEach(user => {
+            const option = `<option value="${user.username}">${user.username}</option>`;
+            $select.append(option);
+        });
+    }
+    
+    // Update the counter
+    $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
+        .text(`${filteredUsers.length} users`);
+}
 
 $('#shareModal').on('show.bs.modal', function () {
     loadUsernames();
@@ -327,14 +393,11 @@ $('#deleteSelected').on('click', function () {
         .get();
 
     if (selectedIds.length === 0) {
-        alert('No incomes selected.');
+        notifications.warning('No incomes selected');
         return;
     }
 
-    if (!confirm('Are you sure you want to delete the selected incomes?')) {
-        return;
-    }
-
+    notifications.confirmDelete('incomes', function() {
     $.ajax({
         url: '/api/incomes/bulk-delete',
         method: 'POST',
@@ -342,10 +405,12 @@ $('#deleteSelected').on('click', function () {
         data: JSON.stringify({ ids: selectedIds }),
         success: function () {
             loadData();
+                notifications.success('Selected incomes deleted successfully');
         },
         error: function (xhr) {
-            alert('Error deleting incomes: ' + xhr.responseJSON.error);
+                notifications.error(xhr.responseJSON?.error || 'Failed to delete incomes');
         }
+        });
     });
 });
 
@@ -364,13 +429,13 @@ $('#bulkShareButton').on('click', function () {
         .get();
 
     if (selectedIds.length === 0) {
-        alert('No incomes selected.');
+        notifications.warning('No incomes selected');
         return;
     }
 
     const username = $('#bulkShareUsername').val();
     if (!username) {
-        alert('Please select a username to share with.');
+        notifications.warning('Please select a username to share with');
         return;
     }
 
@@ -381,14 +446,57 @@ $('#bulkShareButton').on('click', function () {
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {
             $('#bulkShareModal').modal('hide');
-            alert('incomes shared successfully!');
+            notifications.success('Incomes shared successfully');
+            // Clear all checkboxes
+            $('#incomeTableBody input[type="checkbox"]').prop('checked', false);
+            $('#selectAll').prop('checked', false);
+            // Reload data to refresh the table
+            loadData();
         },
         error: function (xhr) {
-            alert('Error sharing incomes: ' + xhr.responseJSON.error);
+            notifications.error(xhr.responseJSON?.error || 'Failed to share incomes');
         }
     });
 });
 
 $('#bulkShareModal').on('show.bs.modal', function () {
     loadUsernames();
+});
+
+function getShortRemark(desc, maxLen = 20) {
+    if (!desc) return '';
+    return desc.length > maxLen ? desc.slice(0, maxLen) + '...' : desc;
+}
+
+function showCustomTooltip($el, text) {
+    if (!text) return;
+    const $tip = $('<div class="custom-tooltip"></div>').text(text).appendTo('body');
+    const offset = $el.offset();
+    $tip.css({
+        left: offset.left,
+        top: offset.top - $tip.outerHeight() - 10,
+        position: 'absolute',
+        zIndex: 9999,
+        background: 'rgba(30,30,40,0.98)',
+        color: '#fff',
+        padding: '10px 18px',
+        borderRadius: '10px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+        fontSize: '1em',
+        maxWidth: '420px',
+        wordBreak: 'break-all',
+        whiteSpace: 'pre-line',
+        pointerEvents: 'none',
+        opacity: 1,
+        fontFamily: 'Segoe UI, Arial, sans-serif',
+        letterSpacing: '0.01em',
+        lineHeight: '1.5'
+    });
+}
+
+$(document).off('mouseenter.remark-tooltip mouseleave.remark-tooltip');
+$(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
+    showCustomTooltip($(this), $(this).data('remark'));
+}).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
+    $('.custom-tooltip').remove();
 });

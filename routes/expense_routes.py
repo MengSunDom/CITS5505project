@@ -108,6 +108,30 @@ def delete_expense():
     try:
         # Delete all related SharedExpense records before deleting the expense itself
         SharedExpense.query.filter_by(expense_id=expense_id).delete()
+        # --- Bulk share cleanup logic ---
+        bulk_shares = SharedExpense.query.filter(
+            SharedExpense.is_bulk_share == True,
+            SharedExpense.bulk_expense_ids.like(f'%{expense_id}%')
+        ).all()
+        for share in bulk_shares:
+            ids = [int(i) for i in share.bulk_expense_ids.split(',') if i and int(i) != int(expense_id)]
+            if len(ids) == 0:
+                db.session.delete(share)
+            elif len(ids) == 1:
+                existing = SharedExpense.query.filter_by(
+                    expense_id=ids[0],
+                    shared_with_id=share.shared_with_id,
+                    is_bulk_share=False
+                ).first()
+                if existing:
+                    db.session.delete(share)
+                else:
+                    share.is_bulk_share = False
+                    share.expense_id = ids[0]
+                    share.bulk_expense_ids = None
+            else:
+                share.bulk_expense_ids = ','.join(map(str, ids))
+        # --- End bulk share cleanup ---
         db.session.delete(expense)
         db.session.commit()
         return jsonify({'message': 'Expense deleted successfully'})
@@ -134,12 +158,39 @@ def bulk_delete_expenses():
     if not expenses:
         return jsonify({'error': 'No matching expenses found'}), 404
 
-    for expense in expenses:
-        db.session.delete(expense)
-
-    db.session.commit()
-
-    return jsonify({'message': 'Selected expenses deleted successfully'})
+    try:
+        for expense in expenses:
+            SharedExpense.query.filter_by(expense_id=expense.id).delete()
+            # --- Bulk share cleanup logic ---
+            bulk_shares = SharedExpense.query.filter(
+                SharedExpense.is_bulk_share == True,
+                SharedExpense.bulk_expense_ids.like(f'%{expense.id}%')
+            ).all()
+            for share in bulk_shares:
+                ids = [int(i) for i in share.bulk_expense_ids.split(',') if i and int(i) != int(expense.id)]
+                if len(ids) == 0:
+                    db.session.delete(share)
+                elif len(ids) == 1:
+                    existing = SharedExpense.query.filter_by(
+                        expense_id=ids[0],
+                        shared_with_id=share.shared_with_id,
+                        is_bulk_share=False
+                    ).first()
+                    if existing:
+                        db.session.delete(share)
+                    else:
+                        share.is_bulk_share = False
+                        share.expense_id = ids[0]
+                        share.bulk_expense_ids = None
+                else:
+                    share.bulk_expense_ids = ','.join(map(str, ids))
+            # --- End bulk share cleanup ---
+            db.session.delete(expense)
+        db.session.commit()
+        return jsonify({'message': 'Selected expenses deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete expense: {str(e)}'}), 500
 
 
 @expense_bp.route('/api/expenses/by-ocr', methods=['POST'])
