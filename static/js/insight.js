@@ -1148,12 +1148,37 @@ $(document).ready(() => {
                 // Draw the chart if we have data
                 if (topLabels.length > 0) {
                     try {
+                        // Find the parent container of the canvas
+                        const parentContainer = chartElement.parentElement;
+                        
+                        // Reset the parent container to ensure proper sizing
+                        if (parentContainer) {
+                            // Apply styling to parent container for better chart display
+                            parentContainer.style.backgroundColor = '#ffffff';
+                            parentContainer.style.border = '1px solid #e0e0e0';
+                            parentContainer.style.borderRadius = '8px';
+                            parentContainer.style.padding = '10px';
+                            
+                            // Calculate dynamic height based on number of categories
+                            // Minimum height of 300px, plus 30px per category for better spacing
+                            const dynamicHeight = Math.max(300, 100 + (topLabels.length * 30));
+                            parentContainer.style.height = `${dynamicHeight}px`;
+                            parentContainer.style.minHeight = '300px';
+                        }
+                        
                         // Add extra verification for the canvas element
                         if (chartElement.tagName.toLowerCase() !== 'canvas') {
                             console.error('Element is not a canvas:', chartElement);
                             $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Chart element is not a canvas element</div>');
                             return;
                         }
+                        
+                        // Clear the existing canvas
+                        chartElement.innerHTML = '';
+                        
+                        // Set canvas to fill parent container
+                        chartElement.style.width = '100%';
+                        chartElement.style.height = '100%';
                         
                         // Try to get the context
                         let ctx;
@@ -1168,13 +1193,10 @@ $(document).ready(() => {
                         
                         // Properly destroy existing chart if it exists
                         if (window.topCategoriesChart instanceof Chart) {
-                            console.log('Destroying existing chart');
+                            // Always destroy the previous chart before creating a new one to prevent container growth and stacking
                             window.topCategoriesChart.destroy();
                         }
                 
-                        // Check if dark mode is enabled
-                        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        
                         // Create colors based on type - use light mode colors always
                         const colors = topTypes.map(type => {
                             if (type === 'income') {
@@ -1207,19 +1229,21 @@ $(document).ready(() => {
                                     backgroundColor: colors,
                                     borderColor: colors.map(c => c.replace('0.8', '1')),
                                     borderWidth: 1,
-                                    maxBarThickness: 30
+                                    // Adjust bar thickness for better appearance
+                                    maxBarThickness: 25,
+                                    minBarLength: 5 // Ensure small values are visible
                                 }]
                             },
                             options: {
                                 indexAxis: 'y',
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false, // Important: don't maintain aspect ratio to fill container
                                 layout: {
                                     padding: {
                                         left: 10,
                                         right: 25,
-                                        top: 0,
-                                        bottom: 0
+                                        top: 15,
+                                        bottom: 15
                                     }
                                 },
                                 plugins: {
@@ -1276,6 +1300,10 @@ $(document).ready(() => {
                                         },
                                         ticks: {
                                             color: textColor,
+                                            // Increase font size slightly for better readability
+                                            font: {
+                                                size: 11
+                                            },
                                             callback: function(value, index) {
     
                                                 const label = topLabels[index];
@@ -1286,10 +1314,23 @@ $(document).ready(() => {
                                             }
                                         }
                                     }
+                                },
+                                // Animation configuration for better visual appearance
+                                animation: {
+                                    duration: 1000,
+                                    easing: 'easeOutQuart'
                                 }
                             }
                         });
                         console.log('Top categories chart created successfully');
+                        
+                        // Force a resize to ensure the chart fills the container properly
+                        setTimeout(() => {
+                            if (window.topCategoriesChart) {
+                                window.topCategoriesChart.resize();
+                            }
+                        }, 50);
+                        
                     } catch (error) {
                         console.error('Error creating top categories chart:', error);
                         $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error creating chart: ' + error.message + '</div>');
