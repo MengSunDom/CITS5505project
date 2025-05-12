@@ -1,13 +1,16 @@
 import secrets
-from flask import Blueprint, render_template, session
-from flask_jwt_extended import jwt_required
+from flask import Blueprint, render_template, session, redirect, url_for
+from flask_jwt_extended import jwt_required, verify_jwt_in_request, get_jwt_identity
 
 page_bp = Blueprint('page', __name__)
 
-
 @page_bp.route('/')
 def index():
-    return render_template('home.html')
+    try:
+        verify_jwt_in_request()  # Require valid JWT token
+        return redirect(url_for('page.dashboard'))
+    except:
+        return render_template('home.html')
 
 
 @page_bp.route('/login')
