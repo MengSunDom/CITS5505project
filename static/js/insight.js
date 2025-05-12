@@ -15,7 +15,11 @@ $(document).ready(() => {
     // ----- Helper functions -----
     // Format dates for input fields
     const formatDateForInput = (date) => {
-        return date.toISOString().split('T')[0];
+        // Ensure we only return the date part (YYYY-MM-DD) without time
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     // Format currency
@@ -226,9 +230,9 @@ $(document).ready(() => {
         
         switch(period) {
             case 'month':
-                // Current month - from 1st of current month to today
+                // Current month - from 1st of current month to today (include full day)
                 startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                endDate = new Date(today);
+                endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
                 break;
                 
             case 'prev-month':
@@ -246,9 +250,9 @@ $(document).ready(() => {
                 break;
                 
             case 'year':
-                // Current year - from January 1st to today
+                // Current year - from January 1st to today (include full day)
                 startDate = new Date(today.getFullYear(), 0, 1);
-                endDate = new Date(today);
+                endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
                 break;
         }
         
@@ -256,8 +260,11 @@ $(document).ready(() => {
         $('#startDate').val(formatDateForInput(startDate));
         $('#endDate').val(formatDateForInput(endDate));
         
-        // Loading indicator
+        // Show loading indicator
         $('.chart-container').html('<div class="loading-indicator">Loading data...</div>');
+        
+        // Log the date range for debugging
+        console.log('Date range set to:', formatDateForInput(startDate), 'to', formatDateForInput(endDate));
         
         // Load all data with the new date range
         setTimeout(() => loadAllData(), 100);
@@ -1799,9 +1806,9 @@ $(document).ready(() => {
             
             switch(period) {
                 case 'month':
-                    // Current month - from 1st of current month to today
+                    // Current month - from 1st of current month to today (include full day)
                     startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    endDate = new Date(today);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
                     break;
                     
                 case 'prev-month':
@@ -1819,9 +1826,9 @@ $(document).ready(() => {
                     break;
                     
                 case 'year':
-                    // Current year - from January 1st to today
+                    // Current year - from January 1st to today (include full day)
                     startDate = new Date(today.getFullYear(), 0, 1);
-                    endDate = new Date(today);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
                     break;
             }
             
@@ -1832,7 +1839,10 @@ $(document).ready(() => {
             // Show loading indicator
             $('.chart-container').html('<div class="loading-indicator">Loading data...</div>');
             
-            // Load all data
+            // Log the date range for debugging
+            console.log('Date range set to:', formatDateForInput(startDate), 'to', formatDateForInput(endDate));
+            
+            // Load all data with the new date range
             setTimeout(() => loadAllData(), 100);
         });
     }
@@ -2408,5 +2418,34 @@ $(document).ready(() => {
         });
         
         return 'Debugging shared data...';
+    };
+
+    // Add a debug function for date handling issues
+    window.debugDates = function() {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        // Test different date scenarios
+        const dateTests = {
+            'Today raw': today,
+            'Today formatted': formatDateForInput(today),
+            'Today with time 23:59:59': new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59),
+            'Today with time 23:59:59 formatted': formatDateForInput(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)),
+            'First day of month': firstDayOfMonth,
+            'First day of month formatted': formatDateForInput(firstDayOfMonth),
+            'Current filter start date': $('#startDate').val(),
+            'Current filter end date': $('#endDate').val(),
+            'Current data source': currentDataSource,
+            'Selected sharer ID': selectedSharerId
+        };
+        
+        console.log('===== DATE DEBUG INFO =====');
+        console.table(dateTests);
+        
+        // Check if the backend is receiving the correct date range
+        const filters = getFilterSettings();
+        console.log('Current filter settings being sent to backend:', filters);
+        
+        return 'Date debug info logged to console';
     };
 });

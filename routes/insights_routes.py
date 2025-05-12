@@ -43,10 +43,10 @@ def parse_date_range():
                    end_date_obj.day == today.day)
         
         if is_today:
-            # If end date is today, use current time + 1 minute to ensure all data is included
-            # Adding a minute ensures we include any data that might be added during processing
-            end_date_obj = today + timedelta(minutes=1)
-            logging.debug(f"End date is today, using current time plus 1 minute: {end_date_obj}")
+            # If end date is today, ensure we include all of today's data
+            # Set end_date_obj to today at 23:59:59 instead of current time + 1 minute
+            end_date_obj = datetime(today.year, today.month, today.day, 23, 59, 59)
+            logging.debug(f"End date is today, using end of day: {end_date_obj}")
             
             # For today, next_day should be tomorrow at 00:00:00
             tomorrow = datetime(today.year, today.month, today.day, 0, 0, 0) + timedelta(days=1)
@@ -2658,3 +2658,127 @@ def today_debug():
             }
         }
     })
+
+@insights_bp.route('/api/insights/date-debug', methods=['GET'])
+def date_debug():
+    """
+    Debug endpoint to specifically check date handling logic.
+    This endpoint helps diagnose issues with date parsing and filtering.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Get raw date parameters
+    start_date_str = request.args.get('startDate')
+    end_date_str = request.args.get('endDate')
+    
+    # Current time
+    now = datetime.now()
+    today_start = datetime(now.year, now.month, now.day, 0, 0, 0)
+    today_end = datetime(now.year, now.month, now.day, 23, 59, 59)
+    tomorrow = today_start + timedelta(days=1)
+    
+    # Process dates using our parsing function
+    try:
+        start_date_obj, end_date_obj = parse_date_range()
+        
+        # Get user_id
+        user_id = session['user']['id']
+        
+        # Check for today's data
+        today_expense_count = Expense.query.filter(
+            Expense.user_id == user_id,
+            Expense.date >= today_start,
+            Expense.date < tomorrow
+        ).count()
+        
+        today_income_count = Income.query.filter(
+            Income.user_id == user_id,
+            Income.date >= today_start,
+            Income.date < tomorrow
+        ).count()
+        
+        # Check for data in the requested range
+        range_expense_count = Expense.query.filter(
+            Expense.user_id == user_id,
+            Expense.date >= start_date_obj,
+            Expense.date < end_date_obj
+        ).count()
+        
+        range_income_count = Income.query.filter(
+            Income.user_id == user_id,
+            Income.date >= start_date_obj,
+            Income.date < end_date_obj
+        ).count()
+        
+        # Get sample data for today
+        today_expenses = Expense.query.filter(
+            Expense.user_id == user_id,
+            Expense.date >= today_start,
+            Expense.date < tomorrow
+        ).order_by(Expense.date).limit(5).all()
+        
+        today_incomes = Income.query.filter(
+            Income.user_id == user_id,
+            Income.date >= today_start,
+            Income.date < tomorrow
+        ).order_by(Income.date).limit(5).all()
+        
+        # Format sample data
+        today_expense_samples = [{
+            'id': e.id,
+            'date': e.date.isoformat(),
+            'amount': float(e.amount),
+            'category': e.category,
+            'description': e.description
+        } for e in today_expenses]
+        
+        today_income_samples = [{
+            'id': i.id,
+            'date': i.date.isoformat(),
+            'amount': float(i.amount),
+            'category': i.category,
+            'description': i.description
+        } for i in today_incomes]
+        
+        # Return debug info
+        return jsonify({
+            'request': {
+                'startDate': start_date_str,
+                'endDate': end_date_str,
+            },
+            'processed': {
+                'startDate': start_date_obj.isoformat() if start_date_obj else None,
+                'endDate': end_date_obj.isoformat() if end_date_obj else None,
+                'is_today_included': (start_date_obj <= today_start < end_date_obj),
+            },
+            'current_time': {
+                'now': now.isoformat(),
+                'today_start': today_start.isoformat(),
+                'today_end': today_end.isoformat(),
+                'tomorrow': tomorrow.isoformat()
+            },
+            'data_counts': {
+                'today': {
+                    'expenses': today_expense_count,
+                    'income': today_income_count
+                },
+                'requested_range': {
+                    'expenses': range_expense_count,
+                    'income': range_income_count
+                }
+            },
+            'today_samples': {
+                'expenses': today_expense_samples,
+                'incomes': today_income_samples
+            }
+        })
+    except Exception as e:
+        logging.error(f"Date debug error: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'request': {
+                'startDate': start_date_str,
+                'endDate': end_date_str
+            }
+        }), 400
