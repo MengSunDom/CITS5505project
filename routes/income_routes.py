@@ -1,16 +1,15 @@
-from flask import Blueprint, session, jsonify, request
+from flask import Blueprint, jsonify, request
 from datetime import datetime
 from models.models import db, Income, SharedIncome
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 income_bp = Blueprint('income', __name__)
 
 
 @income_bp.route('/api/incomes', methods=['GET'])
+@jwt_required()
 def get_income():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    user_id = session['user']['id']
+    user_id = get_jwt_identity()
     income = Income.query.filter_by(user_id=user_id).order_by(Income.date.desc()).all()
     return jsonify([{
         'id': e.id,
@@ -22,10 +21,9 @@ def get_income():
 
 
 @income_bp.route('/api/incomes', methods=['POST'])
+@jwt_required()
 def add_income():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     try:
         date = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S')
@@ -39,7 +37,7 @@ def add_income():
                         category=data['category'],
                         description=data.get('description', ''),
                         date=date,
-                        user_id=session['user']['id'])
+                        user_id=user_id)
 
     db.session.add(new_income)
     db.session.commit()
@@ -57,27 +55,25 @@ def add_income():
 
 
 @income_bp.route('/api/incomes/bulk', methods=['POST'])
+@jwt_required()
 def add_incomes_bulk():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data_list = request.get_json()
     new_incomes = []
 
     for data in data_list:
         new_income = Income(amount=float(data['amount']),
-                              category=data['category'],
-                              description=data.get('description', ''),
-                              user_id=session['user']['id'],
-                              date=datetime.strptime(data['date'], '%Y-%m-%dT%H:%M'))
+                            category=data['category'],
+                            description=data.get('description', ''),
+                            user_id=user_id,
+                            date=datetime.strptime(data['date'], '%Y-%m-%dT%H:%M'))
         db.session.add(new_income)
         new_incomes.append(new_income)
 
     db.session.commit()
 
     return jsonify({
-        'message':
-        'Incomes added successfully',
+        'message': 'Incomes added successfully',
         'incomes': [{
             'id': e.id,
             'amount': e.amount,
@@ -89,65 +85,53 @@ def add_incomes_bulk():
 
 
 @income_bp.route('/api/incomes/delete', methods=['POST'])
+@jwt_required()
 def delete_income():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     income_id = data.get('id')
 
-    income = Income.query.filter_by(id=income_id, user_id=session['user']['id']).first()
+    income = Income.query.filter_by(id=income_id, user_id=user_id).first()
     if not income:
         return jsonify({'error': 'Income not found'}), 404
 
     try:
-        # Find all bulk shares containing this income
         bulk_shares = SharedIncome.query.filter(
             SharedIncome.is_bulk_share == True,
             SharedIncome.bulk_income_ids.like(f'%{income_id}%')
         ).all()
 
         for bulk_share in bulk_shares:
-            # Get all income IDs in this bulk share
             income_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',')]
-            # Remove the deleted income from the list
             income_ids.remove(income_id)
             if len(income_ids) == 1:
-                # If only one income remains, check if it's already shared individually
-                remaining_income_id = income_ids[0]
-                existing_single_share = SharedIncome.query.filter_by(
-                    income_id=remaining_income_id,
+                remaining_id = income_ids[0]
+                existing = SharedIncome.query.filter_by(
+                    income_id=remaining_id,
                     shared_with_id=bulk_share.shared_with_id,
                     is_bulk_share=False
                 ).first()
-                if existing_single_share:
-                    # If already shared individually, delete the bulk share
+                if existing:
                     db.session.delete(bulk_share)
                 else:
-                    # Convert to single share
-                    new_single_share = SharedIncome(
-                        income_id=remaining_income_id,
+                    db.session.add(SharedIncome(
+                        income_id=remaining_id,
                         shared_with_id=bulk_share.shared_with_id,
                         is_bulk_share=False,
                         is_repeat=False
-                    )
-                    db.session.add(new_single_share)
+                    ))
                     db.session.delete(bulk_share)
             else:
-                # Update the bulk share with remaining income IDs
                 bulk_share.bulk_income_ids = ','.join(map(str, sorted(income_ids)))
-                # Update is_repeat flag
                 bulk_share.is_repeat = any(
                     SharedIncome.query.filter_by(
                         income_id=id,
                         shared_with_id=bulk_share.shared_with_id,
                         is_bulk_share=False
-                    ).first() is not None
-                    for id in income_ids
+                    ).first() for id in income_ids
                 )
-        # Delete all single shares of this income
+
         SharedIncome.query.filter_by(income_id=income_id).delete()
-        # Delete the income
         db.session.delete(income)
         db.session.commit()
         return jsonify({'message': 'Income deleted successfully'})
@@ -157,10 +141,9 @@ def delete_income():
 
 
 @income_bp.route('/api/incomes/bulk-delete', methods=['POST'])
+@jwt_required()
 def bulk_delete_incomes():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     income_ids = data.get('ids', [])
 
@@ -168,62 +151,50 @@ def bulk_delete_incomes():
         return jsonify({'error': 'No income IDs provided'}), 400
 
     try:
-        # Get all incomes to be deleted
         incomes = Income.query.filter(
             Income.id.in_(income_ids),
-            Income.user_id == session['user']['id']
+            Income.user_id == user_id
         ).all()
+
         if not incomes:
             return jsonify({'error': 'No matching incomes found'}), 404
-        # Process each income
+
         for income in incomes:
-            # Find all bulk shares containing this income
             bulk_shares = SharedIncome.query.filter(
                 SharedIncome.is_bulk_share == True,
                 SharedIncome.bulk_income_ids.like(f'%{income.id}%')
             ).all()
-            for bulk_share in bulk_shares:
-                # Get all income IDs in this bulk share
-                share_income_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',')]
-                # Remove the deleted income from the list
-                share_income_ids.remove(income.id)
-                if len(share_income_ids) == 1:
-                    # If only one income remains, check if it's already shared individually
-                    remaining_income_id = share_income_ids[0]
-                    existing_single_share = SharedIncome.query.filter_by(
-                        income_id=remaining_income_id,
-                        shared_with_id=bulk_share.shared_with_id,
+            for share in bulk_shares:
+                ids = [int(id) for id in share.bulk_income_ids.split(',') if int(id) != income.id]
+                if len(ids) == 1:
+                    remaining_id = ids[0]
+                    existing = SharedIncome.query.filter_by(
+                        income_id=remaining_id,
+                        shared_with_id=share.shared_with_id,
                         is_bulk_share=False
                     ).first()
-                    if existing_single_share:
-                        # If already shared individually, delete the bulk share
-                        db.session.delete(bulk_share)
+                    if existing:
+                        db.session.delete(share)
                     else:
-                        # Convert to single share
-                        new_single_share = SharedIncome(
-                            income_id=remaining_income_id,
-                            shared_with_id=bulk_share.shared_with_id,
+                        db.session.add(SharedIncome(
+                            income_id=remaining_id,
+                            shared_with_id=share.shared_with_id,
                             is_bulk_share=False,
                             is_repeat=False
-                        )
-                        db.session.add(new_single_share)
-                        db.session.delete(bulk_share)
+                        ))
+                        db.session.delete(share)
                 else:
-                    # Update the bulk share with remaining income IDs
-                    bulk_share.bulk_income_ids = ','.join(map(str, sorted(share_income_ids)))
-                    # Update is_repeat flag
-                    bulk_share.is_repeat = any(
+                    share.bulk_income_ids = ','.join(map(str, sorted(ids)))
+                    share.is_repeat = any(
                         SharedIncome.query.filter_by(
                             income_id=id,
-                            shared_with_id=bulk_share.shared_with_id,
+                            shared_with_id=share.shared_with_id,
                             is_bulk_share=False
-                        ).first() is not None
-                        for id in share_income_ids
+                        ).first() for id in ids
                     )
-            # Delete all single shares of this income
             SharedIncome.query.filter_by(income_id=income.id).delete()
-            # Delete the income
             db.session.delete(income)
+
         db.session.commit()
         return jsonify({'message': 'Selected incomes deleted successfully'})
     except Exception as e:

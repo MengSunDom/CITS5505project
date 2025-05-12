@@ -41,10 +41,15 @@ $(function () {
                 csrf_token: csrf_token,
                 rememberMe: rememberMe
             }),
+            xhrFields: {
+                withCredentials: true
+            },
             success: function (response) {
                 console.log("Login successful, verifying token via /api/me...");
 
-                fetch('/api/me')
+                fetch('/api/me', {
+                    credentials: 'include'
+                })
                     .then(res => {
                         console.log("Response status from /api/me:", res.status);
                         if (!res.ok) throw new Error('JWT invalid or missing');

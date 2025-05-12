@@ -29,6 +29,7 @@ $(document).ready(function () {
         try {
             const response = await fetch('/api/incomes', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -68,6 +69,9 @@ $(document).ready(function () {
         $.ajax({
             url: `/api/share/income/${incomeId}`,
             method: 'POST',
+            xhrFields: {
+        withCredentials: true
+    },
             contentType: 'application/json',
             data: JSON.stringify({
                 username: username
@@ -132,6 +136,9 @@ function deleteLine(incomeId) {
     $.ajax({
         url: '/api/incomes/delete',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify({
             id: incomeId
@@ -224,6 +231,9 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             $.ajax({
                 url: '/api/incomes/bulk',
                 method: 'POST',
+                xhrFields: {
+        withCredentials: true
+    },
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
@@ -245,7 +255,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 });
 
 let loadUsernames = () => {
-    return fetch('/api/users')
+    return fetch('/api/users', {credentials: 'include'})
         .then(response => response.json())
         .then(data => {
             // Store the full user list for filtering
@@ -401,6 +411,9 @@ $('#deleteSelected').on('click', function () {
     $.ajax({
         url: '/api/incomes/bulk-delete',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify({ ids: selectedIds }),
         success: function () {
@@ -442,6 +455,9 @@ $('#bulkShareButton').on('click', function () {
     $.ajax({
         url: '/api/share/income/bulk',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {

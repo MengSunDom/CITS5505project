@@ -18,10 +18,6 @@ auth_bp.permanent_session_lifetime = timedelta(minutes=30)
 @auth_bp.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
-    # CSRF check disabled for development
-    # if data.get('csrf_token') != session.get('csrf_token'):
-    #     return jsonify({'error': 'CSRF token mismatch'}), 403
-
     username = data.get('username')
     password = data.get('password')
     hashed_pw = generate_password_hash(password + "_salt")
@@ -34,30 +30,6 @@ def register():
     except:
         db.session.rollback()
         return jsonify({'error': 'Username already exists'}), 400
-
-
-# @auth_bp.route('/api/login', methods=['POST'])
-# def login():
-#     data = request.get_json()
-#     # CSRF check disabled for development
-#     # if data.get('csrf_token') != session.get('csrf_token'):
-#     #     return jsonify({'error': 'CSRF token mismatch'}), 403
-
-#     username = data.get('username')
-#     password = data.get('password')
-#     remember_me = data.get('rememberMe', False)
-
-#     user = User.query.filter_by(username=username).first()
-#     if user and check_password_hash(user.password, password + "_salt"):
-#         session.permanent = bool(remember_me)
-#         session['user'] = {
-#             'id': user.id,
-#             'username': user.username,
-#             'role': user.role,
-#             'permission': user.permission
-#         }
-#         return jsonify({'message': f"Welcome {user.username}!"})
-#     return jsonify({'error': 'Wrong account or password'}), 401
 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
@@ -73,15 +45,6 @@ def login():
         set_access_cookies(response, access_token)
         return response
     return jsonify({'error': 'Wrong account or password'}), 401
-
-
-# @auth_bp.route('/api/users', methods=['GET'])
-# def get_users():
-#     if 'user' not in session:
-#         return jsonify({'error': 'Not authenticated'}), 401
-
-#     users = User.query.all()
-#     return jsonify([{'id': u.id, 'username': u.username} for u in users])
 
 @auth_bp.route('/api/users', methods=['GET'])
 @jwt_required()

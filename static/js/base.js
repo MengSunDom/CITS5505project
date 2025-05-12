@@ -1,5 +1,12 @@
 $(document).ready(function () {
-    // 🔹 Highlight active nav link
+    // 🔐 Global AJAX setup to include JWT cookies with every request
+    $.ajaxSetup({
+        xhrFields: {
+            withCredentials: true
+        }
+    });
+
+    // Highlights active nav link
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => {
@@ -14,14 +21,14 @@ $(document).ready(function () {
         localStorage.removeItem('successMessage');
     }
 
-    // Handles logout via JWT
+    // 🔓 Handles logout via JWT
     const logoutLink = document.getElementById("logoutLink");
     if (logoutLink) {
         logoutLink.addEventListener("click", function (e) {
             e.preventDefault();
             fetch("/api/logout", {
                 method: "POST",
-                credentials: "same-origin"
+                credentials: "include"
             })
                 .then(() => {
                     localStorage.setItem('successMessage', 'Logout successful!');

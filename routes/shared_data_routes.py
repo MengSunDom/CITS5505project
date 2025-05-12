@@ -1,15 +1,13 @@
-from flask import Blueprint, session, jsonify, request, render_template, redirect, url_for
+from flask import Blueprint, jsonify, request
 from models.models import db, Expense, Income, SharedExpense, SharedIncome, User
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 shared_data_bp = Blueprint('shared_data', __name__)
 
 @shared_data_bp.route('/api/shared-expenses/by-me')
+@jwt_required()
 def get_shared_expenses_by_me():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user']['id']
-    
+    user_id = get_jwt_identity()
 
     shared_expenses = db.session.query(
         SharedExpense, Expense, User
@@ -39,12 +37,9 @@ def get_shared_expenses_by_me():
     return jsonify(result)
 
 @shared_data_bp.route('/api/shared-expenses/with-me')
+@jwt_required()
 def get_shared_expenses_with_me():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user']['id']
-    
+    user_id = get_jwt_identity()
 
     shared_expenses = db.session.query(
         SharedExpense, Expense, User
@@ -74,12 +69,9 @@ def get_shared_expenses_with_me():
     return jsonify(result)
 
 @shared_data_bp.route('/api/shared-incomes/by-me')
+@jwt_required()
 def get_shared_incomes_by_me():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user']['id']
-    
+    user_id = get_jwt_identity()
 
     shared_incomes = db.session.query(
         SharedIncome, Income, User
@@ -109,12 +101,9 @@ def get_shared_incomes_by_me():
     return jsonify(result)
 
 @shared_data_bp.route('/api/shared-incomes/with-me')
+@jwt_required()
 def get_shared_incomes_with_me():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user']['id']
-    
+    user_id = get_jwt_identity()
 
     shared_incomes = db.session.query(
         SharedIncome, Income, User
@@ -143,14 +132,10 @@ def get_shared_incomes_with_me():
     
     return jsonify(result)
 
-
 @shared_data_bp.route('/api/shared-expenses/cancel/<int:share_id>', methods=['DELETE'])
+@jwt_required()
 def cancel_shared_expense(share_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user']['id']
-    
+    user_id = get_jwt_identity()
 
     shared_expense = SharedExpense.query.join(
         Expense, SharedExpense.expense_id == Expense.id
@@ -167,14 +152,10 @@ def cancel_shared_expense(share_id):
     
     return jsonify({'message': 'Share canceled successfully'})
 
-
 @shared_data_bp.route('/api/shared-incomes/cancel/<int:share_id>', methods=['DELETE'])
+@jwt_required()
 def cancel_shared_income(share_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    user_id = session['user']['id']
-    
+    user_id = get_jwt_identity()
 
     shared_income = SharedIncome.query.join(
         Income, SharedIncome.income_id == Income.id
@@ -189,4 +170,4 @@ def cancel_shared_income(share_id):
     db.session.delete(shared_income)
     db.session.commit()
     
-    return jsonify({'message': 'Share canceled successfully'}) 
+    return jsonify({'message': 'Share canceled successfully'})

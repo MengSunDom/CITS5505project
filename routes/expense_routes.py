@@ -1,21 +1,18 @@
-from flask import Blueprint, session, jsonify, request
+from flask import Blueprint, jsonify, request
 from datetime import datetime
 from models.models import db, Expense, User, SharedExpense
 from utils.llm import process_receipt
 from utils.ocr import ocr_image
-
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 expense_bp = Blueprint('expense', __name__)
 
 
 @expense_bp.route('/api/expenses', methods=['GET'])
+@jwt_required()
 def get_expenses():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    user_id = session['user']['id']
-    expenses = Expense.query.filter_by(user_id=user_id).order_by(
-        Expense.date.desc()).all()
+    user_id = get_jwt_identity()
+    expenses = Expense.query.filter_by(user_id=user_id).order_by(Expense.date.desc()).all()
     return jsonify([{
         'id': e.id,
         'amount': e.amount,
@@ -26,10 +23,9 @@ def get_expenses():
 
 
 @expense_bp.route('/api/expenses', methods=['POST'])
+@jwt_required()
 def add_expense():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     try:
         date = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S')
@@ -39,11 +35,13 @@ def add_expense():
     if date > datetime.now():
         return jsonify({'error': 'Date cannot be in the future'}), 400
 
-    new_expense = Expense(amount=float(data['amount']),
-                          category=data['category'],
-                          description=data.get('description', ''),
-                          date=date,
-                          user_id=session['user']['id'])
+    new_expense = Expense(
+        amount=float(data['amount']),
+        category=data['category'],
+        description=data.get('description', ''),
+        date=date,
+        user_id=user_id
+    )
 
     db.session.add(new_expense)
     db.session.commit()
@@ -61,27 +59,27 @@ def add_expense():
 
 
 @expense_bp.route('/api/expenses/bulk', methods=['POST'])
+@jwt_required()
 def add_expenses_bulk():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data_list = request.get_json()
     new_expenses = []
 
     for data in data_list:
-        new_expense = Expense(amount=float(data['amount']),
-                              category=data['category'],
-                              description=data.get('description', ''),
-                              user_id=session['user']['id'],
-                              date=datetime.strptime(data['date'], '%Y-%m-%dT%H:%M'))
+        new_expense = Expense(
+            amount=float(data['amount']),
+            category=data['category'],
+            description=data.get('description', ''),
+            user_id=user_id,
+            date=datetime.strptime(data['date'], '%Y-%m-%dT%H:%M')
+        )
         db.session.add(new_expense)
         new_expenses.append(new_expense)
 
     db.session.commit()
 
     return jsonify({
-        'message':
-        'Expenses added successfully',
+        'message': 'Expenses added successfully',
         'expenses': [{
             'id': e.id,
             'amount': e.amount,
@@ -93,22 +91,17 @@ def add_expenses_bulk():
 
 
 @expense_bp.route('/api/expenses/delete', methods=['POST'])
+@jwt_required()
 def delete_expense():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     expense_id = data.get('id')
-
-    # Find the expense belonging to the current user
-    expense = Expense.query.filter_by(id=expense_id, user_id=session['user']['id']).first()
+    expense = Expense.query.filter_by(id=expense_id, user_id=user_id).first()
     if not expense:
         return jsonify({'error': 'Expense not found'}), 404
 
     try:
-        # Delete all related SharedExpense records before deleting the expense itself
         SharedExpense.query.filter_by(expense_id=expense_id).delete()
-        # --- Bulk share cleanup logic ---
         bulk_shares = SharedExpense.query.filter(
             SharedExpense.is_bulk_share == True,
             SharedExpense.bulk_expense_ids.like(f'%{expense_id}%')
@@ -131,7 +124,6 @@ def delete_expense():
                     share.bulk_expense_ids = None
             else:
                 share.bulk_expense_ids = ','.join(map(str, ids))
-        # --- End bulk share cleanup ---
         db.session.delete(expense)
         db.session.commit()
         return jsonify({'message': 'Expense deleted successfully'})
@@ -141,27 +133,24 @@ def delete_expense():
 
 
 @expense_bp.route('/api/expenses/bulk-delete', methods=['POST'])
+@jwt_required()
 def bulk_delete_expenses():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     expense_ids = data.get('ids', [])
-
     if not expense_ids:
         return jsonify({'error': 'No expense IDs provided'}), 400
 
     expenses = Expense.query.filter(
         Expense.id.in_(expense_ids),
-        Expense.user_id == session['user']['id']).all()
-
+        Expense.user_id == user_id
+    ).all()
     if not expenses:
         return jsonify({'error': 'No matching expenses found'}), 404
 
     try:
         for expense in expenses:
             SharedExpense.query.filter_by(expense_id=expense.id).delete()
-            # --- Bulk share cleanup logic ---
             bulk_shares = SharedExpense.query.filter(
                 SharedExpense.is_bulk_share == True,
                 SharedExpense.bulk_expense_ids.like(f'%{expense.id}%')
@@ -184,7 +173,6 @@ def bulk_delete_expenses():
                         share.bulk_expense_ids = None
                 else:
                     share.bulk_expense_ids = ','.join(map(str, ids))
-            # --- End bulk share cleanup ---
             db.session.delete(expense)
         db.session.commit()
         return jsonify({'message': 'Selected expenses deleted successfully'})
@@ -194,62 +182,53 @@ def bulk_delete_expenses():
 
 
 @expense_bp.route('/api/expenses/by-ocr', methods=['POST'])
+@jwt_required()
 def ocr_receipt():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
-
     file = request.files['file']
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
-
     try:
-        # Read file directly into memory
         file_stream = file.read()
-        text = ocr_image(file_stream)  # Pass the file stream to the OCR function
+        text = ocr_image(file_stream)
         result = process_receipt(text)
         return jsonify({'result': result})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-@expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
-def share_expense(expense_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
 
+
+@expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
+@jwt_required()
+def share_expense(expense_id):
+    user_id = get_jwt_identity()
     data = request.get_json()
     shared_with_username = data.get('username')
-
     shared_with_user = User.query.filter_by(username=shared_with_username).first()
     if not shared_with_user:
         return jsonify({'error': 'User not found'}), 404
 
     expense = Expense.query.get(expense_id)
-    if not expense or expense.user_id != session['user']['id']:
+    if not expense or expense.user_id != user_id:
         return jsonify({'error': 'Expense not found or unauthorized'}), 404
 
-    # Check if already shared
     existing_share = SharedExpense.query.filter_by(
         expense_id=expense_id,
         shared_with_id=shared_with_user.id
     ).first()
-    
     if existing_share:
         return jsonify({'error': 'This expense is already shared with this user'}), 400
 
     shared_expense = SharedExpense(expense_id=expense_id, shared_with_id=shared_with_user.id)
     db.session.add(shared_expense)
     db.session.commit()
-
     return jsonify({'message': 'Expense shared successfully'})
 
 
 @expense_bp.route('/api/expenses/bulk-share', methods=['POST'])
+@jwt_required()
 def bulk_share_expenses():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
+    user_id = get_jwt_identity()
     data = request.get_json()
     expense_ids = data.get('ids', [])
     shared_with_username = data.get('username')
@@ -263,13 +242,11 @@ def bulk_share_expenses():
 
     expenses = Expense.query.filter(
         Expense.id.in_(expense_ids),
-        Expense.user_id == session['user']['id']
+        Expense.user_id == user_id
     ).all()
-
     if not expenses:
         return jsonify({'error': 'No matching expenses found'}), 404
 
-    # Check for existing shares and create new ones
     shared_count = 0
     already_shared = []
     for expense in expenses:
@@ -277,7 +254,6 @@ def bulk_share_expenses():
             expense_id=expense.id,
             shared_with_id=shared_with_user.id
         ).first()
-        
         if not existing_share:
             shared_expense = SharedExpense(expense_id=expense.id, shared_with_id=shared_with_user.id)
             db.session.add(shared_expense)
@@ -286,13 +262,7 @@ def bulk_share_expenses():
             already_shared.append(expense.id)
 
     db.session.commit()
-
-    # Prepare response message
-    if already_shared:
-        message = f'Shared {shared_count} expenses. {len(already_shared)} expenses were already shared.'
-    else:
-        message = f'Successfully shared {shared_count} expenses.'
-
+    message = f'Shared {shared_count} expenses. {len(already_shared)} already shared.' if already_shared else f'Successfully shared {shared_count} expenses.'
     return jsonify({
         'message': message,
         'shared_count': shared_count,

@@ -365,6 +365,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/insights/period-summary',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 period: activePeriod,
                 startDate: filters.startDate,
@@ -410,6 +413,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/income-summary',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate, 
                 endDate: filters.endDate
@@ -422,6 +428,9 @@ $(document).ready(() => {
                 $.ajax({
                     url: '/api/expense-summary',
                     method: 'GET',
+                    xhrFields: {
+        withCredentials: true
+    },
                     data: { 
                         startDate: filters.startDate, 
                         endDate: filters.endDate
@@ -466,6 +475,9 @@ $(document).ready(() => {
                 $.ajax({
                     url: '/api/expense-summary',
                     method: 'GET',
+                    xhrFields: {
+        withCredentials: true
+    },
                     data: { 
                         startDate: filters.startDate, 
                         endDate: filters.endDate
@@ -576,6 +588,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/income-expense-comparison',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate, 
                 endDate: endDate.toISOString().split('T')[0]
@@ -850,6 +865,9 @@ $(document).ready(() => {
             $.ajax({
                 url: '/api/insights/period-summary',
                 method: 'GET',
+                xhrFields: {
+        withCredentials: true
+    },
                 data: {
                     period: activePeriod
                 },
@@ -867,6 +885,9 @@ $(document).ready(() => {
                         $.ajax({
                             url: '/api/income-summary',
                             method: 'GET',
+                            xhrFields: {
+        withCredentials: true
+    },
                             data: { 
                                 startDate: filters.startDate, 
                                 endDate: filters.endDate
@@ -907,6 +928,9 @@ $(document).ready(() => {
         $.ajax({
             url: url,
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: {
                 startDate: filters.startDate,
                 endDate: filters.endDate
@@ -1144,6 +1168,9 @@ $(document).ready(() => {
         const expensePromise = $.ajax({
             url: '/api/insights/top-categories',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate,
                 endDate: filters.endDate
@@ -1154,6 +1181,9 @@ $(document).ready(() => {
         const incomePromise = $.ajax({
             url: '/api/income-summary',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate,
                 endDate: filters.endDate
@@ -1458,6 +1488,9 @@ $(document).ready(() => {
                 let expensePromise = $.ajax({
                     url: '/api/expenses-by-month',
                     method: 'GET',
+                    xhrFields: {
+        withCredentials: true
+    },
                     data: { 
                         startDate: filters.startDate,
                         endDate: filters.endDate
@@ -1468,6 +1501,9 @@ $(document).ready(() => {
                 let incomePromise = $.ajax({
                     url: '/api/income-by-month',
                     method: 'GET',
+                    xhrFields: {
+        withCredentials: true
+    },
                     data: { 
                         startDate: filters.startDate, 
                         endDate: filters.endDate
@@ -1526,6 +1562,9 @@ $(document).ready(() => {
                 $.ajax({
                     url: '/api/expenses-by-month',
                     method: 'GET',
+                    xhrFields: {
+        withCredentials: true
+    },
                     data: { 
                         startDate: filters.startDate,
                         endDate: filters.endDate
@@ -1566,6 +1605,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/expenses-by-month',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate, 
                 endDate: filters.endDate
@@ -1577,6 +1619,9 @@ $(document).ready(() => {
                     $.ajax({
                         url: '/api/income-by-month',
                         method: 'GET',
+                        xhrFields: {
+        withCredentials: true
+    },
                         data: { 
                             startDate: filters.startDate, 
                             endDate: filters.endDate
@@ -2097,6 +2142,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/insights/debug',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate, 
                 endDate: filters.endDate
@@ -2148,6 +2196,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/insights/date-diagnostic',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             dataType: 'json',
             success: (data) => {
                 console.log("===== DATE ASSIGNMENT DIAGNOSTICS =====");
@@ -2228,6 +2279,9 @@ $(document).ready(() => {
         $.ajax({
             url: '/api/insights/debug',
             method: 'GET',
+            xhrFields: {
+        withCredentials: true
+    },
             data: { 
                 startDate: filters.startDate, 
                 endDate: filters.endDate
@@ -2242,6 +2296,9 @@ $(document).ready(() => {
                 $.ajax({
                     url: '/api/insights/period-summary',
                     method: 'GET',
+                    xhrFields: {
+        withCredentials: true
+    },
                     data: { 
                         period: period
                     },
