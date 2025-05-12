@@ -14,28 +14,47 @@ extra_head %}
     <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center">
-                <div class="date-range-selector">
+                <!-- Data Source Selection -->
+                <div class="data-source-selector me-4">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary active" data-source="my-data">My Data</button>
+                        <button type="button" class="btn btn-outline-primary" data-source="shared-data">Shared With Me</button>
+                    </div>
+                </div>
+
+                <!-- Shared User Selector - Hidden by default -->
+                <div class="shared-user-selector me-4" style="display: none;">
                     <div class="d-flex align-items-center">
-                        <div class="btn-group period-selector me-3">
+                        <label for="sharerSelect" class="me-2">View data from:</label>
+                        <select id="sharerSelect" class="form-select form-select-sm" style="min-width: 150px;">
+                            <option value="" selected disabled>Select a user</option>
+                            <!-- Options will be loaded dynamically -->
+                        </select>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" id="backToMyData">
+                            <i class="fas fa-arrow-left me-1"></i> Back
+                        </button>
+                    </div>
+                </div>
+
+                <div class="date-range-selector flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center">
+                        <div class="btn-group period-selector me-3 mb-0">
                             <button type="button" class="btn btn-outline-primary active" data-period="month">This Month</button>
                             <button type="button" class="btn btn-outline-primary" data-period="prev-month">Last Month</button>
                             <button type="button" class="btn btn-outline-primary" data-period="year">This Year</button>
                             <button type="button" class="btn btn-outline-primary" data-period="custom">Custom</button>
                         </div>
                         
-                        <div class="custom-date-range" style="display: none;">
-                            <div class="d-flex align-items-center">
-                                <input type="date" id="startDate" class="form-control form-control-sm" />
-                                <span class="mx-2">to</span>
-                                <input type="date" id="endDate" class="form-control form-control-sm" />
-                                <button class="btn btn-sm btn-primary ms-2" id="applyDateRange">
-                                    <i class="fas fa-check"></i> Apply
-                                </button>
-                            </div>
+                        <div class="custom-date-range d-flex align-items-center mt-0" style="display: none;">
+                            <input type="date" id="startDate" class="form-control form-control-sm" />
+                            <span class="mx-2">to</span>
+                            <input type="date" id="endDate" class="form-control form-control-sm" />
+                            <button class="btn btn-sm btn-primary ms-2" id="applyDateRange">
+                                <i class="fas fa-check"></i> Apply
+                            </button>
                         </div>
                     </div>
-                    </div>
-
+                </div>
 
                 
                 <div class="export-options">

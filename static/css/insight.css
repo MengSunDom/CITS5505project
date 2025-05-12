@@ -1,14 +1,13 @@
 /* Base Chart Styling */
 .chart-container {
-    width: 100%;
-    height: 350px;
     position: relative;
-    background-color: #ffffff !important;
-    border: 1px solid #e0e0e0 !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    padding: 10px;
-    transition: all 0.3s;
+    height: 300px;
+    width: 100%;
+    min-height: 250px;
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
 }
 
 /* Text Overflow Handling */
@@ -206,6 +205,91 @@
 .custom-date-range {
     display: flex;
     align-items: center;
+}
+
+/* Fix shared selector and date range layout issues */
+.data-source-selector,
+.shared-user-selector {
+    flex-shrink: 0;
+    margin-bottom: 10px;
+}
+
+.shared-user-selector {
+    min-width: 350px;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.date-range-selector {
+    flex-wrap: wrap;
+    min-height: 38px;
+}
+
+.custom-date-range {
+    display: none;
+    margin-top: 10px !important;
+    flex-wrap: nowrap;
+}
+
+.custom-date-range input[type="date"] {
+    min-width: 130px;
+}
+
+/* Make sure buttons don't wrap */
+.period-selector .btn,
+.btn-group-sm .btn {
+    white-space: nowrap;
+}
+
+/* Updated layout fixes for better consistency */
+.date-range-selector {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.period-selector-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+
+.period-selector {
+    flex-wrap: nowrap !important;
+    margin-right: 0 !important;
+}
+
+/* Ensure date picker doesn't break layout */
+.custom-date-range.show {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* Additional mobile styles */
+@media (max-width: 768px) {
+    .d-flex.flex-wrap.justify-content-between {
+        flex-direction: column;
+    }
+    
+    .shared-user-selector,
+    .data-source-selector,
+    .date-range-selector,
+    .export-options {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .custom-date-range input[type="date"] {
+        width: 40%;
+    }
 }
 
 /* Chart Tooltips */
@@ -430,4 +514,70 @@ svg.main-svg {
     white-space: normal !important;
     z-index: 1 !important;
     position: relative !important;
+}
+
+/* 确保图表在容器中正确显示 */
+canvas.chart-container {
+    height: 100% !important;
+}
+
+#topCategoriesChart {
+    height: 270px !important;
+    width: 100% !important;
+}
+
+/* 修复图表文本的样式问题 */
+.chart-container .chartjs-text {
+    text-decoration: none !important;
+    font-weight: normal !important;
+}
+
+.chartjs-legend li, 
+.chartjs-legend span,
+.chart-legend li, 
+.chart-legend span,
+#categoryPieChart span,
+#categoryPieChart li,
+.chart-container span,
+.chart-container li {
+    text-decoration: none !important;
+    border-bottom: none !important;
+    text-decoration-line: none !important;
+    box-shadow: none !important;
+}
+
+/* 数据源选择器样式 */
+.data-source-selector {
+    margin-bottom: 1rem;
+}
+
+/* 共享用户选择器样式 */
+.shared-user-selector {
+    margin-bottom: 1rem;
+}
+
+/* 共享数据横幅样式 */
+#sharedDataBanner {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.25rem;
+    background-color: #cff4fc;
+    border: 1px solid #b6effb;
+}
+
+#sharedDataBanner .fas {
+    font-size: 1.5rem;
+    margin-right: 0.75rem;
+}
+
+/* 使图表文字正常显示 */
+.chart-container text,
+.chart-container tspan {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 12px !important;
+    fill: #666 !important;
+    font-weight: normal !important;
+    text-decoration: none !important;
 } 

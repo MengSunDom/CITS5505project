@@ -1,122 +1,140 @@
 $(document).ready(() => {
-    /**
-     * Debug function to log date information
-     * @param {string} label - Label for the log entry
-     * @param {*} dateObj - Date object or string to inspect
-     */
-    function debugDate(label, dateObj) {
-        if (!dateObj) {
-            console.log(`DEBUG DATE [${label}]: null or undefined`);
-            return;
-        }
-        
-        if (typeof dateObj === 'string') {
-            console.log(`DEBUG DATE [${label}] (string): ${dateObj}`);
-            try {
-                const parsedDate = new Date(dateObj);
-                console.log(`  → Parsed as: ${parsedDate.toISOString()} (valid: ${!isNaN(parsedDate.getTime())})`);
-            } catch (e) {
-                console.log(`  → Failed to parse: ${e.message}`);
-            }
-        } else if (dateObj instanceof Date) {
-            console.log(`DEBUG DATE [${label}] (Date object): ${dateObj.toISOString()}`);
-            console.log(`  → Year: ${dateObj.getFullYear()}, Month: ${dateObj.getMonth() + 1}, Day: ${dateObj.getDate()}`);
-        } else {
-            console.log(`DEBUG DATE [${label}] (${typeof dateObj}):`, dateObj);
-        }
-    }
+    console.log('Insight page initializing...');
     
-    // Make debug function available globally
-    window.debugDate = debugDate;
-    
-    // Add a function to fix chart text strikethrough issues - add this at document ready
-    function fixChartTextDecorations() {
-        console.log("Applying text decoration fixes");
-        
-        // Fix for Chart.js legend text
-        const fixLegendText = () => {
-            // Target all elements that might have text decorations in charts
-            const selectors = [
-                '.chartjs-legend li', 
-                '.chartjs-legend span',
-                '.chart-legend li', 
-                '.chart-legend span',
-                '#categoryPieChart span',
-                '#categoryPieChart li',
-                '.chart-container span',
-                '.chart-container li'
-            ];
-            
-            selectors.forEach(selector => {
-                const elements = document.querySelectorAll(selector);
-                elements.forEach(el => {
-                    // Completely remove all text decoration
-                    el.style.setProperty('text-decoration', 'none', 'important');
-                    el.style.setProperty('border-bottom', 'none', 'important');
-                    el.style.setProperty('text-decoration-line', 'none', 'important');
-                    el.style.setProperty('box-shadow', 'none', 'important');
-                });
-            });
-        };
-        
-        // Run the fix immediately
-        fixLegendText();
-        
-        // Keep checking for new elements and fix them
-        const observer = new MutationObserver(mutations => {
-            fixLegendText();
-        });
-        
-        // Start observing the document
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class', 'style']
-        });
-        
-        // Also inject a global style to prevent the issue
-        const style = document.createElement('style');
-        style.textContent = `
-            /* Force no text decorations on chart elements */
-            .chartjs-legend li, 
-            .chartjs-legend span,
-            .chart-legend li, 
-            .chart-legend span,
-            #categoryPieChart span,
-            #categoryPieChart li,
-            .chart-container span,
-            .chart-container li,
-            .chartjs-render-monitor + div span,
-            .chartjs-render-monitor + div li {
-                text-decoration: none !important;
-                border-bottom: none !important;
-                text-decoration-line: none !important;
-                box-shadow: none !important;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    // Run the fix on page load
-    fixChartTextDecorations();
-    
-    console.log("Insights page initializing with improved date handling...");
-    
-    // Set default date range to current month
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+    // ----- Global variables -----
+    // Track current data source (my-data or shared-data)
+    let currentDataSource = 'my-data';
+    // Track selected sharer ID when viewing shared data
+    let selectedSharerId = null;
+    // Track charts to destroy them before redrawing
+    let trendChart = null;
+    let pieChart = null;
+    let topCategoriesChart = null;
+    let monthlyComparisonChart = null;
+
+    // ----- Helper functions -----
     // Format dates for input fields
     const formatDateForInput = (date) => {
         return date.toISOString().split('T')[0];
     };
+
+    // Format currency
+    function formatCurrency(amount) {
+        return '$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    }
+
+    // Get current filter settings
+    function getFilterSettings() {
+        const startDateStr = $('#startDate').val();
+        const endDateStr = $('#endDate').val();
+        
+        return {
+            startDate: startDateStr,
+            endDate: endDateStr,
+            dataSource: currentDataSource,
+            sharerId: selectedSharerId
+        };
+    }
+
+    // Handle AJAX errors
+    function handleAjaxError(xhr, status, error) {
+        console.error('AJAX Error:', status, error);
+        
+        // Remove existing error alerts to prevent duplicates
+        $('.alert-danger').remove();
+        
+        let errorMessage = 'Error loading data. Please try again later.';
+        
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+            errorMessage = xhr.responseJSON.error;
+        } else if (error) {
+            errorMessage = `${error}. Please try again later.`;
+        }
+        
+        // Create a single error message at the top of the page
+        const errorHtml = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Error:</strong> ${errorMessage}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Only add if no error is currently displayed
+        $('.container:first').prepend(errorHtml);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            $('.alert-danger').fadeOut('slow', function() {
+                $(this).remove();
+            });
+        }, 5000);
+    }
+
+    // Add CSS fixes for UI elements
+    function addUIStyleFixes() {
+        $('<style>')
+            .prop('type', 'text/css')
+            .html(`
+                /* Shared user selector improvements */
+                .shared-user-selector {
+                    background-color: #f8f9fa;
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    border: 1px solid #e9ecef;
+                }
+                
+                /* Date range selector improvements */
+                .date-range-selector {
+                    min-height: 38px;
+                }
+                
+                .period-selector {
+                    flex-wrap: nowrap;
+                    margin-bottom: 0 !important;
+                }
+                
+                .period-selector .btn {
+                    white-space: nowrap;
+                }
+                
+                .custom-date-range {
+                    margin-top: 0 !important;
+                    flex-wrap: nowrap;
+                }
+                
+                .custom-date-range input[type="date"] {
+                    min-width: 130px;
+                }
+                
+                /* Card header improvements */
+                .card-header .btn-group-sm {
+                    margin-bottom: 0 !important;
+                }
+                
+                @media (max-width: 767.98px) {
+                    .data-source-selector,
+                    .shared-user-selector,
+                    .date-range-selector,
+                    .export-options {
+                        margin-bottom: 10px;
+                    }
+                    
+                    .custom-date-range {
+                        margin-top: 10px !important;
+                    }
+                }
+            `)
+            .appendTo('head');
+    }
+
+    // ----- Date handling -----
+    // Set default date range to current month
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     
     // Set initial values for date inputs
     $('#startDate').val(formatDateForInput(firstDayOfMonth));
     $('#endDate').val(formatDateForInput(today));
-    
-    console.log(`Initial date range: ${formatDateForInput(firstDayOfMonth)} to ${formatDateForInput(today)}`);
     
     // Ensure "This Month" button is active by default
     $('.period-selector .btn').removeClass('active');
@@ -124,1670 +142,1228 @@ $(document).ready(() => {
     
     // Hide custom date range initially
     $('.custom-date-range').hide();
-    
-    // Load initial data
-    console.log("Loading initial data with improved date handling...");
-    loadAllData();
-    
-    // Debug initial request
-    setTimeout(() => {
-        debugApiRequest('month');
-    }, 500);
-    
-    // Active period selection - completely revised to ensure correct date ranges
-    $('.period-selector .btn').on('click', function() {
+
+    // Add CSS fixes when document is ready
+    addUIStyleFixes();
+
+    // ----- Event Handlers -----
+    // Data source selector (My Data / Shared With Me)
+    $('.data-source-selector .btn').off('click').on('click', function() {
+        console.log('Data source button clicked:', $(this).data('source'));
+        $('.data-source-selector .btn').removeClass('active');
+        $(this).addClass('active');
+        
+        const newDataSource = $(this).data('source');
+        
+        // Only reload if data source changed
+        if (newDataSource !== currentDataSource) {
+            currentDataSource = newDataSource;
+            console.log('Switched to data source:', currentDataSource);
+            
+            if (currentDataSource === 'my-data') {
+                // Switch back to my data
+                $('.shared-user-selector').hide();
+                selectedSharerId = null;
+                loadAllData();
+            } else {
+                // Switch to shared data
+                $('.shared-user-selector').show();
+                // Clear all charts and data displays while waiting for user selection
+                clearAllDataDisplays();
+                // Load list of users who shared data
+                loadSharedUsers();
+            }
+            
+            // Reinitialize chart toggles for consistency
+            setTimeout(() => addChartTogglesListeners(), 100);
+        }
+    });
+
+    // Sharer selection dropdown change
+    $('#sharerSelect').off('change').on('change', function() {
+        const sharerId = $(this).val();
+        console.log('Sharer selected:', sharerId);
+        
+        if (sharerId) {
+            selectedSharerId = sharerId;
+            loadAllData();
+            
+            // Reinitialize chart toggles for consistency
+            setTimeout(() => addChartTogglesListeners(), 100);
+        }
+    });
+
+    // Back to My Data button
+    $('#backToMyData').off('click').on('click', function() {
+        console.log('Back to my data clicked');
+        $('.data-source-selector .btn').removeClass('active');
+        $('.data-source-selector .btn[data-source="my-data"]').addClass('active');
+        currentDataSource = 'my-data';
+        selectedSharerId = null;
+        $('.shared-user-selector').hide();
+        loadAllData();
+        
+        // Reinitialize chart toggles for consistency
+        setTimeout(() => addChartTogglesListeners(), 100);
+    });
+
+    // Period selection with improved date handling and consistent UI
+    $('.period-selector .btn').off('click').on('click', function() {
         $('.period-selector .btn').removeClass('active');
         $(this).addClass('active');
         
         const period = $(this).data('period');
-        const today = new Date();
-        
-        console.log(`Switching to period: ${period}`);
         
         if (period === 'custom') {
-            $('.custom-date-range').show();
+            $('.custom-date-range').css('display', 'flex');
             return;
         } else {
             $('.custom-date-range').hide();
         }
         
-        let startDate, endDate, displayEndDate;
+        let startDate, endDate;
+        const today = new Date();
         
         switch(period) {
             case 'month':
-                // Current month - from 1st of current month to 1st of next month (exclusive)
+                // Current month - from 1st of current month to today
                 startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-                displayEndDate = new Date(today); // Display today's date
+                endDate = new Date(today);
                 break;
                 
             case 'prev-month':
-                // Previous month - from 1st of previous month to 1st of current month (exclusive)
+                // Previous month - from 1st to last day of previous month
                 startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                endDate = new Date(today.getFullYear(), today.getMonth(), 1);
                 
-                // Calculate last day of previous month for display
-                displayEndDate = new Date(endDate);
-                displayEndDate.setDate(displayEndDate.getDate() - 1);
+                // Calculate the last day of the previous month
+                // This is done by getting the 0th day of current month, which gives last day of previous month
+                if (today.getMonth() === 0) {
+                    // If January, previous month is December of last year
+                    endDate = new Date(today.getFullYear() - 1, 12, 0); // December 31st
+                } else {
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                }
                 break;
                 
             case 'year':
-                // Current year - from Jan 1 to Jan 1 of next year (exclusive)
+                // Current year - from January 1st to today
                 startDate = new Date(today.getFullYear(), 0, 1);
-                endDate = new Date(today.getFullYear() + 1, 0, 1);
-                displayEndDate = new Date(today); // Display today's date
+                endDate = new Date(today);
                 break;
         }
         
         // Set the input field values
         $('#startDate').val(formatDateForInput(startDate));
-        $('#endDate').val(formatDateForInput(displayEndDate));
+        $('#endDate').val(formatDateForInput(endDate));
         
-        console.log(`Period ${period} - Date range: ${formatDateForInput(startDate)} to ${formatDateForInput(endDate)} (displayed as ${formatDateForInput(displayEndDate)})`);
+        // Loading indicator
+        $('.chart-container').html('<div class="loading-indicator">Loading data...</div>');
         
-        // Debug the API request
-        loadAllData();
-        
-        // Debug the request after loading data
-        setTimeout(() => {
-            debugApiRequest(period);
-        }, 500);
+        // Load all data with the new date range
+        setTimeout(() => loadAllData(), 100);
     });
-    
-    // Apply custom date range
-    $('#applyDateRange').on('click', function() {
-        const startDateStr = $('#startDate').val(); // Get start date from input
-        const endDateStr = $('#endDate').val(); // Get end date from input
 
-        // Convert to Date objects for comparison
+    // Apply custom date range
+    $('#applyDateRange').off('click').on('click', function() {
+        const startDateStr = $('#startDate').val();
+        const endDateStr = $('#endDate').val();
         const startDate = new Date(startDateStr);
         const endDate = new Date(endDateStr);
         const today = new Date();
 
-        // Check if start date is after end date
         if (startDate > endDate) {
-            alert("Invalid period specified: Start date cannot be after end date."); // Show error if start date is after end date
-            return; // Exit the function
+            alert("Start date cannot be after end date.");
+            return;
         }
 
-        // Check if both dates are in the future
         if (startDate > today && endDate > today) {
-            alert("Invalid period specified: Dates cannot be in the future."); // Show error if both dates are in the future
-            return; // Exit the function
+            alert("Dates cannot be in the future.");
+            return;
         }
         
-        // Set the active period to custom
-        $('.period-selector .btn').removeClass('active');
-        $('.period-selector .btn[data-period="custom"]').addClass('active');
+        // Loading indicator
+        $('.chart-container').html('<div class="loading-indicator">Loading data...</div>');
+        
+        // Load all data with the new date range
+        setTimeout(() => loadAllData(), 100);
+    });
 
-        // If validation passes, load data with the selected date range
-        loadAllData(); // Load data if validation passes
-    });
-    
-    // Toggle between data types
-    $('.data-type-filter .btn').on('click', function() {
-        $('.data-type-filter .btn').removeClass('active');
-        $(this).addClass('active');
-        loadAllData();
-    });
-    
-    // Chart period selectors
-    $('.chart-period-selector .btn').on('click', function() {
-        $(this).parent().find('.btn').removeClass('active');
-        $(this).addClass('active');
-        loadTrendChart();
-    });
-    
-    // Pie chart type toggle
-    $('[data-pie-type]').on('click', function() {
-        $(this).parent().find('.btn').removeClass('active');
-        $(this).addClass('active');
-        loadCategoryPieChart();
-    });
-    
-    // Monthly comparison type toggle
-    $('[data-compare-type]').on('click', function() {
-        $(this).parent().find('.btn').removeClass('active');
-        $(this).addClass('active');
-        loadMonthlyComparisonChart();
-    });
-    
-    // Export functionality
+    // Set up all event listeners
+    function addChartTogglesListeners() {
+        console.log('Setting up chart toggle listeners');
+        
+        // Chart period selectors
+        $('.chart-period-selector .btn').off('click').on('click', function() {
+            $(this).parent().find('.btn').removeClass('active');
+            $(this).addClass('active');
+            loadTrendChart();
+            // Also update monthly comparison chart with the same period
+            loadMonthlyComparisonChart();
+        });
+        
+        // Pie chart type toggle
+        $('[data-pie-type]').off('click').on('click', function() {
+            $(this).parent().find('.btn').removeClass('active');
+            $(this).addClass('active');
+            loadCategoryPieChart();
+        });
+        
+        // Top categories type toggle
+        $('[data-top-categories-type]').off('click').on('click', function() {
+            $(this).parent().find('.btn').removeClass('active');
+            $(this).addClass('active');
+            loadTopCategoriesChart();
+        });
+        
+        // Monthly comparison type toggle
+        $('[data-compare-type]').off('click').on('click', function() {
+            $(this).parent().find('.btn').removeClass('active');
+            $(this).addClass('active');
+            loadMonthlyComparisonChart();
+        });
+    }
+
+    // Export PDF button
     $('#exportPDF').on('click', function(e) {
         e.preventDefault();
         exportToPDF();
     });
-    
+
+    // Export PNG button
     $('#exportPNG').on('click', function(e) {
         e.preventDefault();
         exportToPNG();
     });
-    
-    // Get current filter settings - completely revised for correct date handling
-    function getFilterSettings() {
-        const startDateStr = $('#startDate').val();
-        const endDateStr = $('#endDate').val();
+
+    // ----- Data Loading Functions -----
+    // Load shared users (for dropdown) with improved handling
+    function loadSharedUsers() {
+        console.log('Loading shared users...');
         
-        const activePeriod = $('.period-selector .btn.active').data('period');
-        console.log(`Getting filter settings for period: ${activePeriod}`);
-        
-        let startDate = startDateStr;
-        let endDate, displayEndDate = endDateStr;
-        
-        // Create date objects for manipulation
-        const startDateObj = new Date(startDateStr);
-        const endDateObj = new Date(endDateStr);
-        const today = new Date();
-        
-        // Handle period-specific date logic
-        switch(activePeriod) {
-            case 'month':
-                // End date should be first day of next month
-                const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-                endDate = formatDateForInput(nextMonth);
-                break;
+        $.ajax({
+            url: '/api/shared-insights/users',
+            method: 'GET',
+            dataType: 'json',
+            success: (data) => {
+                console.log('Shared users data:', data);
+                const dropdown = $('#sharerSelect');
+                dropdown.empty();
                 
-            case 'prev-month':
-                // End date should be first day of current month
-                const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                endDate = formatDateForInput(thisMonth);
-                break;
+                // Add an "All Shared Data" option at the top
+                dropdown.append('<option value="all" selected>All Shared Data</option>');
                 
-            case 'year':
-                // End date should be first day of next year
-                const nextYear = new Date(today.getFullYear() + 1, 0, 1);
-                endDate = formatDateForInput(nextYear);
-                break;
-                
-            case 'custom':
-                // For custom range, include the end date by setting it to the next day
-                const nextDay = new Date(endDateObj);
-                nextDay.setDate(nextDay.getDate() + 1);
-                endDate = formatDateForInput(nextDay);
-                break;
-                
-            default:
-                // Default to using the exact end date
-                endDate = endDateStr;
-        }
-        
-        console.log(`Final date range: ${startDate} to ${endDate} (displayed as ${displayEndDate})`);
-        
-        return {
-            startDate: startDate,
-            endDate: endDate,
-            displayEndDate: displayEndDate,
-            dataType: $('.data-type-filter .btn.active').data('type') || 'all'
-        };
-    }
-    
-    // Load all data with proper error handling
-    function loadAllData() {
-        const filters = getFilterSettings();
-        const activePeriod = $('.period-selector .btn.active').data('period');
-        
-        console.log(`Loading all data for period: ${activePeriod}`);
-        console.log(`Date range: ${filters.startDate} to ${filters.endDate} (display: ${filters.displayEndDate})`);
-        
-        // Store current period for comparison features
-        localStorage.setItem('lastActivePeriod', activePeriod);
-        
-        // First load summary cards (main data) with a fallback chain
-        loadSummaryCards(function() {
-            // Then load remaining charts
-            loadTrendChart();
-            loadCategoryPieChart();
-            loadTopCategoriesChart();
-            loadMonthlyComparisonChart();
-            
-            // Debug API request for this period
-            setTimeout(() => {
-                debugApiRequest(activePeriod);
-            }, 500);
+                if (data && data.length > 0) {
+                    data.forEach(user => {
+                        dropdown.append(`<option value="${user.id}">${user.username}</option>`);
+                    });
+                    console.log('Added shared users to dropdown');
+                    
+                    // Make sure Back button exists
+                    if ($('#backToMyData').length === 0) {
+                        $('.shared-user-selector .d-flex').append(
+                            $('<button>')
+                                .attr('id', 'backToMyData')
+                                .addClass('btn btn-sm btn-outline-secondary ms-2')
+                                .html('<i class="fas fa-arrow-left me-1"></i> Back')
+                                .on('click', function() {
+                                    $('.data-source-selector .btn').removeClass('active');
+                                    $('.data-source-selector .btn[data-source="my-data"]').addClass('active');
+                                    currentDataSource = 'my-data';
+                                    selectedSharerId = null;
+                                    $('.shared-user-selector').hide();
+                                    loadAllData();
+                                })
+                        );
+                    }
+                    
+                    // Automatically select "All Shared Data" and load combined data
+                    selectedSharerId = "all";
+                    
+                    // Now load data after selection is made
+                    loadAllData();
+                } else {
+                    dropdown.append('<option value="" disabled>No shared data available</option>');
+                    console.log('No shared users available');
+                    clearAllDataDisplays();
+                }
+            },
+            error: handleAjaxError
         });
     }
-    
-    // Load summary cards data using the direct period-summary API
-    function loadSummaryCards(callback) {
-        const activePeriod = $('.period-selector .btn.active').data('period');
-        const filters = getFilterSettings();
+
+    // Load all data elements
+    function loadAllData() {
+        console.log('Loading all data with settings:', getFilterSettings());
         
-        console.log(`Loading summary cards for period: ${activePeriod} using direct period API`);
+        // Clear previous charts first
+        clearCharts();
         
-        // For custom date range, use the fallback method directly
-        if (activePeriod === 'custom') {
-            console.log('Using fallback method for custom date range');
-            fallbackLoadSummaryCards(callback);
+        // If shared data is selected but no sharer is selected, only load the shared user list
+        if (currentDataSource === 'shared-data' && !selectedSharerId) {
+            console.log('Shared data selected but no sharer chosen - waiting for selection');
+            clearAllDataDisplays();
             return;
         }
         
-        // Use the direct period-summary API for standard periods
-        $.ajax({
-            url: '/api/insights/period-summary',
-            method: 'GET',
-            data: { 
-                period: activePeriod,
-                startDate: filters.startDate,
-                endDate: filters.endDate
-            },
-            dataType: 'json',
-            success: (periodData) => {
-                console.log(`Period ${activePeriod} data received:`, periodData);
-                
-                // Calculate average daily income and expenses
-                const daysInPeriod = getDaysInPeriod(activePeriod);
-                const averageDailyIncome = (periodData.income.totalAmount / daysInPeriod).toFixed(2);
-                const averageDailyExpense = (periodData.expense.totalAmount / daysInPeriod).toFixed(2);
-                
-                // Update the summary cards with the period data
-                updateSummaryCardsWithPeriodData(periodData.income, periodData.expense, 
-                    { totalAmount: 0 }, { totalAmount: 0 });
-                
-                // Display average daily income and expenses
-                $('#averageDailyIncome').text(`${formatCurrency(averageDailyIncome)}`);
-                $('#averageDailyExpense').text(`${formatCurrency(averageDailyExpense)}`);
-                
-                // Continue with other charts
-                if (callback) callback();
-            },
-            error: (xhr, status, error) => {
-                console.error("Error fetching period data:", error);
-                handleAjaxError(xhr, status, error);
-                
-                // Fallback to original method if direct API fails
-                fallbackLoadSummaryCards(callback);
-            }
-        });
+        // Then load all data
+        loadSummaryCards();
+        loadTrendChart();
+        loadCategoryPieChart();
+        loadTopCategoriesChart();
+        loadMonthlyComparisonChart();
     }
-    
-    // Fallback method for loading summary cards
-    function fallbackLoadSummaryCards(callback) {
-        const filters = getFilterSettings();
+
+    // Ensure all API calls add the correct parameters
+    function enhanceAPIParams(params, isSharedData, sharerId) {
+        // Only add parameters in shared-data mode
+        if (!isSharedData) return params;
         
-        console.log('Using fallback method for summary cards');
+        let enhancedParams = {...params};
         
-        // Load income data
-        $.ajax({
-            url: '/api/income-summary',
-            method: 'GET',
-            data: { 
-                startDate: filters.startDate, 
-                endDate: filters.endDate
-            },
-            dataType: 'json',
-            success: (incomeData) => {
-                console.log('Income data received:', incomeData);
-                
-                // Load expense data
-                $.ajax({
-                    url: '/api/expense-summary',
-                    method: 'GET',
-                    data: { 
-                        startDate: filters.startDate, 
-                        endDate: filters.endDate
-                    },
-                    dataType: 'json',
-                    success: (expenseData) => {
-                        console.log('Expense data received:', expenseData);
-                        
-                        // Calculate average daily amounts
-                        const daysInPeriod = getDaysInPeriod($('.period-selector .btn.active').data('period'));
-                        const averageDailyIncome = (incomeData.totalAmount / daysInPeriod).toFixed(2);
-                        const averageDailyExpense = (expenseData.totalAmount / daysInPeriod).toFixed(2);
-                        
-                        // Update the summary cards
-                        updateSummaryCardsWithPeriodData(incomeData, expenseData, 
-                            { totalAmount: 0 }, { totalAmount: 0 });
-                        
-                        // Display average daily amounts
-                        $('#averageDailyIncome').text(`${formatCurrency(averageDailyIncome)}`);
-                        $('#averageDailyExpense').text(`${formatCurrency(averageDailyExpense)}`);
-                        
-                        // Continue with other charts
-                        if (callback) callback();
-                    },
-                    error: (xhr, status, error) => {
-                        console.error("Error fetching expense data:", error);
-                        handleAjaxError(xhr, status, error);
-                        
-                        // Still try to update with income data only
-                        updateSummaryCardsWithPeriodData(incomeData, { totalAmount: 0 }, 
-                            { totalAmount: 0 }, { totalAmount: 0 });
-                        
-                        if (callback) callback();
-                    }
-                });
-            },
-            error: (xhr, status, error) => {
-                console.error("Error fetching income data:", error);
-                handleAjaxError(xhr, status, error);
-                
-                // Try to load expense data anyway
-                $.ajax({
-                    url: '/api/expense-summary',
-                    method: 'GET',
-                    data: { 
-                        startDate: filters.startDate, 
-                        endDate: filters.endDate
-                    },
-                    dataType: 'json',
-                    success: (expenseData) => {
-                        console.log('Expense data received:', expenseData);
-                        
-                        // Update with expense data only
-                        updateSummaryCardsWithPeriodData({ totalAmount: 0 }, expenseData, 
-                            { totalAmount: 0 }, { totalAmount: 0 });
-                        
-                        if (callback) callback();
-                    },
-                    error: (xhr, status, error) => {
-                        console.error("Error fetching expense data:", error);
-                        handleAjaxError(xhr, status, error);
-                        
-                        // Update with empty data
-                        updateSummaryCardsWithPeriodData({ totalAmount: 0 }, { totalAmount: 0 }, 
-                            { totalAmount: 0 }, { totalAmount: 0 });
-                        
-                        if (callback) callback();
-                    }
-                });
-            }
-        });
-    }
-    
-    // Calculate previous period data based on current period
-    function calculatePreviousPeriodData(filters) {
-        const start = new Date(filters.startDate);
-        const end = new Date(filters.endDate);
-        const periodLength = end - start;
-
-        // Calculate previous period dates
-        const prevEnd = new Date(start);
-        const prevStart = new Date(prevEnd - periodLength);
-
-        // Format dates for API
-        const prevStartStr = prevStart.toISOString().split('T')[0];
-        const prevEndStr = prevEnd.toISOString().split('T')[0];
-
-        // Return empty data structure (will be populated by API calls)
-        return {
-            income: { totalAmount: 0 },
-            expense: { totalAmount: 0 },
-            startDate: prevStartStr,
-            endDate: prevEndStr
-        };
-    }
-    
-    // Update summary cards with period comparison data
-    function updateSummaryCardsWithPeriodData(currentIncome, currentExpense, prevIncome, prevExpense) {
-        // Update income card
-        $('#totalIncome').text(formatCurrency(currentIncome.totalAmount));
-        const incomeChange = calculateChange(currentIncome.totalAmount, prevIncome.totalAmount);
-        updateChangeIndicator('#incomeChange', incomeChange);
-
-        // Update expense card
-        $('#totalExpenses').text(formatCurrency(currentExpense.totalAmount));
-        const expenseChange = calculateChange(currentExpense.totalAmount, prevExpense.totalAmount);
-        updateChangeIndicator('#expenseChange', expenseChange);
-
-        // Update balance card
-        const currentBalance = currentIncome.totalAmount - currentExpense.totalAmount;
-        const prevBalance = prevIncome.totalAmount - prevExpense.totalAmount;
-        $('#netBalance').text(formatCurrency(currentBalance));
-        const balanceChange = calculateChange(currentBalance, prevBalance);
-        updateChangeIndicator('#balanceChange', balanceChange);
-    }
-    
-    // Calculate percentage change
-    function calculateChange(current, previous) {
-        if (previous === 0) return current > 0 ? 100 : 0;
-        return ((current - previous) / Math.abs(previous)) * 100;
-    }
-    
-    // Update change indicator with color and arrow
-    function updateChangeIndicator(selector, change) {
-        const element = $(selector);
-        element.text(`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`);
+        // Always add these parameters for all shared data modes
+        enhancedParams.count_all = true;
+        enhancedParams.include_merged = true;
         
-        if (change > 0) {
-            element.removeClass('text-danger').addClass('text-success');
-            element.html(`<i class="fas fa-arrow-up"></i> ${change.toFixed(1)}%`);
-        } else if (change < 0) {
-            element.removeClass('text-success').addClass('text-danger');
-            element.html(`<i class="fas fa-arrow-down"></i> ${Math.abs(change).toFixed(1)}%`);
-        } else {
-            element.removeClass('text-success text-danger');
-            element.html(`0%`);
+        // For "all" mode, we need no additional parameters
+        // For individual user, add sharer_id
+        if (sharerId && sharerId !== "all") {
+            enhancedParams.sharer_id = sharerId;
+            // For individual user mode, still process all their shared items
+            enhancedParams.process_all_items = true;
         }
+        
+        // Add parameter to deduplicate records
+        enhancedParams.deduplicate = true;
+        
+        console.log('Enhanced API params:', enhancedParams);
+        return enhancedParams;
     }
+
+    // Load summary cards with improved handling of shared data
+    function loadSummaryCards() {
+        const filters = getFilterSettings();
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        console.log('Loading summary cards with data source:', currentDataSource);
+        console.log('Selected sharer ID:', selectedSharerId);
+
+        if (currentDataSource === 'my-data') {
+            apiUrl = '/api/insights/summary';
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/summary-all';  // Endpoint for combined data
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/summary';
+            } else {
+                console.log('No data source or no sharer selected, skipping load');
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+            console.log('Final API params for summary:', apiParams); // Debug log
+        } else {
+            return;
+        }
+
+        console.log('Loading summary from API:', apiUrl, apiParams);
+
+        // Load expense summary
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                console.log('Summary API response:', data);
+                
+                if (currentDataSource === 'my-data') {
+                    // Handle standard format
+                    const totalExpenses = data.totalAmount || 0;
+                    $('#totalExpenses').text(formatCurrency(totalExpenses));
+                    
+                    // Load income summary
+                    $.ajax({
+                        url: '/api/income-summary',
+                        method: 'GET',
+                        data: apiParams,
+                        dataType: 'json',
+                        success: (incomeData) => {
+                            console.log('Income API response:', incomeData);
+                            const totalIncome = incomeData.totalAmount || 0;
+                            $('#totalIncome').text(formatCurrency(totalIncome));
+                            
+                            // Calculate net balance
+                            const netBalance = totalIncome - totalExpenses;
+                            $('#netBalance').text(formatCurrency(netBalance));
+                            
+                            // Update top category information
+                            updateTopCategory(data.categoryDistribution);
+                            
+                            // Update average daily stats
+                            updateAverageDailyStats(totalIncome, totalExpenses, filters);
+                        },
+                        error: handleAjaxError
+                    });
+                } else if (currentDataSource === 'shared-data' && data.expense && data.income) {
+                    // Handle shared data format
+                    const totalExpenses = data.expense.totalAmount || 0;
+                    const totalIncome = data.income.totalAmount || 0;
+                    const netBalance = totalIncome - totalExpenses;
+                    
+                    console.log('Shared data totals - Expenses:', totalExpenses, 'Income:', totalIncome);
+                    
+                    $('#totalExpenses').text(formatCurrency(totalExpenses));
+                    $('#totalIncome').text(formatCurrency(totalIncome));
+                    $('#netBalance').text(formatCurrency(netBalance));
+                    
+                    // Update top category for shared data
+                    updateTopCategory(data.expense.categoryDistribution);
+                    
+                    // Update average daily stats
+                    updateAverageDailyStats(totalIncome, totalExpenses, filters);
+                } else {
+                    console.error('Unexpected data format received:', data);
+                    showNotification('Unexpected data format received. See console for details.', 'error');
+                }
+            },
+            error: handleAjaxError
+        });
+    }
+ 
+    function updateAverageDailyStats(totalIncome, totalExpenses, filters) {
     
+        const startDate = new Date(filters.startDate);
+        const endDate = new Date(filters.endDate);
+        const daysDiff = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+      
+        const avgDailyIncome = totalIncome / daysDiff;
+        const avgDailyExpense = totalExpenses / daysDiff;
+        
+        
+        $('#averageDailyIncome').text(formatCurrency(avgDailyIncome));
+        $('#averageDailyExpense').text(formatCurrency(avgDailyExpense));
+    }
+
+    // Update top category display
+    function updateTopCategory(categoryData) {
+        if (!categoryData || !categoryData.labels || categoryData.labels.length === 0) {
+            $('#topCategoryName').text('No Data');
+            $('#topCategoryAmount').text('$0.00');
+            $('#categoryPercentage').text('0% of total');
+            return;
+        }
+        
+        // Find the category with the highest value
+        let maxIndex = 0;
+        let maxValue = categoryData.values[0];
+        
+        for (let i = 1; i < categoryData.values.length; i++) {
+            if (categoryData.values[i] > maxValue) {
+                maxValue = categoryData.values[i];
+                maxIndex = i;
+            }
+        }
+        
+        const topCategory = categoryData.labels[maxIndex];
+        const topAmount = categoryData.values[maxIndex];
+        
+        // Calculate percentage of total
+        const totalAmount = categoryData.values.reduce((sum, value) => sum + value, 0);
+        const percentage = (topAmount / totalAmount) * 100;
+        
+        // Update display
+        $('#topCategoryName').text(topCategory);
+        $('#topCategoryAmount').text(formatCurrency(topAmount));
+        $('#categoryPercentage').text(`${percentage.toFixed(1)}% of total`);
+        
+        // Set icon based on category name
+        const categoryIcons = {
+            'Food': '🍔',
+            'Rent': '🏠',
+            'Transport': '🚗',
+            'Utilities': '💡',
+            'Entertainment': '🎬',
+            'Shopping': '🛍️',
+            'Healthcare': '🏥',
+            'Education': '📚',
+            'Travel': '✈️',
+            'Groceries': '🛒',
+            'Dining': '🍽️',
+            'Bills': '📝',
+            'Salary': '💰',
+            'Investment': '📈',
+            'Gift': '🎁'
+        };
+        
+        $('#topCategoryIcon').text(categoryIcons[topCategory] || '💸');
+    }
+
     // Load trend chart
     function loadTrendChart() {
         const filters = getFilterSettings();
-        const trendPeriod = $('.chart-period-selector .btn.active').data('trend-period') || 'daily';
-        const activePeriod = $('.period-selector .btn.active').data('period');
+        const period = $('.chart-period-selector .btn.active').data('trend-period') || 'daily';
         
-        console.log(`Loading trend chart data for period: ${activePeriod} (view: ${trendPeriod})`);
+        console.log('Loading trend chart with period:', period);
         
-        // Use the exact end date from filters
-        const endDate = new Date(filters.endDate);
-        
-        // Continue with the AJAX request
-        $.ajax({
-            url: '/api/income-expense-comparison',
-            method: 'GET',
-            data: { 
-                startDate: filters.startDate, 
-                endDate: endDate.toISOString().split('T')[0]
-            },
-            dataType: 'json',
-            success: (data) => {
-                console.log(`Trend data received with ${data.labels ? data.labels.length : 0} data points`);
-                console.log('Raw trend data:', data);
-                
-                // Check if we need to transform the data
-                if (data.income && data.expense && !data.series) {
-                    console.log('Transforming income/expense arrays to series format');
-                } else if (data.series) {
-                    console.log('Data already has series format:', data.series.length);
-                }
-                
-                drawTrendChart(data, trendPeriod);
-            },
-            error: (xhr, status, error) => {
-                handleAjaxError(xhr, status, error);
-                drawTrendChart({
-                    labels: [],
-                    income: [],
-                    expense: []
-                }, trendPeriod);
-            }
-        });
-    }
-    
-    // Draw trend chart with income and expense data
-    function drawTrendChart(data, period) {
-        try {
-            // 重新组织数据结构，同时支持新旧格式
-            let transformedData = data;
-            
-            // 检查是否是旧格式（带income和expense数组）
-            if (data.income && data.expense && !data.series) {
-                console.log('Converting legacy data format to Chart.js format');
-                
-                // 如果不是daily且数据有效，按period分组
-                if (period !== 'daily' && data.labels && data.labels.length > 0) {
-                    transformedData = groupDataByPeriod(data, period);
-                }
-                
-                // 转换为Chart.js期望的格式
-                transformedData = {
-                    labels: transformedData.labels,
-                    series: [
-                        {
-                            name: 'Income',
-                            data: transformedData.income.map(val => parseFloat(val) || 0)
-                        },
-                        {
-                            name: 'Expenses',
-                            data: transformedData.expense.map(val => parseFloat(val) || 0)
-                        }
-                    ]
-                };
+        // We'll use the daily data endpoint for all periods, then aggregate in JavaScript
+        // This avoids database-specific functions
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        if (currentDataSource === 'my-data') {
+            apiUrl = '/api/income-expense-comparison';
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/comparison-all';
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/comparison';
+            } else {
+                return; // No data source or no sharer selected
             }
             
-            // 确保数据结构正确
-            if (!transformedData || !transformedData.labels) {
-                console.error('Invalid trend data structure:', data);
-                $('#trendChart').html('<div class="alert alert-danger">Invalid data structure</div>');
-                return;
-            }
-            
-            // 获取容器元素
-            const container = document.getElementById('trendChart');
-            if (!container) {
-                console.error('Trend chart container element not found in DOM');
-                return;
-            }
-            
-            // 检查是否有已存在的canvas，如果没有则创建一个
-            let canvas = container.querySelector('canvas');
-            if (!canvas) {
-                // 先清空容器
-                container.innerHTML = '';
-                
-                // 创建新的canvas元素
-                canvas = document.createElement('canvas');
-                container.appendChild(canvas);
-            }
-            
-            // 应用直接样式到容器
-            if (container) {
-                container.style.backgroundColor = '#ffffff';
-                container.style.border = '1px solid #e0e0e0';
-                container.style.borderRadius = '8px';
-            }
-            
-            // 尝试获取上下文
-            let ctx;
-            try {
-                ctx = canvas.getContext('2d');
-                console.log('Trend Chart canvas context:', ctx);
-            } catch (contextError) {
-                console.error('Error getting canvas context:', contextError);
-                $('#trendChart').html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
-                return;
-            }
-            
-            // 如果存在以前的图表实例，销毁它
-            if (window.trendChart instanceof Chart) {
-                window.trendChart.destroy();
-            }
-            
-            // 生成数据集
-            const datasets = [];
-            const colors = {
-                'Income': {
-                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                    borderColor: 'rgba(25, 135, 84, 0.8)',
-                    pointBackgroundColor: 'rgba(25, 135, 84, 1)'
-                },
-                'Expenses': {
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    borderColor: 'rgba(220, 53, 69, 0.8)',
-                    pointBackgroundColor: 'rgba(220, 53, 69, 1)'
-                }
-            };
-
-
-            Chart.defaults.color = '#666666';
-            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
-            
-
-            $(canvas).css('background-color', '#ffffff');
-            
-
-            if (transformedData.series && transformedData.series.length > 0) {
-                transformedData.series.forEach(series => {
-                    if (series.name && colors[series.name]) {
-                        datasets.push({
-                            label: series.name,
-                            data: series.data,
-                            fill: true,
-                            backgroundColor: colors[series.name].backgroundColor,
-                            borderColor: colors[series.name].borderColor,
-                            pointBackgroundColor: colors[series.name].pointBackgroundColor,
-                            borderWidth: 2,
-                            tension: 0.3,
-                            pointRadius: 3
-                        });
-                    }
-                });
-            }
-
-            if (transformedData.labels.length === 0 || datasets.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No data available for the selected period</div>';
-                return;
-            }
-            
-            console.log('Creating trend chart with data:', {labels: transformedData.labels, datasets: datasets});
-            
-
-            window.trendChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: transformedData.labels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: period.charAt(0).toUpperCase() + period.slice(1),
-                                color: '#555'
-                            },
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#555',
-                                maxRotation: 45,  
-                                autoSkip: false,  
-                                callback: function(value, index, values) {
-                                    const label = transformedData.labels[index];
-
-                                    return label.length > 10 ? label.substr(0, 8) + '...' : label;
-                                }
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Amount ($)',
-                                color: '#555'
-                            },
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                color: '#555',
-                                callback: function(value) {
-
-                                    if (value >= 1000) {
-                                        return '$' + (value / 1000).toFixed(1) + 'k';
-                                    }
-                                    return '$' + value;
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                color: '#555',
-                                boxWidth: 12,
-                                padding: 15
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            titleColor: '#333',
-                            bodyColor: '#333',
-                            borderColor: '#ccc',
-                            borderWidth: 1,
-                            cornerRadius: 4,
-                            caretSize: 5,
-                            padding: 10,
-                            callbacks: {
-                                title: function(tooltipItems) {
-
-                                    const index = tooltipItems[0].dataIndex;
-                                    return transformedData.labels[index];
-                                },
-                                label: function(context) {
-
-                                    const value = context.parsed.y;
-                                    return context.dataset.label + ': $' + value.toFixed(2);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            console.log('Trend chart created successfully');
-        } catch (error) {
-            console.error('Error plotting trend chart:', error);
-            $('#trendChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
-        }
-    }
-    
-    // Load and draw category pie chart
-    function loadCategoryPieChart() {
-        const filters = getFilterSettings();
-        const pieType = $('[data-pie-type].active').data('pie-type') || 'expense';
-        const activePeriod = $('.period-selector .btn.active').data('period');
-        
-        console.log(`Loading ${pieType} category distribution data for period: ${activePeriod}`);
-        
-        // For custom date ranges, use the fallback method directly
-        if (activePeriod === 'custom') {
-            console.log('Using fallback method for custom date range category pie chart');
-            fallbackLoadCategoryPieChart(pieType, filters);
-            return;
-        }
-        
-        // First try to use the period-summary API for standard periods
-        if (activePeriod === 'month' || activePeriod === 'prev-month' || activePeriod === 'year') {
-            $.ajax({
-                url: '/api/insights/period-summary',
-                method: 'GET',
-                data: {
-                    period: activePeriod
-                },
-                dataType: 'json',
-                success: (periodData) => {
-                    console.log(`Period ${activePeriod} ${pieType} category data received`);
-                    
-                    if (pieType === 'expense') {
-                        // Use expense data from period summary
-                        drawCategoryPieChart(periodData.expense, pieType);
-                    } else {
-                        // For income, we need to format the data correctly
-                        // The period summary has income data but not in category distribution format
-                        // So we'll make a separate call for income categories
-                        $.ajax({
-                            url: '/api/income-summary',
-                            method: 'GET',
-                            data: { 
-                                startDate: filters.startDate, 
-                                endDate: filters.endDate
-                            },
-                            dataType: 'json',
-                            success: (incomeData) => {
-                                console.log(`Income category data received for period ${activePeriod}`);
-                                drawCategoryPieChart(incomeData, pieType);
-                            },
-                            error: (xhr, status, error) => {
-                                handleAjaxError(xhr, status, error);
-                                // Draw empty pie chart
-                                drawCategoryPieChart({
-                                    categoryDistribution: { labels: [], values: [] }
-                                }, pieType);
-                            }
-                        });
-                    }
-                },
-                error: (xhr, status, error) => {
-                    // Fallback to original method if period API fails
-                    fallbackLoadCategoryPieChart(pieType, filters);
-                }
-            });
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
         } else {
-            // For other date ranges, use the original method
-            fallbackLoadCategoryPieChart(pieType, filters);
+            return; // No data source or no sharer selected
         }
-    }
-    
-    /**
-     * Fallback method to load category pie chart for custom date ranges
-     * @param {string} pieType - 'expense' or 'income'
-     * @param {object} filters - filter settings with startDate and endDate
-     */
-    function fallbackLoadCategoryPieChart(pieType, filters) {
-        let url = pieType === 'expense' ? '/api/expense-summary' : '/api/income-summary';
+
+        console.log('Loading trend chart from API:', apiUrl, apiParams);
+
         $.ajax({
-            url: url,
+            url: apiUrl,
             method: 'GET',
-            data: {
-                startDate: filters.startDate,
-                endDate: filters.endDate
-            },
+            data: apiParams,
             dataType: 'json',
             success: (data) => {
-                drawCategoryPieChart(data, pieType);
+                console.log('Trend chart data received:', data);
+                
+                // If we need to aggregate by period (weekly or monthly), do it here
+                if (period === 'weekly' || period === 'monthly') {
+                    data = aggregateDataByPeriod(data, period);
+                }
+                
+                drawTrendChart(data, period);
             },
             error: (xhr, status, error) => {
-                handleAjaxError(xhr, status, error);
-                drawCategoryPieChart({ categoryDistribution: { labels: [], values: [] } }, pieType);
+                console.error('Error loading trend chart:', error);
+                console.error('Error details:', xhr.responseText);
+                
+                // Create empty chart with no data indication
+                const emptyData = {
+                    labels: ['No Data'],
+                    income: [0],
+                    expense: [0]
+                };
+                drawTrendChart(emptyData, period);
+                
+                // Show error notification to user
+                showNotification('Error loading chart data. Please check console for details.', 'error');
             }
         });
     }
-    
-    // Draw category distribution pie chart
+
+    // Aggregate data by period (weekly or monthly) in JavaScript
+    // This avoids database-specific functions
+    function aggregateDataByPeriod(data, period) {
+        if (!data || !data.labels || !data.income || !data.expense) {
+            return data;
+        }
+        
+        // Creates an aggregated version of the data based on period
+        const result = {
+            labels: [],
+            income: [],
+            expense: [],
+            period: period
+        };
+        
+        // Maps to hold aggregated values
+        const incomeMap = {};
+        const expenseMap = {};
+        
+        // Function to get period key from a date string
+        const getPeriodKey = (dateStr) => {
+            try {
+                const date = new Date(dateStr);
+                if (period === 'weekly') {
+                    // Get year and week number
+                    const year = date.getFullYear();
+                    // Get ISO week number (1-53)
+                    const weekNumber = getWeekNumber(date);
+                    return `Week ${weekNumber}, ${year}`;
+                } else if (period === 'monthly') {
+                    // Format as "MMM YYYY" (e.g., "Jan 2023")
+                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                }
+                return dateStr; // Default to original for daily
+            } catch (e) {
+                console.error('Error parsing date:', dateStr, e);
+                return dateStr;
+            }
+        };
+        
+        // Aggregate data
+        for (let i = 0; i < data.labels.length; i++) {
+            const periodKey = getPeriodKey(data.labels[i]);
+            
+            // Initialize if first time seeing this period
+            if (!incomeMap[periodKey]) {
+                incomeMap[periodKey] = 0;
+                expenseMap[periodKey] = 0;
+            }
+            
+            // Add values to the period
+            incomeMap[periodKey] += parseFloat(data.income[i] || 0);
+            expenseMap[periodKey] += parseFloat(data.expense[i] || 0);
+        }
+        
+        // Convert maps to arrays
+        const periodKeys = Object.keys(incomeMap).sort();
+        
+        // Sort period keys if needed
+        if (period === 'monthly') {
+            // Sort by year then month
+            periodKeys.sort((a, b) => {
+                const dateA = new Date(a);
+                const dateB = new Date(b);
+                return dateA - dateB;
+            });
+        } else if (period === 'weekly') {
+            // Sort by year then week number
+            periodKeys.sort((a, b) => {
+                const [weekA, yearA] = a.replace('Week ', '').split(', ');
+                const [weekB, yearB] = b.replace('Week ', '').split(', ');
+                
+                if (yearA !== yearB) {
+                    return parseInt(yearA) - parseInt(yearB);
+                }
+                return parseInt(weekA) - parseInt(weekB);
+            });
+        }
+        
+        // Fill result arrays
+        result.labels = periodKeys;
+        result.income = periodKeys.map(key => incomeMap[key]);
+        result.expense = periodKeys.map(key => expenseMap[key]);
+        
+        console.log('Aggregated data:', result);
+        return result;
+    }
+
+    // Helper function to get ISO week number
+    function getWeekNumber(date) {
+        // Create a copy of the date to avoid modifying the original
+        const d = new Date(date);
+        // Set to nearest Thursday: current date + 4 - current day number
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        // Get first day of year
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        // Calculate full weeks to nearest Thursday
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    }
+
+    // Load category pie chart
+    function loadCategoryPieChart() {
+        const pieType = $('[data-pie-type].active').data('pie-type') || 'expense';
+        const filters = getFilterSettings();
+        
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        if (currentDataSource === 'my-data') {
+            if (pieType === 'expense') {
+                apiUrl = '/api/insights/summary';
+            } else {
+                apiUrl = '/api/income-summary';
+            }
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/summary-all';  // Endpoint for combined data
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/summary';
+            } else {
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
+        }
+
+        console.log('Loading category pie chart from API:', apiUrl, apiParams);
+
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                if (currentDataSource === 'my-data') {
+                    // Standard format
+                    drawCategoryPieChart(data.categoryDistribution, pieType);
+                } else if (currentDataSource === 'shared-data') {
+                    // Shared data format
+                    if (pieType === 'expense' && data.expense) {
+                        drawCategoryPieChart(data.expense.categoryDistribution, pieType);
+                    } else if (pieType === 'income' && data.income) {
+                        drawCategoryPieChart(data.income.categoryDistribution, pieType);
+                    }
+                }
+            },
+            error: handleAjaxError
+        });
+    }
+
+    // Draw category pie chart with improved error handling
     function drawCategoryPieChart(data, type) {
         try {
-            // Ensure data is properly structured
-            if (!data || !data.categoryDistribution || !data.categoryDistribution.labels) {
-                data = { categoryDistribution: { labels: [], values: [] } };
+            // Get the proper canvas element
+            let canvas = $('#categoryPieChart');
+            if (canvas.is('div')) {
+                canvas = canvas.find('canvas');
+                if (canvas.length === 0) {
+                    canvas = $('<canvas>').attr('id', 'categoryPieChartCanvas');
+                    $('#categoryPieChart').empty().append(canvas);
+                    console.log('Created new canvas for category pie chart');
+                }
             }
             
-            // Get category distribution
-            const labels = data.categoryDistribution.labels;
-            const values = data.categoryDistribution.values;
-            
-            // Use standard colors
-            const colors = [
-                'rgba(25, 135, 84, 0.8)',  // green
-                'rgba(13, 110, 253, 0.8)', // blue
-                'rgba(220, 53, 69, 0.8)',  // red
-                'rgba(255, 193, 7, 0.8)',  // yellow
-                'rgba(111, 66, 193, 0.8)', // purple
-                'rgba(23, 162, 184, 0.8)'  // cyan
-            ];
-            
-            // Extend colors array if needed
-            while(colors.length < labels.length) {
-                colors.push(...colors);
-            }
-            
-            // Get the container element
-            const container = document.getElementById('categoryPieChart');
-            if (!container) {
-                console.error('Category pie chart container element not found in DOM');
+            // Ensure we have a canvas context
+            if (!canvas || canvas.length === 0) {
+                console.error('Could not find or create category pie chart canvas');
                 return;
             }
             
-            // First, remove all existing content to ensure no styling remains
-            $(container).empty();
-            
-            // Apply direct styling to container
-            container.style.backgroundColor = '#ffffff';
-            container.style.border = '1px solid #e0e0e0';
-            container.style.borderRadius = '8px';
-            container.style.padding = '10px';
-            container.style.minHeight = '320px';
-            container.style.height = '350px';
-            container.style.display = 'flex'; // Use flex layout for side-by-side arrangement
-            
-            // Create chart container for the left side
-            const chartContainer = document.createElement('div');
-            chartContainer.style.cssText = 'flex: 1; position: relative;';
-            container.appendChild(chartContainer);
-            
-            // Create legend container for the right side
-            const legendContainer = document.createElement('div');
-            legendContainer.style.cssText = 'width: 150px; padding: 10px; display: flex; flex-direction: column; justify-content: center;';
-            container.appendChild(legendContainer);
-            
-            // Create a new canvas element with clean styling
-            const canvas = document.createElement('canvas');
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            chartContainer.appendChild(canvas);
-            
-            // Try to get the context
-            let ctx;
-            try {
-                ctx = canvas.getContext('2d');
-                console.log('Category Pie Chart canvas context:', ctx);
-            } catch (contextError) {
-                console.error('Error getting canvas context:', contextError);
-                $('#categoryPieChart').html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
+            const ctx = canvas[0].getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context for category pie chart');
                 return;
             }
-            
-            // Destroy previous chart if it exists
-            if (window.categoryPieChart instanceof Chart) {
-                window.categoryPieChart.destroy();
-            }
-            
-            // If no data, show a message
-            if (labels.length === 0 || values.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No data available for the selected period</div>';
+
+            // Check if data is valid
+            if (!data || !data.labels || !data.values || data.labels.length === 0) {
+                console.error('Invalid data for pie chart:', data);
+                $('#categoryPieChart').html('<div class="chart-error">No data available for selected period</div>');
                 return;
             }
+
+            // Destroy existing chart if any
+            if (pieChart) {
+                pieChart.destroy();
+                pieChart = null;
+            }
             
-            // Set Chart.js defaults to light mode regardless of system mode
-            Chart.defaults.color = '#666666';
-            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+            console.log('Drawing pie chart with data:', data);
             
-            // Set specific chart background color to white
-            $(canvas).css('background-color', '#ffffff');
+            // Create color arrays based on chart type
+            const backgroundColors = type === 'expense' ? 
+                ['#FF6384', '#FF9F40', '#FFCD56', '#4BC0C0', '#36A2EB', '#9966FF', '#C9CBCF'] :
+                ['#4BC0C0', '#36A2EB', '#9966FF', '#FF6384', '#FF9F40', '#FFCD56', '#C9CBCF'];
             
-            console.log('Creating category pie chart with data:', {labels: labels, values: values});
-            
-            // Create the chart - DISABLE BUILT-IN LEGEND completely
-            window.categoryPieChart = new Chart(ctx, {
+            // Create the new chart with proper config
+            pieChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: labels,
+                    labels: data.labels,
                     datasets: [{
-                        data: values,
-                        backgroundColor: colors.slice(0, labels.length),
-                        borderColor: '#ffffff',
-                        borderWidth: 2,
-                        hoverOffset: 10
+                        data: data.values,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors,
+                        borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '40%',
                     plugins: {
-                        // Disable the built-in legend with strikethrough issues
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#333'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Pie chart created with data:', data);
+        } catch (error) {
+            console.error('Error creating pie chart:', error);
+            $('#categoryPieChart').html('<div class="chart-error">Error creating chart</div>');
+        }
+    }
+
+    // Load top categories chart with improved handling of shared data
+    function loadTopCategoriesChart() {
+        const filters = getFilterSettings();
+        const topCategoriesType = $('[data-top-categories-type].active').data('top-categories-type') || 'expense';
+        
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        // Ensure toggle buttons exist
+        ensureTopCategoriesToggleButtons();
+
+        // Determine API based on data source and type
+        if (currentDataSource === 'my-data') {
+            if (topCategoriesType === 'expense') {
+                apiUrl = '/api/insights/top-categories';
+            } else {
+                apiUrl = '/api/insights/top-income-categories'; 
+            }
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                if (topCategoriesType === 'expense') {
+                    apiUrl = '/api/shared-insights/top-categories-all';
+                } else {
+                    apiUrl = '/api/shared-insights/top-income-categories-all';
+                }
+            } else if (selectedSharerId) {
+                if (topCategoriesType === 'expense') {
+                    apiUrl = '/api/shared-insights/top-categories';
+                } else {
+                    apiUrl = '/api/shared-insights/top-income-categories';
+                }
+            } else {
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
+        }
+
+        console.log('Loading top categories from API:', apiUrl, apiParams);
+
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                drawTopCategoriesChart(data, topCategoriesType);
+            },
+            error: (xhr, status, error) => {
+                console.error('Error loading top categories:', error);
+                // If API doesn't exist or returns error, display empty chart
+                drawTopCategoriesChart({labels: [], values: []}, topCategoriesType);
+            }
+        });
+    }
+
+    // Helper function to ensure toggle buttons exist
+    function ensureTopCategoriesToggleButtons() {
+        // If toggle buttons don't exist, add them
+        if ($('.top-categories-type-selector').length === 0) {
+            const toggleButtons = '<div class="btn-group btn-group-sm top-categories-type-selector my-2" role="group">' +
+                                 '<button type="button" class="btn btn-outline-secondary active" data-top-categories-type="expense">Expenses</button>' +
+                                 '<button type="button" class="btn btn-outline-secondary" data-top-categories-type="income">Income</button>' +
+                                 '</div>';
+            
+            $('.card-header:has(.fa-chart-bar)').append(toggleButtons);
+            
+            // Add toggle event
+            $('[data-top-categories-type]').on('click', function() {
+                $(this).parent().find('.btn').removeClass('active');
+                $(this).addClass('active');
+                loadTopCategoriesChart();
+            });
+        }
+    }
+
+    // Improved drawing of top categories chart with better empty state
+    function drawTopCategoriesChart(data, type) {
+        try {
+            // Get the proper canvas element
+            let canvas = $('#topCategoriesChart');
+            if (canvas.length === 0) {
+                console.error('Could not find top categories chart canvas');
+                return;
+            }
+            
+            // Ensure data is valid
+            if (!data || !data.labels) {
+                data = {labels: [], values: []};
+            }
+            
+            // If data is empty, display no data message
+            if (data.labels.length === 0) {
+                if (topCategoriesChart) {
+                    topCategoriesChart.destroy();
+                    topCategoriesChart = null;
+                }
+                
+                // Create an empty chart with "No Data Available" message
+                topCategoriesChart = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            label: type === 'expense' ? 'Expense Amount' : 'Income Amount',
+                            data: [0],
+                            backgroundColor: 'rgba(200, 200, 200, 0.3)',
+                            borderColor: 'rgba(200, 200, 200, 0.5)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            },
+                            title: {
+                                display: true,
+                                text: type === 'expense' ? 'Top Expense Categories' : 'Top Income Categories',
+                                color: '#333',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    display: false
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#6c757d'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Add "No Data Available" text in the center
+                const ctx = canvas[0].getContext('2d');
+                setTimeout(() => {
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#6c757d';
+                    ctx.fillText('No data available for selected period', canvas.width/2, canvas.height/2);
+                    ctx.restore();
+                }, 100);
+                
+                return;
+            }
+            
+            // Destroy existing chart
+            if (topCategoriesChart) {
+                topCategoriesChart.destroy();
+                topCategoriesChart = null;
+            }
+            
+            // Set colors
+            const colors = type === 'expense' ? 
+                ['rgba(255, 99, 132, 0.8)', 'rgba(255, 159, 64, 0.8)', 'rgba(255, 205, 86, 0.8)', 
+                 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)'] :
+                ['rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)', 
+                 'rgba(201, 203, 207, 0.8)', 'rgba(255, 159, 64, 0.8)'];
+            
+            // Create chart
+            topCategoriesChart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: type === 'expense' ? 'Expense Amount' : 'Income Amount',
+                        data: data.values,
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
                         legend: {
                             display: false
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            titleColor: '#333',
-                            bodyColor: '#333',
-                            borderColor: '#ccc',
-                            borderWidth: 1,
-                            cornerRadius: 4,
-                            caretSize: 5,
-                            padding: 10,
                             callbacks: {
                                 label: function(context) {
-                                    const value = context.parsed;
-                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
+                                    return '$' + context.raw.toFixed(2);
                                 }
                             }
-                        }
-                    }
-                }
-            });
-            
-            // Create our own custom legend in side container (not overlapping the chart)
-            setTimeout(function() {
-                // Create legend title
-                const legendTitle = document.createElement('div');
-                legendTitle.style.cssText = 'font-weight: 500; margin-bottom: 15px; font-size: 14px; color: #333;';
-                legendTitle.textContent = 'Categories';
-                legendContainer.appendChild(legendTitle);
-                
-                // Create legend list
-                const legendList = document.createElement('ul');
-                legendList.style.cssText = 'list-style: none; padding: 0; margin: 0; width: 100%;';
-                
-                // Add items for each data point
-                labels.forEach((label, i) => {
-                    const total = values.reduce((acc, val) => acc + val, 0);
-                    const percentage = ((values[i] / total) * 100).toFixed(1);
-                    
-                    const listItem = document.createElement('li');
-                    listItem.style.cssText = 'display: flex; align-items: center; margin-bottom: 12px; width: 100%;';
-                    
-                    // Create color box
-                    const colorBox = document.createElement('span');
-                    colorBox.style.cssText = `
-                        display: inline-block;
-                        width: 12px;
-                        height: 12px;
-                        border-radius: 50%;
-                        background-color: ${colors[i]};
-                        margin-right: 8px;
-                        flex-shrink: 0;
-                    `;
-                    
-                    // Create text container to handle wrapping
-                    const textContainer = document.createElement('div');
-                    textContainer.style.cssText = 'flex: 1; overflow-wrap: break-word;';
-                    
-                    // Create label text
-                    const labelText = document.createElement('span');
-                    labelText.textContent = label;
-                    labelText.style.cssText = 'font-size: 12px; color: #555; display: block;';
-                    
-                    // Create percentage text
-                    const percentText = document.createElement('span');
-                    percentText.textContent = `${percentage}%`;
-                    percentText.style.cssText = 'font-size: 11px; color: #777; font-weight: 500;';
-                    
-                    // Add elements to DOM
-                    textContainer.appendChild(labelText);
-                    textContainer.appendChild(percentText);
-                    
-                    listItem.appendChild(colorBox);
-                    listItem.appendChild(textContainer);
-                    legendList.appendChild(listItem);
-                });
-                
-                // Add the legend list to container
-                legendContainer.appendChild(legendList);
-                
-                console.log('Added custom side legend to pie chart');
-            }, 100);
-            
-            console.log('Category pie chart created successfully');
-        } catch (error) {
-            console.error('Error plotting pie chart:', error);
-            $('#categoryPieChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
-        }
-    }
-    
-    // Load top categories chart
-    function loadTopCategoriesChart() {
-        const filters = getFilterSettings();
-        console.log(`Loading top categories with date range: ${filters.startDate} to ${filters.endDate}`);
-        
-        // Check if the canvas element exists
-        const chartElement = document.getElementById('topCategoriesChart');
-        if (!chartElement) {
-            console.error('Top categories chart element not found in DOM');
-            return;
-        }
-        console.log('Chart element found:', chartElement, 'Type:', chartElement.tagName);
-        
-        // Load both expense and income data
-        const expensePromise = $.ajax({
-            url: '/api/insights/top-categories',
-            method: 'GET',
-            data: { 
-                startDate: filters.startDate,
-                endDate: filters.endDate
-            },
-            dataType: 'json'
-        });
-        
-        const incomePromise = $.ajax({
-            url: '/api/income-summary',
-            method: 'GET',
-            data: { 
-                startDate: filters.startDate,
-                endDate: filters.endDate
-            },
-            dataType: 'json'
-        });
-        
-        // Use Promise.all to wait for both requests
-        Promise.all([expensePromise, incomePromise])
-            .then(([expenseData, incomeData]) => {
-                console.log('Top expense categories data received:', expenseData);
-                console.log('Income data received:', incomeData);
-                
-                // Update top category in summary card if data exists
-                if (expenseData.labels && expenseData.labels.length > 0) {
-                    const totalExpense = parseFloat($('#totalExpenses').text().replace(/[^0-9.-]+/g, ''));
-                    const topCategoryAmount = expenseData.values[0];
-                    const percentage = totalExpense > 0 ? Math.round((topCategoryAmount / totalExpense) * 100) : 0;
-                    
-                    // Set emoji based on category
-                    let emoji = '🍔'; // Default food emoji
-                    const categoryName = expenseData.labels[0];
-                    if (categoryName) {
-                        const categoryLC = categoryName.toLowerCase();
-                        if (categoryLC.includes('food') || categoryLC.includes('grocery')) {
-                            emoji = '🍔';
-                        } else if (categoryLC.includes('transport') || categoryLC.includes('car')) {
-                            emoji = '🚗';
-                        } else if (categoryLC.includes('house') || categoryLC.includes('rent')) {
-                            emoji = '🏠';
-                        } else if (categoryLC.includes('utility') || categoryLC.includes('bill')) {
-                            emoji = '💡';
-                        } else if (categoryLC.includes('shopping')) {
-                            emoji = '🛍️';
-                        }
-                    }
-                    
-                    $('#topCategoryIcon').text(emoji);
-                    $('#topCategoryName').text(categoryName);
-                    $('#topCategoryAmount').text(formatCurrency(topCategoryAmount));
-                    $('#categoryPercentage').text(`${percentage}% of total`);
-                }
-                
-                // Combine and process expense and income data
-                let combinedData = {
-                    labels: [],
-                    values: [],
-                    types: []
-                };
-                
-                // Add expense data
-                if (expenseData.labels && expenseData.labels.length > 0) {
-                    expenseData.labels.forEach((label, index) => {
-                        combinedData.labels.push(label);
-                        combinedData.values.push(expenseData.values[index]);
-                        combinedData.types.push('expense');
-                    });
-                }
-                
-                // Add income data from income categories
-                if (incomeData.categoryDistribution && incomeData.categoryDistribution.labels) {
-                    incomeData.categoryDistribution.labels.forEach((label, index) => {
-                        combinedData.labels.push(label);
-                        combinedData.values.push(incomeData.categoryDistribution.values[index]);
-                        combinedData.types.push('income');
-                    });
-                }
-                
-                // Sort by value (descending) and take top 10 combined
-                let sortedIndices = Array.from({length: combinedData.values.length}, (_, i) => i);
-                sortedIndices.sort((a, b) => combinedData.values[b] - combinedData.values[a]);
-                
-                // Take top 10 (or fewer if not enough data)
-                const topCount = Math.min(10, sortedIndices.length);
-                const topLabels = [];
-                const topValues = [];
-                const topTypes = [];
-                
-                for (let i = 0; i < topCount; i++) {
-                    const idx = sortedIndices[i];
-                    // Add type indicator to label
-                    const typeIndicator = combinedData.types[idx] === 'income' ? '📈 ' : '📉 ';
-                    topLabels.push(typeIndicator + combinedData.labels[idx]);
-                    topValues.push(combinedData.values[idx]);
-                    topTypes.push(combinedData.types[idx]);
-                }
-                
-                // Draw the chart if we have data
-                if (topLabels.length > 0) {
-                    try {
-                        // Find the parent container of the canvas
-                        const parentContainer = chartElement.parentElement;
-                        
-                        // Reset the parent container to ensure proper sizing
-                        if (parentContainer) {
-                            // Apply styling to parent container for better chart display
-                            parentContainer.style.backgroundColor = '#ffffff';
-                            parentContainer.style.border = '1px solid #e0e0e0';
-                            parentContainer.style.borderRadius = '8px';
-                            parentContainer.style.padding = '10px';
-                            
-                            // Calculate dynamic height based on number of categories
-                            // Minimum height of 300px, plus 30px per category for better spacing
-                            const dynamicHeight = Math.max(300, 100 + (topLabels.length * 30));
-                            parentContainer.style.height = `${dynamicHeight}px`;
-                            parentContainer.style.minHeight = '300px';
-                        }
-                        
-                        // Add extra verification for the canvas element
-                        if (chartElement.tagName.toLowerCase() !== 'canvas') {
-                            console.error('Element is not a canvas:', chartElement);
-                            $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Chart element is not a canvas element</div>');
-                            return;
-                        }
-                        
-                        // Clear the existing canvas
-                        chartElement.innerHTML = '';
-                        
-                        // Set canvas to fill parent container
-                        chartElement.style.width = '100%';
-                        chartElement.style.height = '100%';
-                        
-                        // Try to get the context
-                        let ctx;
-                        try {
-                            ctx = chartElement.getContext('2d');
-                            console.log('Canvas context:', ctx);
-                        } catch (contextError) {
-                            console.error('Error getting canvas context:', contextError);
-                            $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
-                            return;
-                        }
-                        
-                        // Properly destroy existing chart if it exists
-                        if (window.topCategoriesChart instanceof Chart) {
-                            // Always destroy the previous chart before creating a new one to prevent container growth and stacking
-                            window.topCategoriesChart.destroy();
-                        }
-                
-                        // Create colors based on type - use light mode colors always
-                        const colors = topTypes.map(type => {
-                            if (type === 'income') {
-                                return 'rgba(25, 135, 84, 0.8)'; // green for income
-                            } else {
-                                return 'rgba(220, 53, 69, 0.8)'; // red for expense
+                        },
+                        title: {
+                            display: true,
+                            text: type === 'expense' ? 'Top Expense Categories' : 'Top Income Categories',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
                             }
-                        });
-                        
-                        // Set text color based on mode - always dark for white background
-                        const textColor = '#666666';
-                        const gridColor = 'rgba(0, 0, 0, 0.05)';
-                        
-                        console.log('Creating new chart with data:', {labels: topLabels, values: topValues, types: topTypes});
-                        
-                        // Set Chart.js defaults to light mode regardless of system mode
-                        Chart.defaults.color = '#666666';
-                        Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
-                        
-                        // Set specific chart background color to white
-                        $(chartElement).css('background-color', '#ffffff');
-                        
-                        window.topCategoriesChart = new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: topLabels,
-                                datasets: [{
-                                    label: 'Amount ($)',
-                                    data: topValues,
-                                    backgroundColor: colors,
-                                    borderColor: colors.map(c => c.replace('0.8', '1')),
-                                    borderWidth: 1,
-                                    // Adjust bar thickness for better appearance
-                                    maxBarThickness: 25,
-                                    minBarLength: 5 // Ensure small values are visible
-                                }]
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                },
+                                color: '#333'
                             },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false, // Important: don't maintain aspect ratio to fill container
-                                layout: {
-                                    padding: {
-                                        left: 10,
-                                        right: 25,
-                                        top: 15,
-                                        bottom: 15
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: false,
-                                        labels: {
-                                            color: textColor
-                                        }
-                                    },
-                                    tooltip: {
-                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                        titleColor: '#333333',
-                                        bodyColor: '#333333',
-                                        borderColor: 'rgba(0, 0, 0, 0.1)',
-                                        borderWidth: 1,
-                                        callbacks: {
-                                            title: function(tooltipItems) {
-                                        
-                                                const index = tooltipItems[0].dataIndex;
-                                                return topLabels[index];
-                                            },
-                                            label: function(context) {
-                                                const idx = context.dataIndex;
-                                                const type = topTypes[idx];
-                                                let label = type === 'income' ? 'Income' : 'Expense';
-                                                label += ': ' + formatCurrency(context.raw);
-                                                return label;
-                                            }
-                                        }
-                                    }
-                                },
-                                scales: {
-                                    x: {
-                                        beginAtZero: true,
-                                        grid: {
-                                            drawBorder: false,
-                                            color: gridColor
-                                        },
-                                        ticks: {
-                                            color: textColor,
-                                            callback: function(value) {
-
-                                                if (value >= 1000) {
-                                                    return '$' + (value / 1000).toFixed(1) + 'k';
-                                                }
-                                                return '$' + value;
-                                            }
-                                        }
-                                    },
-                                    y: {
-                                        grid: {
-                                            display: false,
-                                            drawBorder: false
-                                        },
-                                        ticks: {
-                                            color: textColor,
-                                            // Increase font size slightly for better readability
-                                            font: {
-                                                size: 11
-                                            },
-                                            callback: function(value, index) {
-    
-                                                const label = topLabels[index];
-                                                if (label && label.length > 20) {
-                                                    return label.substr(0, 18) + '...';
-                                                }
-                                                return label;
-                                            }
-                                        }
-                                    }
-                                },
-                                // Animation configuration for better visual appearance
-                                animation: {
-                                    duration: 1000,
-                                    easing: 'easeOutQuart'
-                                }
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
                             }
-                        });
-                        console.log('Top categories chart created successfully');
-                        
-                        // Force a resize to ensure the chart fills the container properly
-                        setTimeout(() => {
-                            if (window.topCategoriesChart) {
-                                window.topCategoriesChart.resize();
+                        },
+                        y: {
+                            ticks: {
+                                color: '#333'
+                            },
+                            grid: {
+                                display: false
                             }
-                        }, 50);
-                        
-                    } catch (error) {
-                        console.error('Error creating top categories chart:', error);
-                        $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error creating chart: ' + error.message + '</div>');
+                        }
                     }
-                } else {
-                    console.log('No data for top categories chart');
-                    $('#topCategoriesChart').parent().html('<div class="alert alert-info">No category data available for this period</div>');
                 }
-            })
-            .catch(error => {
-                console.error('Error loading categories data:', error);
-                handleAjaxError(null, 'error', error);
-                $('#topCategoriesChart').parent().html('<div class="alert alert-danger">Error loading data</div>');
             });
+        } catch (error) {
+            console.error('Error creating top categories chart:', error);
+            // Clear error message container if it exists
+            if ($('#topCategoriesChart').siblings('.chart-error').length) {
+                $('#topCategoriesChart').siblings('.chart-error').remove();
+            }
+            // Show error message
+            $('#topCategoriesChart').after('<div class="chart-error">Error creating chart</div>');
+        }
     }
-    
-    // Load monthly comparison chart
+
+    // Load monthly comparison chart with client-side aggregation
     function loadMonthlyComparisonChart() {
         const filters = getFilterSettings();
-        const compareType = $('[data-compare-type].active').data('compare-type') || 'income-expense';
-        const activePeriod = $('.period-selector .btn.active').data('period');
         
-        console.log(`Loading monthly comparison data for ${compareType}, period: ${activePeriod}`);
+        // Get the active period button
+        const periodButton = $('.chart-period-selector .btn.active');
+        // Get period value, default to monthly if not found
+        const period = periodButton.length > 0 ? 
+            (periodButton.data('trend-period') || 'monthly') : 'monthly';
         
-        // For custom date ranges, we need to use month-specific endpoints
-        if (activePeriod === 'custom') {
-            // For income vs expense mode
-            if (compareType === 'income-expense') {
-                let expensePromise = $.ajax({
-                    url: '/api/expenses-by-month',
-                    method: 'GET',
-                    data: { 
-                        startDate: filters.startDate,
-                        endDate: filters.endDate
-                    },
-                    dataType: 'json'
-                });
-                
-                let incomePromise = $.ajax({
-                    url: '/api/income-by-month',
-                    method: 'GET',
-                    data: { 
-                        startDate: filters.startDate, 
-                        endDate: filters.endDate
-                    },
-                    dataType: 'json'
-                });
-                
-                // Use Promise.all to wait for both requests
-                Promise.all([incomePromise, expensePromise])
-                    .then(([incomeData, expenseData]) => {
-                        console.log(`Monthly comparison data received for custom period`);
-                        
-                        // Combine the data, ensuring we have all months
-                        let allLabels = [...new Set([...incomeData.labels, ...expenseData.labels])];
-                        allLabels.sort(); // Sort chronologically
-                        
-                        // Create combined data structure
-                        let data = {
-                            labels: allLabels,
-                            series: []
-                        };
-                        
-                        // Add income data
-                        let incomeValues = allLabels.map(label => {
-                            let idx = incomeData.labels.indexOf(label);
-                            return idx >= 0 ? incomeData.values[idx] : 0;
-                        });
-                        data.series.push({
-                            name: 'Income',
-                            data: incomeValues
-                        });
-                        
-                        // Add expense data
-                        let expenseValues = allLabels.map(label => {
-                            let idx = expenseData.labels.indexOf(label);
-                            return idx >= 0 ? expenseData.values[idx] : 0;
-                        });
-                        data.series.push({
-                            name: 'Expenses',
-                            data: expenseValues
-                        });
-                        
-                        // Draw the chart
-                        drawMonthlyComparisonChartFromMonthlyData(data, compareType);
-                    })
-                    .catch(error => {
-                        console.error('Error loading monthly comparison data:', error);
-                        handleAjaxError(null, 'error', error);
-                        drawMonthlyComparisonChartFromMonthlyData({
-                            labels: [],
-                            series: []
-                        }, compareType);
-                    });
-            } else if (compareType === 'monthly-progress') {
-                // For monthly progress, just use the expense data
-                $.ajax({
-                    url: '/api/expenses-by-month',
-                    method: 'GET',
-                    data: { 
-                        startDate: filters.startDate,
-                        endDate: filters.endDate
-                    },
-                    dataType: 'json',
-                    success: (expensesByMonth) => {
-                        console.log(`Monthly progress data received with ${expensesByMonth.labels ? expensesByMonth.labels.length : 0} months`);
-                        
-                        // For monthly progress we just need one series
-                        const monthlyData = {
-                            labels: expensesByMonth.labels,
-                            series: [{
-                                name: 'Monthly Expenses',
-                                data: expensesByMonth.values
-                            }]
-                        };
-                        
-                        // Find current month for highlighting
-                        const currentYear = new Date().getFullYear();
-                        const currentMonthLabel = `${new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date())} ${currentYear}`;
-                        const currentMonthIndex = expensesByMonth.labels.indexOf(currentMonthLabel);
-                        
-                        drawMonthlyComparisonChartFromMonthlyData(monthlyData, compareType, currentMonthIndex);
-                    },
-                    error: (xhr, status, error) => {
-                        handleAjaxError(xhr, status, error);
-                        drawMonthlyComparisonChartFromMonthlyData({
-                            labels: [],
-                            series: []
-                        }, compareType);
-                    }
-                });
+        console.log('Using period for monthly comparison chart:', period);
+        
+        // We'll use the same approach as with the trend chart:
+        // Get daily data and aggregate it client-side
+        
+        // We can reuse the income-expense-comparison endpoint data
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        if (currentDataSource === 'my-data') {
+            apiUrl = '/api/income-expense-comparison';
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/comparison-all';
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/comparison';
+            } else {
+                return; // No data source or no sharer selected
             }
-            return;
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
         }
-        
-        // For standard periods, use the month-by-month queries
+
+        console.log('Loading comparison chart from API:', apiUrl, apiParams);
+
         $.ajax({
-            url: '/api/expenses-by-month',
+            url: apiUrl,
             method: 'GET',
-            data: { 
-                startDate: filters.startDate, 
-                endDate: filters.endDate
-            },
+            data: apiParams,
             dataType: 'json',
-            success: (expensesByMonth) => {
-                if (compareType === 'income-expense') {
-                    // Also fetch income data for income-expense comparison
-                    $.ajax({
-                        url: '/api/income-by-month',
-                        method: 'GET',
-                        data: { 
-                            startDate: filters.startDate, 
-                            endDate: filters.endDate
-                        },
-                        dataType: 'json',
-                        success: (incomeByMonth) => {
-                            console.log(`Monthly comparison data received: ${expensesByMonth.labels.length} expense months, ${incomeByMonth.labels.length} income months`);
-                            
-                            // Combine the data, ensuring we have all months
-                            let allLabels = [...new Set([...incomeByMonth.labels, ...expensesByMonth.labels])];
-                            allLabels.sort(); // Sort chronologically
-                            
-                            // Create combined data structure
-                            let data = {
-                                labels: allLabels,
-                                series: []
-                            };
-                            
-                            // Add income data
-                            let incomeValues = allLabels.map(label => {
-                                let idx = incomeByMonth.labels.indexOf(label);
-                                return idx >= 0 ? incomeByMonth.values[idx] : 0;
-                            });
-                            data.series.push({
-                                name: 'Income',
-                                data: incomeValues
-                            });
-                            
-                            // Add expense data
-                            let expenseValues = allLabels.map(label => {
-                                let idx = expensesByMonth.labels.indexOf(label);
-                                return idx >= 0 ? expensesByMonth.values[idx] : 0;
-                            });
-                            data.series.push({
-                                name: 'Expenses',
-                                data: expenseValues
-                            });
-                            
-                            // Draw the chart
-                            drawMonthlyComparisonChartFromMonthlyData(data, compareType);
-                        },
-                        error: (xhr, status, error) => {
-                            handleAjaxError(xhr, status, error);
-                            
-                            // Still try to draw with expense data only
-                            const data = {
-                                labels: expensesByMonth.labels,
-                                series: [{
-                                    name: 'Expenses',
-                                    data: expensesByMonth.values
-                                }]
-                            };
-                            drawMonthlyComparisonChartFromMonthlyData(data, compareType);
-                        }
-                    });
-                } else if (compareType === 'monthly-progress') {
-                    // For monthly progress, just use the expense data
-                    console.log(`Monthly progress data received with ${expensesByMonth.labels ? expensesByMonth.labels.length : 0} months`);
-                    
-                    // For monthly progress we just need one series
-                    const monthlyData = {
-                        labels: expensesByMonth.labels,
-                        series: [{
-                            name: 'Monthly Expenses',
-                            data: expensesByMonth.values
-                        }]
-                    };
-                    
-                    // Find current month for highlighting
-                    const currentYear = new Date().getFullYear();
-                    const currentMonthLabel = `${new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date())} ${currentYear}`;
-                    const currentMonthIndex = expensesByMonth.labels.indexOf(currentMonthLabel);
-                    
-                    drawMonthlyComparisonChartFromMonthlyData(monthlyData, compareType, currentMonthIndex);
+            success: (data) => {
+                console.log('Comparison chart data received:', data);
+                
+                // Aggregate data client-side if needed
+                if (period === 'weekly' || period === 'monthly') {
+                    data = aggregateDataByPeriod(data, period);
                 }
+                
+                // Format for chart.js display
+                const chartData = {
+                    labels: data.labels || ['No Data'],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: data.income || [0],
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: data.expense || [0],
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                };
+                
+                drawMonthlyComparisonChart(chartData, period);
             },
             error: (xhr, status, error) => {
-                handleAjaxError(xhr, status, error);
-                drawMonthlyComparisonChartFromMonthlyData({
-                    labels: [],
-                    series: []
-                }, compareType);
+                console.error('Error loading comparison chart:', error);
+                console.error('Error details:', xhr.responseText);
+                
+                // Create empty chart with no data indication
+                const emptyChartData = {
+                    labels: ['No Data'],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: [0],
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [0],
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                };
+                
+                drawMonthlyComparisonChart(emptyChartData, period);
+                showNotification('Error loading chart data. Please check console for details.', 'error');
             }
         });
     }
-    
-    // Draw monthly comparison chart from monthly data
-    function drawMonthlyComparisonChartFromMonthlyData(data, type, highlightIndex = -1) {
+
+    // Draw trend chart with improved error handling
+    function drawTrendChart(data, period) {
         try {
-            // Data should already be grouped by month from the API
-            const months = data.labels || [];
-            
-            // Get the container element
-            const container = document.getElementById('monthlyComparisonChart');
-            if (!container) {
-                console.error('Monthly comparison chart container element not found in DOM');
-                return;
-            }
-            
-            // Check if there's an existing canvas, if not create one
-            let canvas = container.querySelector('canvas');
-            if (!canvas) {
-                // Clear container first
-                container.innerHTML = '';
-                
-                // Create a new canvas element
-                canvas = document.createElement('canvas');
-                container.appendChild(canvas);
-            }
-            
-            // Apply direct styling to container
-            if (container) {
-                container.style.backgroundColor = '#ffffff';
-                container.style.border = '1px solid #e0e0e0';
-                container.style.borderRadius = '8px';
-            }
-            
-            // Try to get the context
-            let ctx;
-            try {
-                ctx = canvas.getContext('2d');
-                console.log('Monthly Comparison Chart canvas context:', ctx);
-            } catch (contextError) {
-                console.error('Error getting canvas context:', contextError);
-                $('#monthlyComparisonChart').html('<div class="alert alert-danger">Error getting canvas context: ' + contextError.message + '</div>');
-                return;
-            }
-            
-            // Destroy previous chart if it exists
-            if (window.monthlyComparisonChart instanceof Chart) {
-                window.monthlyComparisonChart.destroy();
-            }
-            
-            // If no data, show a message
-            if (!months.length || !data.series || !data.series.length) {
-                container.innerHTML = '<div class="alert alert-info">No data available for the selected period</div>';
-                return;
-            }
-            
-            // Set Chart.js defaults to light mode regardless of system mode
-            Chart.defaults.color = '#666666';
-            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
-            
-            // Set specific chart background color to white
-            $(canvas).css('background-color', '#ffffff');
-            
-            // Prepare datasets based on type
-            const datasets = [];
-            
-            if (type === 'income-expense') {
-                // Income-expense comparison mode - show both bars
-                if (data.series && data.series.length > 0) {
-                    // Income trace (if available)
-                    if (data.series.length > 0 && data.series[0].name === 'Income') {
-                        datasets.push({
-                            label: 'Income',
-                            data: data.series[0].data,
-                            backgroundColor: 'rgba(25, 135, 84, 0.7)',
-                            borderColor: 'rgba(25, 135, 84, 1)',
-                            borderWidth: 1
-                        });
-                    }
-                    
-                    // Expense trace (if available)
-                    if (data.series.length > 1 && data.series[1].name === 'Expenses') {
-                        datasets.push({
-                            label: 'Expenses',
-                            data: data.series[1].data,
-                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
-                            borderColor: 'rgba(220, 53, 69, 1)',
-                            borderWidth: 1
-                        });
-                    }
-                }
-            } else {
-                // Monthly progress mode - show one series with highlighting
-                if (data.series && data.series.length > 0) {
-                    const values = data.series[0].data || [];
-                    
-                    // Set colors array with highlight
-                    let colors = Array(months.length).fill('rgba(13, 110, 253, 0.7)');
-                    let borderColors = Array(months.length).fill('rgba(13, 110, 253, 1)');
-                    
-                    // Highlight the selected index if valid
-                    if (highlightIndex >= 0 && highlightIndex < months.length) {
-                        colors[highlightIndex] = 'rgba(25, 135, 84, 0.9)';
-                        borderColors[highlightIndex] = 'rgba(25, 135, 84, 1)';
-                    }
-                    
-                    datasets.push({
-                        label: 'Amount',
-                        data: values,
-                        backgroundColor: colors,
-                        borderColor: borderColors,
-                        borderWidth: 1
-                    });
+            // Get the proper canvas element
+            let canvas = $('#trendChart');
+            if (canvas.is('div')) {
+                canvas = canvas.find('canvas');
+                if (canvas.length === 0) {
+                    canvas = $('<canvas>').attr('id', 'trendChartCanvas');
+                    $('#trendChart').empty().append(canvas);
+                    console.log('Created new canvas for trend chart');
                 }
             }
             
-            console.log('Creating monthly comparison chart with data:', {
-                type: type,
-                labels: months,
-                datasets: datasets
-            });
+            // Ensure we have a canvas context
+            if (!canvas || canvas.length === 0) {
+                console.error('Could not find or create trend chart canvas');
+                return;
+            }
             
-            // Create the chart
-            window.monthlyComparisonChart = new Chart(ctx, {
-                type: 'bar',
+            const ctx = canvas[0].getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context for trend chart');
+                return;
+            }
+            
+            // Destroy existing chart if any
+            if (trendChart) {
+                trendChart.destroy();
+                trendChart = null;
+            }
+            
+            // Check if data exists and is valid
+            if (!data || !data.labels || !data.income || !data.expense) {
+                console.error('Invalid data for trend chart:', data);
+                $('#trendChart').html('<div class="chart-error">No data available for selected period</div>');
+                return;
+            }
+            
+            console.log('Drawing trend chart with data:', data);
+
+            // Determine title based on period
+            let title = 'Daily Income & Expenses';
+            if (period === 'weekly') {
+                title = 'Weekly Income & Expenses';
+            } else if (period === 'monthly') {
+                title = 'Monthly Income & Expenses';
+            }
+            
+            // Create chart configuration
+            const chartConfig = {
+                type: 'line',
                 data: {
-                    labels: months,
-                    datasets: datasets
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: data.income,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Expenses',
+                            data: data.expense,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -1796,268 +1372,210 @@ $(document).ready(() => {
                         legend: {
                             position: 'top',
                             labels: {
-                                color: '#555',
-                                boxWidth: 12,
-                                padding: 10
+                                usePointStyle: true,
+                                padding: 20,
+                                color: '#333'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.raw.toFixed(2);
+                                }
                             }
                         },
                         title: {
                             display: true,
-                            text: type === 'income-expense' ? 'Monthly Income vs Expenses' : 'Monthly Expense Trend',
+                            text: title,
                             color: '#333',
                             font: {
-                                size: 16
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                },
+                                color: '#333'
                             },
-                            padding: {
-                                top: 10,
-                                bottom: 10
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#333',
+                                maxRotation: 45,
+                                minRotation: 0
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Create the chart
+            trendChart = new Chart(ctx, chartConfig);
+            
+            console.log('Trend chart created with data length:', data.labels.length);
+        } catch (error) {
+            console.error('Error creating trend chart:', error);
+            $('#trendChart').html('<div class="chart-error">Error creating chart</div>');
+        }
+    }
+
+    // Improved drawing of monthly comparison chart
+    function drawMonthlyComparisonChart(data, period) {
+        try {
+            // Get the proper canvas element
+            let canvas = $('#monthlyComparisonChart');
+            if (canvas.is('div')) {
+                canvas = canvas.find('canvas');
+                if (canvas.length === 0) {
+                    canvas = $('<canvas>').attr('id', 'monthlyComparisonChartCanvas');
+                    $('#monthlyComparisonChart').empty().append(canvas);
+                    console.log('Created new canvas for monthly comparison chart');
+                }
+            }
+            
+            // Ensure we have a canvas context
+            if (!canvas || canvas.length === 0) {
+                console.error('Could not find or create monthly comparison chart canvas');
+                return;
+            }
+            
+            const ctx = canvas[0].getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context for monthly comparison chart');
+                return;
+            }
+            
+            // Check if data is empty
+            const isEmptyData = data.labels.length === 1 && data.labels[0] === 'No Data' && 
+                data.datasets[0].data[0] === 0 && data.datasets[1].data[0] === 0;
+            
+            // Destroy existing chart if any
+            if (monthlyComparisonChart) {
+                monthlyComparisonChart.destroy();
+                monthlyComparisonChart = null;
+            }
+            
+            console.log('Drawing monthly comparison chart with data:', data);
+            
+            // Set chart title based on period
+            let chartTitle = 'Monthly Income vs Expenses';
+            if (period === 'weekly') {
+                chartTitle = 'Weekly Income vs Expenses';
+            } else if (period === 'daily') {
+                chartTitle = 'Daily Income vs Expenses';
+            }
+            
+            // Create chart
+            monthlyComparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#333'
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            titleColor: '#333',
-                            bodyColor: '#333',
-                            borderColor: '#ccc',
-                            borderWidth: 1,
-                            cornerRadius: 4,
-                            caretSize: 5,
-                            padding: 10,
                             callbacks: {
-                                title: function(tooltipItems) {
-                        
-                                    const index = tooltipItems[0].dataIndex;
-                                    return months[index];
-                                },
                                 label: function(context) {
-                               
-                                    const value = context.parsed.y;
-                                    return `${context.dataset.label}: $${value.toFixed(2)}`;
+                                    return context.dataset.label + ': $' + context.raw.toFixed(2);
                                 }
+                            },
+                            enabled: !isEmptyData
+                        },
+                        title: {
+                            display: true,
+                            text: chartTitle,
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
                             }
                         }
                     },
                     scales: {
                         x: {
                             grid: {
-                                display: false
+                                color: 'rgba(0, 0, 0, 0.1)'
                             },
                             ticks: {
-                                color: '#555',
+                                color: isEmptyData ? 'rgba(0,0,0,0)' : '#333',
                                 maxRotation: 45,
-                                minRotation: 45,
-
-                                callback: function(value, index) {
-                                    const month = months[index];
-
-                                    if (month && month.length > 10) {
-                                        return month.substr(0, 3) + '...';
-                                    }
-                                    return month;
-                                }
+                                minRotation: 0
                             }
                         },
                         y: {
                             beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
                             ticks: {
-                                color: '#555',
                                 callback: function(value) {
-
-                                    if (value >= 1000) {
-                                        return '$' + (value / 1000).toFixed(1) + 'k';
-                                    }
                                     return '$' + value;
-                                }
+                                },
+                                display: !isEmptyData
                             },
-                            title: {
-                                display: true,
-                                text: 'Amount ($)',
-                                color: '#555',
-                                font: {
-                                    size: 12
-                                }
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
                             }
                         }
                     }
                 }
             });
-            console.log('Monthly comparison chart created successfully');
+            
+            // Add "No Data Available" text in the center if data is empty
+            if (isEmptyData) {
+                setTimeout(() => {
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#6c757d';
+                    ctx.fillText('No data available for selected period', canvas.width/2, canvas.height/2);
+                    ctx.restore();
+                }, 100);
+            }
         } catch (error) {
-            console.error('Error plotting monthly comparison chart:', error);
-            $('#monthlyComparisonChart').html('<div class="alert alert-danger">Error plotting chart: ' + error.message + '</div>');
+            console.error('Error creating monthly comparison chart:', error);
+            // Show error message
+            $('#monthlyComparisonChart').html('<div class="chart-error">Error creating chart</div>');
         }
     }
-    
-    // Helper function to group data by week or month
-    function groupDataByPeriod(data, period) {
-        const result = {
-            labels: [],
-            income: [],
-            expense: []
-        };
-        
-        if (data.labels.length === 0) return result;
-        
-        if (period === 'weekly') {
-            // Group by week
-            const weeks = {};
-            data.labels.forEach((dateStr, index) => {
-                const date = new Date(dateStr);
-                const weekNum = getWeekNumber(date);
-                const weekLabel = `Week ${weekNum}`;
-                
-                if (!weeks[weekLabel]) {
-                    weeks[weekLabel] = { income: 0, expense: 0 };
-                }
-                
-                weeks[weekLabel].income += data.income[index];
-                weeks[weekLabel].expense += data.expense[index];
-            });
-            
-            result.labels = Object.keys(weeks);
-            result.labels.forEach(label => {
-                result.income.push(weeks[label].income);
-                result.expense.push(weeks[label].expense);
-            });
-        } else if (period === 'monthly') {
-            // Group by month
-            const months = {};
-            data.labels.forEach((dateStr, index) => {
-                const date = new Date(dateStr);
-                const monthLabel = date.toLocaleString('default', { month: 'short' });
-                
-                if (!months[monthLabel]) {
-                    months[monthLabel] = { income: 0, expense: 0 };
-                }
-                
-                months[monthLabel].income += data.income[index];
-                months[monthLabel].expense += data.expense[index];
-            });
-            
-            result.labels = Object.keys(months);
-            result.labels.forEach(label => {
-                result.income.push(months[label].income);
-                result.expense.push(months[label].expense);
-            });
-        }
-        
-        return result;
-    }
-    
-    // Helper to get week number
-    function getWeekNumber(date) {
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-        return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-    }
-    
-    // Format currency
-    function formatCurrency(amount) {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount);
-    }
-    
-    // Export chart to PDF
+
+    // Export to PDF
     function exportToPDF() {
-        const filters = getFilterSettings();
-        const doc = new jsPDF();
-        doc.setFont('helvetica');
-        doc.setFontSize(22);
-        doc.text('Financial Insights Report', 105, 15, null, null, 'center');
-        
-        doc.setFontSize(12);
-        doc.text(`Date Range: ${filters.startDate} to ${filters.displayEndDate}`, 105, 25, null, null, 'center');
-        
-        doc.setFontSize(16);
-        doc.text('Summary', 20, 35);
-        
-        doc.setFontSize(12);
-        doc.text(`Total Income: ${$('#totalIncome').text()}`, 20, 45);
-        doc.text(`Total Expenses: ${$('#totalExpenses').text()}`, 20, 55);
-        doc.text(`Net Balance: ${$('#netBalance').text()}`, 20, 65);
-        doc.text(`Largest Category: ${$('#topCategoryName').text()} (${$('#topCategoryAmount').text()})`, 20, 75);
-        
-        // Add charts as images
-        Promise.all([
-            // Get trend chart image
-            new Promise(resolve => {
-                if (window.trendChart instanceof Chart) {
-                    resolve(window.trendChart.toBase64Image());
-                } else {
-                    resolve(null);
-                }
-            }),
-            // Get pie chart image
-            new Promise(resolve => {
-                if (window.categoryPieChart instanceof Chart) {
-                    resolve(window.categoryPieChart.toBase64Image());
-                } else {
-                    resolve(null);
-                }
-            }),
-            // Get top categories chart image
-            new Promise(resolve => {
-                if (window.topCategoriesChart instanceof Chart) {
-                    resolve(window.topCategoriesChart.toBase64Image());
-                } else {
-                    resolve(null);
-                }
-            }),
-            // Get monthly comparison chart image
-            new Promise(resolve => {
-                if (window.monthlyComparisonChart instanceof Chart) {
-                    resolve(window.monthlyComparisonChart.toBase64Image());
-                } else {
-                    resolve(null);
-                }
-            })
-        ]).then(images => {
-            let currentY = 85;
-            
-            // Add trend chart
-            if (images[0]) {
-                doc.addPage();
-                doc.setFontSize(16);
-                doc.text('Income & Expense Trends', 105, 15, null, null, 'center');
-                doc.addImage(images[0], 'PNG', 15, 25, 180, 90);
+        // Use html2canvas and jsPDF to export the page
+        html2canvas(document.querySelector('.container'), {
+            onrendered: function(canvas) {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const width = pdf.internal.pageSize.getWidth();
+                const height = (canvas.height * width) / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+                pdf.save('financial-insights.pdf');
             }
-            
-            // Add pie chart
-            if (images[1]) {
-                doc.addPage();
-                doc.setFontSize(16);
-                doc.text('Category Distribution', 105, 15, null, null, 'center');
-                doc.addImage(images[1], 'PNG', 55, 25, 100, 100);
-            }
-            
-            // Add top categories chart
-            if (images[2]) {
-                doc.addPage();
-                doc.setFontSize(16);
-                doc.text('Top Categories', 105, 15, null, null, 'center');
-                doc.addImage(images[2], 'PNG', 15, 25, 180, 90);
-            }
-            
-            // Add monthly comparison chart
-            if (images[3]) {
-                doc.addPage();
-                doc.setFontSize(16);
-                doc.text('Monthly Comparison', 105, 15, null, null, 'center');
-                doc.addImage(images[3], 'PNG', 15, 25, 180, 90);
-            }
-            
-            doc.save('financial-insights.pdf');
-        }).catch(error => {
-            console.error('Error exporting to PDF:', error);
-            notifications.error('Error exporting to PDF: ' + error.message);
         });
     }
-    
-    // Export chart to PNG
+
+    // Export to PNG
     function exportToPNG() {
         html2canvas(document.querySelector('.container'), {
             onrendered: function(canvas) {
@@ -2069,440 +1587,826 @@ $(document).ready(() => {
             }
         });
     }
-    
-    // Handle AJAX errors
-    function handleAjaxError(xhr, status, error) {
-        console.error('AJAX Error:', status, error);
-        
-        // Use the notification system instead of alert
-        let errorMessage = 'Error loading data. Please try again later.';
-        
-        // Try to get more specific error message if available
-        if (xhr.responseJSON && xhr.responseJSON.error) {
-            errorMessage = xhr.responseJSON.error;
-            console.error('Server error details:', xhr.responseJSON);
-        } else if (error) {
-            errorMessage = `${error}. Please try again later.`;
-        }
-        
-        // Show error notification
-        notifications.error(errorMessage);
-    }
-    
-    // Add a debug function to test date range issues
-    window.debugDateRanges = function() {
-        const filters = getFilterSettings();
-        
-        // Make a call to the debug endpoint
-        $.ajax({
-            url: '/api/insights/debug',
-            method: 'GET',
-            data: { 
-                startDate: filters.startDate, 
-                endDate: filters.endDate
-            },
-            dataType: 'json',
-            success: (data) => {
-                console.log("===== DATE RANGE DEBUG INFO =====");
-                console.log("Current Period:", $('.period-selector .btn.active').data('period'));
-                console.log("Date Filters:", filters);
-                console.log("Debug API Response:", data);
-                
-                // Create a formatted output for a notification
-                let message = `
-                <strong>Date Range Debug</strong><br>
-                Period: ${$('.period-selector .btn.active').data('period')}<br>
-                Request: ${filters.startDate} to ${filters.endDate}<br>
-                Processed: ${data.processed.startDate} to ${data.processed.endDate}<br>
-                <br>
-                Data Counts:<br>
-                - Expenses: ${data.counts.expenses}<br>
-                - Income: ${data.counts.income}<br>
-                <br>
-                Data Range:<br>
-                - Expenses: ${data.dataRange.expenses.oldest || 'none'} to ${data.dataRange.expenses.newest || 'none'}<br>
-                - Income: ${data.dataRange.income.oldest || 'none'} to ${data.dataRange.income.newest || 'none'}<br>
-                `;
-                
-                // Show a notification with the debug info
-                if (window.notifications && window.notifications.info) {
-                    window.notifications.info(message, 30000); // Show for 30 seconds
-                } else {
-                    alert("Date debug info in console");
-                }
-            },
-            error: (xhr, status, error) => {
-                console.error("Debug API Error:", error);
-                if (window.notifications && window.notifications.error) {
-                    window.notifications.error("Error getting debug info: " + error);
-                } else {
-                    alert("Error getting debug info: " + error);
-                }
-            }
-        });
-    };
 
-    // Add a diagnostic function to check date assignments
-    window.checkDateAssignments = function() {
-        // Make a call to the date diagnostic endpoint
-        $.ajax({
-            url: '/api/insights/date-diagnostic',
-            method: 'GET',
-            dataType: 'json',
-            success: (data) => {
-                console.log("===== DATE ASSIGNMENT DIAGNOSTICS =====");
-                console.log("All dates with transactions:", data.dateAssignments);
-                
-                // Group by month for easier analysis
-                const byMonth = {};
-                data.dateAssignments.forEach(item => {
-                    const key = `${item.year}-${item.month.toString().padStart(2, '0')}`;
-                    if (!byMonth[key]) {
-                        byMonth[key] = {
-                            monthName: item.monthName,
-                            year: item.year,
-                            dates: []
-                        };
-                    }
-                    byMonth[key].dates.push(item);
-                });
-                
-                console.log("Grouped by month:", byMonth);
-                
-                // Create a formatted output for a notification
-                let message = `<strong>Date Assignment Diagnostics</strong><br>`;
-                
-                // Add summary by month
-                message += `<br><strong>Transactions by Month:</strong><br>`;
-                Object.keys(byMonth).sort().forEach(monthKey => {
-                    const monthData = byMonth[monthKey];
-                    const totalDates = monthData.dates.length;
-                    const totalExpense = monthData.dates.reduce((sum, item) => sum + item.expenses, 0);
-                    const totalIncome = monthData.dates.reduce((sum, item) => sum + item.income, 0);
-                    
-                    message += `${monthData.monthName} ${monthData.year}: ${totalDates} days, $${totalExpense.toFixed(2)} expenses, $${totalIncome.toFixed(2)} income<br>`;
-                });
-                
-                // Check for dates at month boundaries to help diagnose issues
-                const boundaryDates = data.dateAssignments.filter(item => 
-                    item.day === 1 || item.day >= 28
-                );
-                
-                if (boundaryDates.length > 0) {
-                    message += `<br><strong>Month Boundary Dates:</strong><br>`;
-                    boundaryDates.forEach(item => {
-                        message += `${item.date}: $${item.expenses} expense, $${item.income} income`;
-                        message += ` (This month: ${item.periods.thisMonth}, Prev month: ${item.periods.prevMonth})<br>`;
-                    });
-                }
-                
-                // Show a notification with the debug info
-                if (window.notifications && window.notifications.info) {
-                    window.notifications.info(message, 30000); // Show for 30 seconds
-                } else {
-                    alert("Date assignment info in console");
-                }
-            },
-            error: (xhr, status, error) => {
-                console.error("Date diagnostic API Error:", error);
-                if (window.notifications && window.notifications.error) {
-                    window.notifications.error("Error getting date diagnostics: " + error);
-                } else {
-                    alert("Error getting date diagnostics: " + error);
-                }
-            }
-        });
-    };
-
-    // Helper function to debug API requests for current period
-    function debugApiRequest(period) {
-        const filters = getFilterSettings();
+    // ----- Initialize -----
+    // Run when document is ready
+    $(document).ready(function() {
+        console.log('Document ready, initializing charts...');
         
-        // Get the actual dates being used for API calls
-        console.log(`==== DEBUG API REQUEST FOR ${period} ====`);
-        console.log(`Start Date: ${filters.startDate}`);
-        console.log(`End Date: ${filters.endDate}`);
-        console.log(`Display End Date: ${filters.endDate}`);
+        // Fix CSS layout issues
+        fixLayoutIssues();
         
-        // Make a direct API call to see what data is available
-        $.ajax({
-            url: '/api/insights/debug',
-            method: 'GET',
-            data: { 
-                startDate: filters.startDate, 
-                endDate: filters.endDate
-            },
-            dataType: 'json',
-            success: (data) => {
-                console.log("Debug API response:", data);
-                console.log(`Data counts - Expenses: ${data.counts.expenses}, Income: ${data.counts.income}`);
-                console.log(`Date range - Start: ${data.processed.startDate}, End: ${data.processed.endDate}`);
-                
-                // Check period summary API as well to ensure consistency
-                $.ajax({
-                    url: '/api/insights/period-summary',
-                    method: 'GET',
-                    data: { 
-                        period: period
-                    },
-                    dataType: 'json',
-                    success: (periodData) => {
-                        console.log("Period summary API response:", periodData);
-                        console.log(`Period data counts - Expenses: ${periodData.expense.count}, Income: ${periodData.income.count}`);
-                        
-                        // Verify data consistency
-                        const regularTotal = data.counts.expenses + data.counts.income;
-                        const periodTotal = periodData.expense.count + periodData.income.count;
-                        
-                        if (regularTotal !== periodTotal) {
-                            console.warn(`DATA INCONSISTENCY: Regular API shows ${regularTotal} records but period API shows ${periodTotal} records`);
-                        } else {
-                            console.log(`Data consistency check passed: Both APIs report ${regularTotal} total records`);
-                        }
-                    },
-                    error: (xhr, status, error) => {
-                        console.error("Period summary debug error:", error);
-                    }
-                });
-            },
-            error: (xhr, status, error) => {
-                console.error("Debug API error:", error);
-            }
-        });
-    }
-
-    /**
-     * Get the number of days in the selected period
-     * @param {string} period - 'month', 'prev-month', 'year', 'custom'
-     * @returns {number}
-     */
-    function getDaysInPeriod(period) {
-        const startDateStr = $('#startDate').val();
-        const endDateStr = $('#endDate').val();
-        const startDate = new Date(startDateStr);
-        const endDate = new Date(endDateStr);
-
-        if (period === 'month' || period === 'prev-month' || period === 'custom') {
-            // Calculate the number of days between two dates, inclusive
-            const diffTime = endDate.getTime() - startDate.getTime();
-            // +1 to include both start and end dates
-            return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1);
-        } else if (period === 'year') {
-            // From Jan 1st this year to Jan 1st next year
-            const year = startDate.getFullYear();
-            const nextYear = new Date(year + 1, 0, 1);
-            const diffTime = nextYear.getTime() - startDate.getTime();
-            return Math.round(diffTime / (1000 * 60 * 60 * 24));
-        }
-        return 1;
-    }
-
-    // Load all data on document ready
-    $(document).ready(function () {
-        console.log('Document ready, loading data...');
+        // Initialize UI and chart elements
+        initializeUI();
         
-        // Initialize date handlers
-        initDateHandlers();
+        // Add debugging functionality
+        addDebugButton();
         
-        // Apply direct styling to all chart containers for consistent appearance
-        // regardless of dark/light mode
-        $('.chart-container').each(function() {
-            $(this).css({
-                'background-color': '#ffffff',
-                'border': '1px solid #e0e0e0',
-                'border-radius': '8px'
-            });
-        });
-        
-        // Load all data
+        // Load data
         loadAllData();
-        
-        // Force white background on Plotly-generated elements when the DOM changes
-        // This uses a MutationObserver to detect when Plotly adds new SVG elements
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    // Force white background on all SVG elements
-                    const svgElements = document.querySelectorAll('svg.main-svg');
-                    for (let svg of svgElements) {
-                        svg.style.backgroundColor = '#ffffff';
-                    }
-                    
-                    // Force white background on all BG elements
-                    const bgElements = document.querySelectorAll('.bg');
-                    for (let bg of bgElements) {
-                        bg.setAttribute('fill', '#ffffff');
-                    }
-                }
-            });
-        });
-        
-        // Start observing the chart containers
-        const chartContainers = document.querySelectorAll('.chart-container');
-        for (let container of chartContainers) {
-            observer.observe(container, { childList: true, subtree: true });
-        }
-        
-        // Detect dark mode changes and refresh charts
-        if (window.matchMedia) {
-            const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            
-            try {
-                // Modern browsers
-                darkModeMediaQuery.addEventListener('change', function(e) {
-                    console.log('Dark mode preference changed, refreshing charts...');
-                    
-                    // Reapply white backgrounds to all chart containers
-                    $('.chart-container').each(function() {
-                        $(this).css({
-                            'background-color': '#ffffff',
-                            'border': '1px solid #e0e0e0',
-                            'border-radius': '8px'
-                        });
-                    });
-                    
-                    // Force white backgrounds on SVG elements
-                    const svgElements = document.querySelectorAll('svg.main-svg');
-                    for (let svg of svgElements) {
-                        svg.style.backgroundColor = '#ffffff';
-                    }
-                    
-                    // Force white backgrounds on BG elements
-                    const bgElements = document.querySelectorAll('.bg');
-                    for (let bg of bgElements) {
-                        bg.setAttribute('fill', '#ffffff');
-                    }
-                    
-                    // Refresh the data
-                    setTimeout(() => {
-                        loadAllData();
-                    }, 100);
-                });
-            } catch (error1) {
-                try {
-                    // Older browsers
-                    darkModeMediaQuery.addListener(function(e) {
-                        console.log('Dark mode preference changed (legacy), refreshing charts...');
-                        
-                        // Reapply white backgrounds to all chart containers
-                        $('.chart-container').each(function() {
-                            $(this).css({
-                                'background-color': '#ffffff',
-                                'border': '1px solid #e0e0e0',
-                                'border-radius': '8px'
-                            });
-                        });
-                        
-                        setTimeout(() => {
-                            loadAllData();
-                        }, 100);
-                    });
-                } catch (error2) {
-                    console.error('Could not add dark mode change listener:', error2);
-                }
-            }
-        }
-        
-        // Test if Chart.js is loaded
-        if (typeof Chart !== 'undefined') {
-            console.log('Chart.js is loaded correctly');
-            
-            // Always use light mode colors for Chart.js
-            Chart.defaults.color = '#666666';
-            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
-            
-            // Force white backgrounds on all canvas charts
-            setTimeout(() => {
-                $('canvas.chartjs-render-monitor').each(function() {
-                    $(this).css('background-color', '#ffffff');
-                });
-            }, 500);
-        } else {
-            console.error('Chart.js is not loaded!');
-        }
-        
-        // Test canvas rendering context
-        setTimeout(function() {
-            const canvas = document.getElementById('topCategoriesChart');
-            if (canvas) {
-                console.log('Canvas found:', canvas);
-                try {
-                    const ctx = canvas.getContext('2d');
-                    console.log('Canvas context:', ctx);
-                    
-                    // Draw a test rectangle on the canvas to verify it works
-                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-                    ctx.fillRect(10, 10, 50, 50);
-                    console.log('Test rectangle drawn');
-                    
-                    // Set canvas background to white
-                    $(canvas).css('background-color', '#ffffff');
-                } catch (e) {
-                    console.error('Error getting canvas context:', e);
-                }
-            } else {
-                console.error('Canvas element not found!');
-            }
-        }, 2000);
-        
-        // Setup export handlers
-        setupExportHandlers();
-        
-
-        Chart.defaults.font.family = "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-        Chart.defaults.font.size = 12;
-        Chart.defaults.color = '#555';
-        Chart.defaults.plugins.tooltip.padding = 10;
-        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-        Chart.defaults.plugins.tooltip.titleColor = '#333';
-        Chart.defaults.plugins.tooltip.bodyColor = '#333';
-        Chart.defaults.plugins.tooltip.borderColor = 'rgba(0, 0, 0, 0.1)';
-        Chart.defaults.plugins.tooltip.borderWidth = 1;
-        Chart.defaults.plugins.tooltip.cornerRadius = 4;
-        
-
-        function addTooltipsToText() {
-
-            $('.stats-value span').each(function() {
-                const $this = $(this);
-                const text = $this.text();
-                if (text.length > 10) {
-                    $this.attr('data-bs-toggle', 'tooltip');
-                    $this.attr('data-bs-placement', 'top');
-                    $this.attr('title', text);
-                }
-            });
-            
-
-            $('.card-title').each(function() {
-                const $this = $(this);
-                const text = $this.text().trim();
-                if (text.length > 20) {
-                    $this.attr('data-bs-toggle', 'tooltip');
-                    $this.attr('data-bs-placement', 'top');
-                    $this.attr('title', text);
-                }
-            });
-
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        }
-        
-
-        setTimeout(addTooltipsToText, 1000);
-        
-
-        $(window).on('resize', function() {
-            setTimeout(addTooltipsToText, 500);
-        });
-        
-
-        $('.stats-title, .stats-value, .card-title').addClass('text-truncate');
-        
-        $('.chart-card').on('shown.bs.collapse hidden.bs.collapse', function() {
-            setTimeout(addTooltipsToText, 300);
-        });
     });
+
+    // Function to fix layout issues
+    function fixLayoutIssues() {
+        // Ensure custom date range selector is hidden by default to prevent multiple displays
+        $('.custom-date-range').hide();
+        
+        // Add CSS fixes
+        $('<style>')
+            .prop('type', 'text/css')
+            .html(`
+                /* Fix shared user selector layout */
+                .shared-user-selector {
+                    flex-shrink: 0;
+                    min-width: 350px;
+                    background: #f8f9fa;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    border: 1px solid #e9ecef;
+                    margin-right: 10px;
+                    margin-bottom: 10px;
+                    height: auto !important;
+                }
+                
+                /* Fix for "view data from" text */
+                .shared-user-selector label {
+                    white-space: nowrap;
+                    margin-right: 8px;
+                    margin-bottom: 0;
+                    min-width: 95px;
+                }
+                
+                /* Improved shared selector button styles */
+                .shared-user-selector .btn-sm {
+                    min-width: 60px;
+                    height: 31px;
+                    vertical-align: middle;
+                }
+                
+                /* Make sure the select doesn't cause layout shifts */
+                .shared-user-selector select {
+                    min-width: 150px;
+                    width: auto;
+                    flex-grow: 1;
+                }
+                
+                /* Ensure the shared selector has consistent height */
+                .shared-user-selector .d-flex.align-items-center {
+                    height: 31px;
+                }
+                
+                /* Fix date range selector to maintain height even when empty */
+                .date-range-selector {
+                    flex-grow: 1;
+                    min-height: 38px;
+                    width: 100%;
+                    position: relative;
+                    padding-bottom: 45px; /* Reserve space for custom date range */
+                }
+                
+                .period-selector-container {
+                    width: 100%;
+                }
+                
+                .period-selector {
+                    white-space: nowrap;
+                    display: flex;
+                    flex-wrap: nowrap !important;
+                    overflow-x: auto;
+                    max-width: 100%;
+                    margin-bottom: 5px;
+                }
+                
+                .period-selector .btn {
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                }
+                
+                /* Custom date range styles */
+                .custom-date-range {
+                    display: none !important; /* Force hide by default */
+                    position: absolute;
+                    top: 40px;
+                    left: 0;
+                    right: 0;
+                }
+                
+                .custom-date-range.show {
+                    display: flex !important; /* Only display when show class is added */
+                    flex-wrap: nowrap;
+                    margin-top: 0 !important;
+                }
+                
+                .custom-date-range input[type="date"] {
+                    min-width: 130px;
+                }
+                
+                .custom-date-range .btn {
+                    height: 31px;
+                    min-width: 70px;
+                }
+                
+                /* Ensure buttons don't wrap on small screens */
+                @media (max-width: 768px) {
+                    .date-range-selector {
+                        width: 100%;
+                    }
+                    
+                    .shared-user-selector label {
+                        min-width: 80px;
+                    }
+                    
+                    .data-source-selector,
+                    .shared-user-selector,
+                    .export-options {
+                        width: 100%;
+                        margin-bottom: 10px;
+                    }
+                    
+                    .d-flex.flex-wrap.justify-content-between {
+                        flex-direction: column;
+                    }
+                }
+
+                /* Improved layout for consistency */
+                .d-flex.flex-wrap.justify-content-between {
+                    align-items: flex-start !important;
+                }
+
+                /* Fix flex layout issues */
+                .d-flex.flex-wrap.align-items-center {
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
+                    width: 100%;
+                }
+            `)
+            .appendTo('head');
+            
+        // Add back button to shared user selector
+        if ($('#backToMyData').length === 0) {
+            $('.shared-user-selector .d-flex').append(
+                $('<button>')
+                    .attr('id', 'backToMyData')
+                    .addClass('btn btn-sm btn-outline-secondary ms-2')
+                    .html('<i class="fas fa-arrow-left me-1"></i> Back')
+                    .on('click', function() {
+                        $('.data-source-selector .btn').removeClass('active');
+                        $('.data-source-selector .btn[data-source="my-data"]').addClass('active');
+                        currentDataSource = 'my-data';
+                        selectedSharerId = null;
+                        $('.shared-user-selector').hide();
+                        loadAllData();
+                    })
+            );
+        }
+        
+        // Restructure the date selector layout for better consistency
+        setTimeout(() => {
+            // Wrap period selector in a container if needed
+            if ($('.period-selector-container').length === 0) {
+                $('.period-selector').wrap('<div class="period-selector-container"></div>');
+            }
+            
+            // Ensure consistent display across shared/non-shared modes
+            $('.d-flex.flex-wrap.align-items-center').css({
+                'display': 'flex',
+                'flex-wrap': 'nowrap',
+                'overflow-x': 'auto',
+                'width': '100%'
+            });
+        }, 0);
+            
+        // Change handling of "Custom" button click
+        $('.period-selector .btn[data-period="custom"]').off('click').on('click', function() {
+            $('.period-selector .btn').removeClass('active');
+            $(this).addClass('active');
+            
+            // Use show class to control display
+            $('.custom-date-range').addClass('show');
+        });
+        
+        // Change handling of other period buttons
+        $('.period-selector .btn:not([data-period="custom"])').off('click').on('click', function() {
+            $('.period-selector .btn').removeClass('active');
+            $(this).addClass('active');
+            
+            // Remove show class to hide
+            $('.custom-date-range').removeClass('show');
+            
+            let startDate, endDate;
+            const today = new Date();
+            const period = $(this).data('period');
+            
+            switch(period) {
+                case 'month':
+                    // Current month - from 1st of current month to today
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today);
+                    break;
+                    
+                case 'prev-month':
+                    // Previous month - from 1st to last day of previous month
+                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    
+                    // Calculate the last day of the previous month
+                    // This is done by getting the 0th day of current month, which gives last day of previous month
+                    if (today.getMonth() === 0) {
+                        // If January, previous month is December of last year
+                        endDate = new Date(today.getFullYear() - 1, 12, 0); // December 31st
+                    } else {
+                        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    }
+                    break;
+                    
+                case 'year':
+                    // Current year - from January 1st to today
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    endDate = new Date(today);
+                    break;
+            }
+            
+            // Set input field values
+            $('#startDate').val(formatDateForInput(startDate));
+            $('#endDate').val(formatDateForInput(endDate));
+            
+            // Show loading indicator
+            $('.chart-container').html('<div class="loading-indicator">Loading data...</div>');
+            
+            // Load all data
+            setTimeout(() => loadAllData(), 100);
+        });
+    }
+
+    // Initialize all charts and UI elements
+    function initializeUI() {
+        console.log('Initializing UI and charts');
+        
+        // Initialize chart containers
+        initChartContainers();
+        
+        // Remove the monthly-progress toggle button since we're only keeping income-expense
+        $('[data-compare-type="monthly-progress"]').parent().find('[data-compare-type="income-expense"]').addClass('active');
+        $('[data-compare-type="monthly-progress"]').remove();
+        
+        // Ensure top categories chart toggle buttons exist
+        ensureTopCategoriesToggleButtons();
+        
+        // Set up all event listeners
+        addChartTogglesListeners();
+        
+        // Add trend period selectors if they don't exist
+        if ($('.chart-period-selector').length === 0) {
+            // Add period selector buttons before the trend chart
+            const periodSelector = $('<div>')
+                .addClass('btn-group btn-group-sm chart-period-selector mb-3')
+                .attr('role', 'group')
+                .append(
+                    $('<button>')
+                        .addClass('btn btn-outline-secondary active')
+                        .attr('data-trend-period', 'daily')
+                        .text('Daily'),
+                    $('<button>')
+                        .addClass('btn btn-outline-secondary')
+                        .attr('data-trend-period', 'weekly')
+                        .text('Weekly'),
+                    $('<button>')
+                        .addClass('btn btn-outline-secondary')
+                        .attr('data-trend-period', 'monthly')
+                        .text('Monthly')
+                );
+            
+            // Insert before trend chart
+            $('#trendChart').before(periodSelector);
+        }
+        
+        // Fix for period selector not properly setting data-trend-period
+        $('.chart-period-selector .btn').each(function() {
+            // If button has period but no trend-period, add it
+            if ($(this).data('period') && !$(this).data('trend-period')) {
+                const period = $(this).data('period');
+                if (period === 'day') $(this).attr('data-trend-period', 'daily');
+                else if (period === 'week') $(this).attr('data-trend-period', 'weekly');
+                else if (period === 'month') $(this).attr('data-trend-period', 'monthly');
+            }
+        });
+        
+        // Add CSS fixes
+        addUIStyleFixes();
+    }
+
+    // Function to properly initialize chart containers by replacing divs with canvas elements if needed
+    function initChartContainers() {
+        // Ensure top categories chart has the correct canvas element
+        if ($('#topCategoriesChart').length === 0) {
+            $('.card-body:has(.fa-chart-bar)').append('<canvas id="topCategoriesChart" class="chart-container"></canvas>');
+        }
+        
+        // Ensure all chart containers have canvas elements
+        createCanvasIfNeeded('trendChart');
+        createCanvasIfNeeded('categoryPieChart');
+        createCanvasIfNeeded('monthlyComparisonChart');
+        
+        // Set chart heights
+        $('#trendChart').css('height', '300px');
+        $('#categoryPieChart').css('height', '300px');
+        $('#monthlyComparisonChart').css('height', '300px');
+        $('#topCategoriesChart').css('height', '270px');
+        
+        // Apply common chart styles
+        $('.chart-container').css({
+            'background-color': '#ffffff',
+            'border-radius': '8px',
+            'overflow': 'hidden',
+            'width': '100%', 
+            'min-height': '250px'
+        });
+        
+        // Make all chart canvases resize properly
+        $('canvas.chart-container').css({
+            'width': '100%',
+            'height': '100%'
+        });
+        
+        console.log('Chart containers initialized with canvas elements');
+    }
+
+    // Helper function to ensure each chart container has a canvas element
+    function createCanvasIfNeeded(containerId) {
+        const container = $('#' + containerId);
+        
+        // If the container is a div and doesn't contain a canvas, replace it with a canvas
+        if (container.is('div') && container.find('canvas').length === 0) {
+            const canvas = $('<canvas>').attr('id', containerId + 'Canvas');
+            container.empty().append(canvas);
+            console.log('Created canvas element for ' + containerId);
+        }
+    }
+
+    // Add CSS for chart error messages
+    $('<style>')
+        .prop('type', 'text/css')
+        .html(`
+            .chart-error {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+                color: #6c757d;
+                text-align: center;
+                font-style: italic;
+                padding: 20px;
+            }
+        `)
+        .appendTo('head');
+
+    // Add loading indicator CSS
+    $('<style>')
+        .prop('type', 'text/css')
+        .html(`
+            .loading-indicator {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+                color: #6c757d;
+                text-align: center;
+                padding: 20px;
+            }
+            .loading-indicator:after {
+                content: '';
+                width: 20px;
+                height: 20px;
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #3498db;
+                border-radius: 50%;
+                margin-left: 10px;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `)
+        .appendTo('head');
+
+    // Display notification to users
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        $('.notification').remove();
+        
+        // Create notification element
+        const notification = $('<div>')
+            .addClass('notification')
+            .addClass(`notification-${type}`)
+            .text(message);
+        
+        // Add close button
+        const closeBtn = $('<button>')
+            .addClass('notification-close')
+            .html('&times;')
+            .on('click', function() {
+                $(this).parent().fadeOut(300, function() {
+                    $(this).remove();
+                });
+            });
+        
+        notification.append(closeBtn);
+        
+        // Add to document and animate
+        $('body').append(notification);
+        notification.fadeIn(300);
+        
+        // Auto remove after 5 seconds
+        setTimeout(function() {
+            notification.fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 5000);
+    }
+
+    // Add CSS for notifications
+    $('<style>').html(`
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 350px;
+        }
+        .notification-info {
+            background-color: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+        .notification-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .notification-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .notification-close {
+            background: transparent;
+            border: none;
+            float: right;
+            font-size: 20px;
+            line-height: 1;
+            font-weight: 700;
+            color: inherit;
+            opacity: 0.7;
+            cursor: pointer;
+            padding: 0 0 0 10px;
+            margin-left: 10px;
+        }
+        .notification-close:hover {
+            opacity: 1;
+        }
+    `).appendTo('head');
+
+    // Add debug function to check API response data
+    function addDebugButton() {
+        // Add a hidden debug button
+        $('<button>')
+            .attr('id', 'debugApiButton')
+            .text('Debug API')
+            .css({
+                'position': 'fixed',
+                'bottom': '10px',
+                'right': '10px',
+                'z-index': '9999',
+                'background': '#f8f9fa',
+                'border': '1px solid #ddd',
+                'padding': '5px 10px',
+                'border-radius': '4px',
+                'font-size': '12px',
+                'opacity': '0.7'
+            })
+            .on('click', function() {
+                debugApiCalls();
+            })
+            .appendTo('body');
+    }
+    
+    function debugApiCalls() {
+        // Get current settings
+        const filters = getFilterSettings();
+        const debug = {
+            currentSettings: filters,
+            apiTests: {}
+        };
+        
+        // Test main API calls
+        const apiEndpoints = [
+            { name: 'summary', url: '/api/insights/summary' },
+            { name: 'income-summary', url: '/api/income-summary' },
+            { name: 'income-expense-comparison', url: '/api/income-expense-comparison' },
+            { name: 'top-categories', url: '/api/insights/top-categories' },
+            { name: 'top-income-categories', url: '/api/insights/top-income-categories' },
+            { name: 'shared-summary', url: '/api/shared-insights/summary' },
+            { name: 'shared-summary-all', url: '/api/shared-insights/summary-all' },
+            { name: 'shared-comparison', url: '/api/shared-insights/comparison' },
+            { name: 'shared-comparison-all', url: '/api/shared-insights/comparison-all' },
+            { name: 'shared-top-categories', url: '/api/shared-insights/top-categories' },
+            { name: 'shared-top-categories-all', url: '/api/shared-insights/top-categories-all' }
+        ];
+        
+        let promises = [];
+        
+        // For shared-data mode, test different parameter combinations
+        if (currentDataSource === 'shared-data' && selectedSharerId) {
+            const testParams = [
+                { startDate: filters.startDate, endDate: filters.endDate },
+                { startDate: filters.startDate, endDate: filters.endDate, count_all: true },
+                { startDate: filters.startDate, endDate: filters.endDate, include_merged: true },
+                { startDate: filters.startDate, endDate: filters.endDate, count_all: true, include_merged: true },
+                { startDate: filters.startDate, endDate: filters.endDate, count_all: true, include_merged: true, deduplicate: true },
+                { startDate: filters.startDate, endDate: filters.endDate, count_all: true, include_merged: true, process_all_items: true }
+            ];
+            
+            // If specific user, add sharer_id parameter
+            if (selectedSharerId !== 'all') {
+                testParams.forEach(param => param.sharer_id = selectedSharerId);
+            }
+            
+            // Test each API endpoint with each parameter combination
+            apiEndpoints.forEach(endpoint => {
+                if (endpoint.url.includes('shared-insights')) {
+                    testParams.forEach((params, index) => {
+                        const testKey = `${endpoint.name}_params${index}`;
+                        const promise = $.ajax({
+                            url: endpoint.url,
+                            method: 'GET',
+                            data: params,
+                            dataType: 'json'
+                        }).done(data => {
+                            debug.apiTests[testKey] = {
+                                params: params,
+                                response: data,
+                                dataCount: calculateDataCount(data)
+                            };
+                        }).fail(error => {
+                            debug.apiTests[testKey] = {
+                                params: params,
+                                error: error.statusText
+                            };
+                        });
+                        promises.push(promise);
+                    });
+                }
+            });
+        }
+        
+        // Add specific test for analyzing shared data structure
+        if (currentDataSource === 'shared-data' && selectedSharerId) {
+            // Special test for getting raw shared data structure
+            const promise = $.ajax({
+                url: '/api/shared-insights/raw-data',
+                method: 'GET',
+                data: {
+                    startDate: filters.startDate, 
+                    endDate: filters.endDate,
+                    sharer_id: selectedSharerId === 'all' ? undefined : selectedSharerId
+                },
+                dataType: 'json'
+            }).done(data => {
+                debug.rawSharedData = {
+                    count: data.length,
+                    firstItems: data.slice(0, 5),
+                    sharers: [...new Set(data.map(item => item.sharer_id))],
+                    itemsBySharer: {}
+                };
+                
+                // Group items by sharer
+                const sharerMap = {};
+                data.forEach(item => {
+                    if (!sharerMap[item.sharer_id]) {
+                        sharerMap[item.sharer_id] = [];
+                    }
+                    sharerMap[item.sharer_id].push(item);
+                });
+                
+                // Add summary for each sharer
+                Object.keys(sharerMap).forEach(sharerId => {
+                    debug.rawSharedData.itemsBySharer[sharerId] = {
+                        count: sharerMap[sharerId].length,
+                        sample: sharerMap[sharerId][0]
+                    };
+                });
+            }).fail(error => {
+                debug.rawSharedData = {
+                    error: error.statusText
+                };
+            });
+            promises.push(promise);
+        }
+        
+        // Wait for all API calls to complete
+        $.when.apply($, promises).always(() => {
+            console.log('===== API DEBUG RESULTS =====');
+            console.log(JSON.stringify(debug, null, 2));
+            alert('API debugging complete. Check console for results.');
+        });
+    }
+    
+    // Calculate the number of records in API response data
+    function calculateDataCount(data) {
+        const counts = {};
+        
+        if (!data) return { error: 'No data' };
+        
+        // Calculate expense totals
+        if (data.expense) {
+            if (data.expense.totalAmount) counts.expenseTotal = data.expense.totalAmount;
+            if (data.expense.categoryDistribution && data.expense.categoryDistribution.values) {
+                counts.expenseCategoryCount = data.expense.categoryDistribution.values.length;
+                counts.expenseCategorySum = data.expense.categoryDistribution.values.reduce((sum, val) => sum + val, 0);
+            }
+        }
+        
+        // Calculate income totals
+        if (data.income) {
+            if (data.income.totalAmount) counts.incomeTotal = data.income.totalAmount;
+            if (data.income.categoryDistribution && data.income.categoryDistribution.values) {
+                counts.incomeCategoryCount = data.income.categoryDistribution.values.length;
+                counts.incomeCategorySum = data.income.categoryDistribution.values.reduce((sum, val) => sum + val, 0);
+            }
+        }
+        
+        // Calculate pie chart data
+        if (data.categoryDistribution) {
+            counts.categoryCount = data.categoryDistribution.labels ? data.categoryDistribution.labels.length : 0;
+            counts.categorySum = data.categoryDistribution.values ? 
+                data.categoryDistribution.values.reduce((sum, val) => sum + val, 0) : 0;
+        }
+        
+        // Calculate trend chart data
+        if (data.labels) {
+            counts.dataPointCount = data.labels.length;
+            counts.incomeSum = data.income ? data.income.reduce((sum, val) => sum + val, 0) : 0;
+            counts.expenseSum = data.expense ? data.expense.reduce((sum, val) => sum + val, 0) : 0;
+        }
+        
+        // Calculate totalAmount
+        if (data.totalAmount) {
+            counts.totalAmount = data.totalAmount;
+        }
+        
+        // Calculate values list
+        if (data.values) {
+            counts.valuesCount = data.values.length;
+            counts.valuesSum = data.values.reduce((sum, val) => sum + val, 0);
+        }
+        
+        return counts;
+    }
+
+    // Function to clear all data displays
+    function clearAllDataDisplays() {
+        // Clear summary cards
+        $('#totalIncome').text('$0.00');
+        $('#totalExpenses').text('$0.00');
+        $('#netBalance').text('$0.00');
+        $('#topCategoryName').text('Select a user');
+        $('#topCategoryAmount').text('$0.00');
+        $('#categoryPercentage').text('0% of total');
+        $('#averageDailyIncome').text('$0.00');
+        $('#averageDailyExpense').text('$0.00');
+        
+        // Destroy all charts
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
+        if (pieChart) {
+            pieChart.destroy();
+            pieChart = null;
+        }
+        if (topCategoriesChart) {
+            topCategoriesChart.destroy();
+            topCategoriesChart = null;
+        }
+        if (monthlyComparisonChart) {
+            monthlyComparisonChart.destroy();
+            monthlyComparisonChart = null;
+        }
+    }
+
+    // Clear all charts
+    function clearCharts() {
+        // Destroy existing chart instances
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
+        if (pieChart) {
+            pieChart.destroy();
+            pieChart = null;
+        }
+        if (topCategoriesChart) {
+            topCategoriesChart.destroy();
+            topCategoriesChart = null;
+        }
+        if (monthlyComparisonChart) {
+            monthlyComparisonChart.destroy();
+            monthlyComparisonChart = null;
+        }
+        
+        // Re-initialize chart containers
+        initChartContainers();
+    }
+
+    window.debugInsights = function() {
+        console.log('===== INSIGHTS DEBUG =====');
+        console.log('Current data source:', currentDataSource);
+        console.log('Selected sharer ID:', selectedSharerId);
+        console.log('Filter settings:', getFilterSettings());
+        console.log('Charts:', {
+            trendChart,
+            pieChart,
+            topCategoriesChart,
+            monthlyComparisonChart
+        });
+        
+        console.log('Chart containers:');
+        console.log('trendChart container:', $('#trendChart').length ? 'exists' : 'missing', $('#trendChart').width(), 'x', $('#trendChart').height());
+        console.log('categoryPieChart container:', $('#categoryPieChart').length ? 'exists' : 'missing', $('#categoryPieChart').width(), 'x', $('#categoryPieChart').height());
+        console.log('topCategoriesChart container:', $('#topCategoriesChart').length ? 'exists' : 'missing', $('#topCategoriesChart').width(), 'x', $('#topCategoriesChart').height());
+        console.log('monthlyComparisonChart container:', $('#monthlyComparisonChart').length ? 'exists' : 'missing', $('#monthlyComparisonChart').width(), 'x', $('#monthlyComparisonChart').height());
+
+        return 'Debug info logged to console';
+    };
+
+    // Add a more detailed debug function for shared data issues
+    window.debugSharedData = function() {
+        console.log('===== SHARED DATA DEBUG =====');
+        console.log('Current data source:', currentDataSource);
+        console.log('Selected sharer ID:', selectedSharerId);
+        
+        if (currentDataSource !== 'shared-data') {
+            console.log('Not in shared data mode. Switch to "Shared With Me" to debug shared data.');
+            return 'Not in shared data mode';
+        }
+        
+        // Get current filter settings
+        const filters = getFilterSettings();
+        
+        // Create a special debug log
+        const enhancedParams = enhanceAPIParams({
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        }, true, selectedSharerId);
+        
+        console.log('Enhanced API params that will be used:', enhancedParams);
+        
+        // Make API calls to test shared data processing
+        const apiEndpoints = [
+            { name: 'summary-all', url: '/api/shared-insights/summary-all' },
+            { name: 'comparison-all', url: '/api/shared-insights/comparison-all' }
+        ];
+        
+        const results = {};
+        let pendingCalls = apiEndpoints.length;
+        
+        // Show loading indicator
+        alert('Debugging shared data. Please wait...');
+        
+        apiEndpoints.forEach(endpoint => {
+            $.ajax({
+                url: endpoint.url,
+                method: 'GET',
+                data: enhancedParams,
+                dataType: 'json',
+                success: (data) => {
+                    results[endpoint.name] = {
+                        data: data,
+                        counts: calculateDataCount(data)
+                    };
+                    pendingCalls--;
+                    if (pendingCalls === 0) {
+                        console.log('Shared data debug results:', results);
+                        alert('Shared data debug complete. Check console for results.');
+                    }
+                },
+                error: (xhr) => {
+                    results[endpoint.name] = {
+                        error: xhr.responseText || xhr.statusText
+                    };
+                    pendingCalls--;
+                    if (pendingCalls === 0) {
+                        console.log('Shared data debug results (with errors):', results);
+                        alert('Shared data debug complete with errors. Check console for results.');
+                    }
+                }
+            });
+        });
+        
+        return 'Debugging shared data...';
+    };
 });
