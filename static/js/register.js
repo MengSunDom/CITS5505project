@@ -1,16 +1,16 @@
 $(document).ready(function() {
     $('#registerForm').on('submit', function(e) {
-    e.preventDefault();
-    
+        e.preventDefault();
+
         const username = $('#username').val();
         const password = $('#password').val();
         const confirmPassword = $('#confirmPassword').val();
         const csrf_token = $('input[name="csrf_token"]').val();
 
-    if (password !== confirmPassword) {
+        if (password !== confirmPassword) {
             notifications.error('Passwords do not match!');
-        return;
-    }
+            return;
+        }
 
         $.ajax({
             url: '/api/register',
@@ -21,6 +21,9 @@ $(document).ready(function() {
                 password: password,
                 csrf_token: csrf_token
             }),
+            xhrFields: {
+                withCredentials: true
+            },
             success: function(response) {
                 notifications.success('Registration successful! Please login.');
                 setTimeout(() => {
@@ -38,7 +41,7 @@ $(document).ready(function() {
                     } catch (e) {}
                 }
                 notifications.error(msg);
-    }
+            }
         });
     });
-}); 
+});

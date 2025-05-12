@@ -31,6 +31,9 @@ function loadAllSharedData(cacheBuster) {
     $.ajax({
         url: '/api/share/by-me?_=' + cacheBuster,
         method: 'GET',
+        xhrFields: {
+        withCredentials: true
+    },
         dataType: 'json',
         cache: false,
         success: function(data) {
@@ -47,6 +50,9 @@ function loadAllSharedData(cacheBuster) {
     $.ajax({
         url: '/api/share/income/by-me?_=' + cacheBuster,
         method: 'GET',
+        xhrFields: {
+        withCredentials: true
+    },
         dataType: 'json',
         cache: false,
         success: function(data) {
@@ -63,6 +69,9 @@ function loadAllSharedData(cacheBuster) {
     $.ajax({
         url: '/api/share/with-me?_=' + cacheBuster,
         method: 'GET',
+        xhrFields: {
+        withCredentials: true
+    },
         dataType: 'json',
         cache: false,
         success: function(data) {
@@ -79,6 +88,9 @@ function loadAllSharedData(cacheBuster) {
     $.ajax({
         url: '/api/share/income/with-me?_=' + cacheBuster,
         method: 'GET',
+        xhrFields: {
+        withCredentials: true
+    },
         dataType: 'json',
         cache: false,
         success: function(data) {
@@ -202,6 +214,9 @@ function cancelShare(button, sharedId, type) {
     $.ajax({
         url: `/api/share${type ? "/income" : ""}/cancel`,
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify({ shared_id: sharedId }),
             success: function(response) {
@@ -222,6 +237,9 @@ function cancelShare(button, sharedId, type) {
                     $.ajax({
                         url: '/api/share/by-me?_=' + cacheBuster,
                         method: 'GET',
+                        xhrFields: {
+        withCredentials: true
+    },
                         dataType: 'json',
                         cache: false,
                         success: function(data) {
@@ -238,6 +256,9 @@ function cancelShare(button, sharedId, type) {
                     $.ajax({
                         url: '/api/share/income/by-me?_=' + cacheBuster,
                         method: 'GET',
+                        xhrFields: {
+        withCredentials: true
+    },
                         dataType: 'json',
                         cache: false,
                         success: function(data) {
@@ -254,6 +275,9 @@ function cancelShare(button, sharedId, type) {
                     $.ajax({
                         url: '/api/share/with-me?_=' + cacheBuster,
                         method: 'GET',
+                        xhrFields: {
+        withCredentials: true
+    },
                         dataType: 'json',
                         cache: false,
                         success: function(data) {
@@ -270,6 +294,9 @@ function cancelShare(button, sharedId, type) {
                     $.ajax({
                         url: '/api/share/income/with-me?_=' + cacheBuster,
                         method: 'GET',
+                        xhrFields: {
+        withCredentials: true
+    },
                         dataType: 'json',
                         cache: false,
                         success: function(data) {

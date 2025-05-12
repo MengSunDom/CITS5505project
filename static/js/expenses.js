@@ -76,11 +76,14 @@ $(document).ready(function () {
         try {
             const response = await fetch('/api/expenses', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(formData)
             });
+
+            
 
             const data = await response.json();
             
@@ -112,6 +115,7 @@ $(document).ready(function () {
         
         fetch(`/api/share/${expenseId}`, {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -171,6 +175,9 @@ $(document).ready(function () {
         $.ajax({
             url: '/api/share/bulk',
             method: 'POST',
+            xhrFields: {
+        withCredentials: true
+    },
             contentType: 'application/json',
             data: JSON.stringify({ ids: selectedIds, username: username }),
             success: function() {
@@ -230,7 +237,7 @@ let currentExpenses = [];
 
 // Function to load usernames for sharing
 function loadUsernames() {
-    return fetch('/api/users')
+    return fetch('/api/users',{credentials: 'include'})
         .then(response => response.json())
         .then(data => {
             // Store the full user list for filtering
@@ -365,6 +372,9 @@ function deleteLine(expenseId) {
     $.ajax({
         url: '/api/expenses/delete',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify({
             id: expenseId
@@ -463,6 +473,9 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
             $.ajax({
                 url: '/api/expenses/bulk',
                 method: 'POST',
+                xhrFields: {
+        withCredentials: true
+    },
                 contentType: 'application/json',
                 data: JSON.stringify(validRows),
                 success: function (response) {
@@ -499,6 +512,7 @@ document.getElementById('uploadImageButton').addEventListener('click', async fun
         // Upload file for OCR
         const response = await fetch('/api/ocr/expense', {
             method: 'POST',
+            credentials: 'include',
             body: formData
         });
         
@@ -539,6 +553,9 @@ async function addExpense(expenseData) {
     $.ajax({
         url: '/api/expenses',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify(formData),
         success: function () {
@@ -621,6 +638,9 @@ $('#deleteSelected').on('click', function() {
         $.ajax({
             url: '/api/expenses/bulk-delete',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
             contentType: 'application/json',
             data: JSON.stringify({ ids: selectedIds }),
             success: function() {
@@ -652,6 +672,9 @@ $('#processClipboardButton').on('click', function() {
     $.ajax({
         url: '/api/expenses/from-clipboard',
         method: 'POST',
+        xhrFields: {
+        withCredentials: true
+    },
         contentType: 'application/json',
         data: JSON.stringify({ text: clipboardText }),
         success: function(response) {
