@@ -23,43 +23,63 @@
                 <ul class="navbar-nav me-auto">
                     {% if session.get('user') %}
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/dashboard">Dashboard</a>
+                        <a class="nav-link {% if request.path == '/dashboard' %}active{% endif %}" href="/dashboard">
+                            <i class="fas fa-chart-line me-1"></i>Dashboard
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/expenses">Expenses</a>
+                        <a class="nav-link {% if request.path == '/expenses' %}active{% endif %}" href="/expenses">
+                            <i class="fas fa-file-invoice-dollar me-1"></i>Expenses
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/income">Income</a>
+                        <a class="nav-link {% if request.path == '/income' %}active{% endif %}" href="/income">
+                            <i class="fas fa-wallet me-1"></i>Income
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/insights">Insights</a>
+                        <a class="nav-link {% if request.path == '/insights' or request.path == '/insights/' %}active{% endif %}" href="/insights">
+                            <i class="fas fa-chart-pie me-1"></i>Insights
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/shared-data">Shared Data</a>
+                        <a class="nav-link {% if request.path == '/shared-data' %}active{% endif %}" href="/shared-data">
+                            <i class="fas fa-share-alt me-1"></i>Shared Data
+                        </a>
                     </li>
                     {% endif %}
+                    {% block navbar_left %}{% endblock %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if session.get('user') %}
                     <li class="nav-item">
-                        <span class="nav-link text-dark">Welcome, {{ session['user']['username'] }}</span>
+                        <span class="nav-link user-greeting">
+                            <i class="fas fa-user-circle me-1"></i>Welcome, {{ session['user']['username'] }}
+                        </span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/logout">Logout</a>
+                        <a class="nav-link" href="/logout">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/login">Login</a>
+                        <a class="nav-link {% if request.path == '/login' %}active{% endif %}" href="/login">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="/register">Register</a>
+                        <a class="nav-link {% if request.path == '/register' %}active{% endif %}" href="/register">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
                     </li>
                     {% endif %}
+                    {% block navbar_right %}{% endblock %}
                 </ul>
             </div>
         </div>
     </nav>
-    <div style="height: 48px;"></div>
+    <div style="height: 60px;"></div>
     <div class="container mt-4">{% block content %}{% endblock %}</div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/static/js/notifications.js"></script>
