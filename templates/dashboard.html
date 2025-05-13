@@ -1,8 +1,5 @@
-{% extends "base.html" %} {% block title %}Dashboard - Expense Tracker{% endblock %} {% block
-navbar_right %}
-<li class="nav-item">
-    <a class="nav-link text-dark" href="/logout">Logout</a>
-</li>
+{% extends "base.html" %} {% block title %}Dashboard - Expense Tracker{% endblock %} {% block extra_head %}
+<link rel="stylesheet" href="/static/css/dashboard.css" />
 {% endblock %} {% block content %}
 <div class="dashboard-wrapper">
     <!-- Header Section -->
@@ -395,6 +392,4 @@ navbar_right %}
 </div>
 {% endblock %} {% block extra_scripts %}
 <script src="/static/js/dashboard.js"></script>
-{% endblock %} {% block extra_head %}
-<link rel="stylesheet" href="/static/css/dashboard.css" />
 {% endblock %}

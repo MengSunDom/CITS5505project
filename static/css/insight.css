@@ -516,6 +516,7 @@ svg.main-svg {
     position: relative !important;
 }
 
+
 canvas.chart-container {
     height: 100% !important;
 }
@@ -524,6 +525,7 @@ canvas.chart-container {
     height: 270px !important;
     width: 100% !important;
 }
+
 
 .chart-container .chartjs-text {
     text-decoration: none !important;
