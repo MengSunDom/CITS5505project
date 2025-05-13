@@ -79,52 +79,294 @@ $(document).ready(() => {
         $('<style>')
             .prop('type', 'text/css')
             .html(`
+                /* Modern UI improvements for insight page */
+                .insight-page .card {
+                    border: none;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    margin-bottom: 24px;
+                    border-radius: 12px;
+                    overflow: hidden;
+                }
+                
+                .insight-page .card:hover {
+                    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+                    transform: translateY(-3px);
+                }
+                
+                /* Card header improvements */
+                .insight-page .card-header {
+                    background: linear-gradient(to right, #f8f9fa, #ffffff);
+                    border-bottom: none;
+                    padding: 16px 20px;
+                    font-weight: 600;
+                    letter-spacing: 0.3px;
+                    font-size: 1.05rem;
+                    color: #2c3e50;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                /* Card body improvements */
+                .insight-page .card-body {
+                    padding: 20px;
+                    background: #ffffff;
+                }
+                
+                /* Summary card styling */
+                .insight-page .summary-card {
+                    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                    border-left: 4px solid #3498db;
+                    padding: 16px;
+                    border-radius: 8px;
+                    margin-bottom: 12px;
+                    transition: all 0.2s ease;
+                }
+                
+                .insight-page .summary-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+                }
+                
+                .insight-page .summary-card h5 {
+                    margin-bottom: 8px;
+                    color: #2c3e50;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                
+                .insight-page .summary-card .summary-value {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #2c3e50;
+                }
+                
+                /* Income card styling */
+                .insight-page .summary-card.income-card {
+                    border-left-color: #2ecc71;
+                }
+                
+                .insight-page .summary-card.income-card .summary-value {
+                    color: #27ae60;
+                }
+                
+                /* Expense card styling */
+                .insight-page .summary-card.expense-card {
+                    border-left-color: #e74c3c;
+                }
+                
+                .insight-page .summary-card.expense-card .summary-value {
+                    color: #c0392b;
+                }
+                
+                /* Balance card styling */
+                .insight-page .summary-card.balance-card {
+                    border-left-color: #3498db;
+                }
+                
+                .insight-page .summary-card.balance-card .summary-value {
+                    color: #2980b9;
+                }
+                
                 /* Shared user selector improvements */
                 .shared-user-selector {
-                    background-color: #f8f9fa;
-                    border-radius: 4px;
-                    padding: 8px 12px;
+                    background: linear-gradient(to right, #f5f7fa, #f8f9fa);
+                    border-radius: 10px;
+                    padding: 14px 16px;
                     border: 1px solid #e9ecef;
+                    margin-right: 12px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                }
+                
+                .shared-user-selector label {
+                    font-weight: 600;
+                    color: #2c3e50;
+                    margin-right: 12px;
+                    font-size: 0.9rem;
+                }
+                
+                .shared-user-selector select {
+                    border-radius: 6px;
+                    border-color: #e9ecef;
+                    color: #2c3e50;
+                    padding: 6px 12px;
+                    background-color: white;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                    font-size: 0.9rem;
                 }
                 
                 /* Date range selector improvements */
                 .date-range-selector {
-                    min-height: 38px;
-                }
-                
-                .period-selector {
-                    flex-wrap: nowrap;
-                    margin-bottom: 0 !important;
+                    background: linear-gradient(to right, #f5f7fa, #f8f9fa);
+                    border-radius: 10px;
+                    padding: 14px 16px;
+                    border: 1px solid #e9ecef;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                    margin-bottom: 12px;
                 }
                 
                 .period-selector .btn {
-                    white-space: nowrap;
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    margin-right: 4px;
+                    color: #4a5568;
+                    border-color: #e2e8f0;
+                    background: white;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
                 }
                 
-                .custom-date-range {
-                    margin-top: 0 !important;
-                    flex-wrap: nowrap;
+                .period-selector .btn.active {
+                    background: #3498db;
+                    border-color: #2980b9;
+                    color: white;
+                    font-weight: 600;
+                    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
                 }
                 
+                /* Custom date inputs */
                 .custom-date-range input[type="date"] {
-                    min-width: 130px;
+                    border-radius: 6px;
+                    border-color: #e9ecef;
+                    color: #2c3e50;
+                    padding: 6px 12px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                    font-size: 0.85rem;
                 }
                 
-                /* Card header improvements */
-                .card-header .btn-group-sm {
-                    margin-bottom: 0 !important;
+                .custom-date-range .btn {
+                    font-size: 0.85rem;
+                    background: #3498db;
+                    color: white;
+                    font-weight: 500;
+                    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+                    border: none;
+                    padding: 6px 14px;
                 }
                 
-                @media (max-width: 767.98px) {
-                    .data-source-selector,
-                    .shared-user-selector,
-                    .date-range-selector,
-                    .export-options {
-                        margin-bottom: 10px;
+                /* Chart improvements */
+                .chart-container {
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                    padding: 10px;
+                    transition: all 0.3s ease;
+                }
+                
+                .chart-container:hover {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                }
+                
+                /* Period selectors styling */
+                .chart-period-selector, .comparison-period-selector {
+                    margin-left: 10px;
+                    margin-right: 10px;
+                }
+                
+                .chart-period-selector .btn, .comparison-period-selector .btn {
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    margin-right: 4px;
+                    color: #4a5568;
+                    border-color: #e2e8f0;
+                    background: white;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+                }
+                
+                .chart-period-selector .btn.active, .comparison-period-selector .btn.active {
+                    background: #3498db;
+                    border-color: #2980b9;
+                    color: white;
+                    font-weight: 600;
+                    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+                }
+
+                /* Data source selector styling */
+                .data-source-selector .btn {
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    margin-right: 4px;
+                    color: #4a5568;
+                    border-color: #e2e8f0;
+                    background: white;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+                }
+                
+                .data-source-selector .btn.active {
+                    background: #3498db;
+                    border-color: #2980b9;
+                    color: white;
+                    font-weight: 600;
+                    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+                }
+                
+                /* Top categories chart styling */
+                .top-categories-type-selector .btn {
+                    font-size: 0.8rem;
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                }
+                
+                /* Back button styling */
+                #backToMyData {
+                    background-color: #f8f9fa;
+                    color: #2c3e50;
+                    border: 1px solid #e2e8f0;
+                    font-size: 0.85rem;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    transition: all 0.2s ease;
+                }
+                
+                #backToMyData:hover {
+                    background-color: #e2e8f0;
+                    color: #1a202c;
+                }
+                
+                /* Loading indicator styling */
+                .loading-indicator {
+                    background-color: rgba(255, 255, 255, 0.8);
+                    border-radius: 8px;
+                    font-weight: 500;
+                    color: #3498db;
+                }
+                
+                .loading-indicator:after {
+                    border: 2px solid rgba(52, 152, 219, 0.2);
+                    border-top: 2px solid #3498db;
+                }
+                
+                /* Responsive adjustments */
+                @media (max-width: 768px) {
+                    .insight-page .card-header {
+                        padding: 14px 16px;
+                        font-size: 0.95rem;
                     }
                     
-                    .custom-date-range {
-                        margin-top: 10px !important;
+                    .insight-page .summary-card .summary-value {
+                        font-size: 1.3rem;
+                    }
+                    
+                    .period-selector, .chart-period-selector, .comparison-period-selector {
+                        display: flex;
+                        overflow-x: auto;
+                        padding-bottom: 4px;
+                    }
+                    
+                    .period-selector .btn, .chart-period-selector .btn, .comparison-period-selector .btn {
+                        font-size: 0.8rem;
+                        padding: 5px 10px;
+                        white-space: nowrap;
                     }
                 }
             `)
@@ -320,7 +562,7 @@ $(document).ready(() => {
             $(this).parent().find('.btn').removeClass('active');
             $(this).addClass('active');
             loadTopCategoriesChart();
-        });
+    });
     
     // Monthly comparison type toggle
         $('[data-compare-type]').off('click').on('click', function() {
@@ -702,8 +944,8 @@ $(document).ready(() => {
                                 }
                             }
                         },
-                        title: {
-                            display: true,
+                            title: {
+                                display: true,
                             text: title,
                             color: '#333',
                             font: {
@@ -748,7 +990,7 @@ $(document).ready(() => {
             $('#trendChart').html('<div class="chart-error">Error creating chart</div>');
         }
     }
-
+    
     // Load category pie chart
     function loadCategoryPieChart() {
         const pieType = $('[data-pie-type].active').data('pie-type') || 'expense';
@@ -1180,8 +1422,8 @@ $(document).ready(() => {
         // We can reuse the income-expense-comparison endpoint data
         let apiUrl;
         let apiParams = {
-            startDate: filters.startDate,
-            endDate: filters.endDate
+                        startDate: filters.startDate, 
+                        endDate: filters.endDate
         };
 
         if (currentDataSource === 'my-data') {
@@ -1203,11 +1445,11 @@ $(document).ready(() => {
 
         console.log('Loading comparison chart from API:', apiUrl, apiParams);
 
-        $.ajax({
+                $.ajax({
             url: apiUrl,
-            method: 'GET',
+                    method: 'GET',
             data: apiParams,
-            dataType: 'json',
+                    dataType: 'json',
             success: (data) => {
                 console.log('Comparison chart data received:', data);
                 
@@ -1253,8 +1495,8 @@ $(document).ready(() => {
                 };
                 
                 drawMonthlyComparisonChart(chartData, period);
-            },
-            error: (xhr, status, error) => {
+                        },
+                        error: (xhr, status, error) => {
                 console.error('Error loading comparison chart:', error);
                 console.error('Error details:', xhr.responseText);
                 
@@ -1291,7 +1533,7 @@ $(document).ready(() => {
             }
         });
     }
-
+    
     // Improved drawing of monthly comparison chart
     function drawMonthlyComparisonChart(data, period) {
         try {
@@ -1352,9 +1594,9 @@ $(document).ready(() => {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: {
+                            font: {
                                     size: 12
-                                },
+                            },
                                 color: '#333'
                             }
                         },
@@ -1455,6 +1697,18 @@ $(document).ready(() => {
     // Run when document is ready
     $(document).ready(function() {
         console.log('Document ready, initializing charts...');
+        
+        // Add insight-page class to the main container for better styling
+        $('.container:first').addClass('insight-page');
+        
+        // Add classes to summary cards for custom styling
+        $('#totalIncome').closest('.card').addClass('summary-card income-card');
+        $('#totalExpenses').closest('.card').addClass('summary-card expense-card');
+        $('#netBalance').closest('.card').addClass('summary-card balance-card');
+        $('#topCategoryName').closest('.card').addClass('summary-card');
+        
+        // Add summary-value class to the values
+        $('#totalIncome, #totalExpenses, #netBalance').addClass('summary-value');
         
         // Fix CSS layout issues
         fixLayoutIssues();
@@ -2045,7 +2299,7 @@ $(document).ready(() => {
                         const testKey = `${endpoint.name}_params${index}`;
                         const promise = $.ajax({
                             url: endpoint.url,
-                            method: 'GET',
+            method: 'GET',
                             data: params,
                             dataType: 'json'
                         }).done(data => {
@@ -2071,8 +2325,8 @@ $(document).ready(() => {
             // Special test for getting raw shared data structure
             const promise = $.ajax({
                 url: '/api/shared-insights/raw-data',
-                method: 'GET',
-                data: {
+                    method: 'GET',
+                    data: { 
                     startDate: filters.startDate, 
                     endDate: filters.endDate,
                     sharer_id: selectedSharerId === 'all' ? undefined : selectedSharerId
@@ -2370,7 +2624,7 @@ $(document).ready(() => {
             
             // Enhance API parameters
             apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
-        } else {
+            } else {
             return; // No data source or no sharer selected
         }
 
