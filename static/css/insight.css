@@ -516,7 +516,6 @@ svg.main-svg {
     position: relative !important;
 }
 
-/* 确保图表在容器中正确显示 */
 canvas.chart-container {
     height: 100% !important;
 }
@@ -526,7 +525,6 @@ canvas.chart-container {
     width: 100% !important;
 }
 
-/* 修复图表文本的样式问题 */
 .chart-container .chartjs-text {
     text-decoration: none !important;
     font-weight: normal !important;
@@ -546,17 +544,17 @@ canvas.chart-container {
     box-shadow: none !important;
 }
 
-/* 数据源选择器样式 */
+
 .data-source-selector {
     margin-bottom: 1rem;
 }
 
-/* 共享用户选择器样式 */
+
 .shared-user-selector {
     margin-bottom: 1rem;
 }
 
-/* 共享数据横幅样式 */
+
 #sharedDataBanner {
     display: flex;
     align-items: center;
@@ -572,7 +570,7 @@ canvas.chart-container {
     margin-right: 0.75rem;
 }
 
-/* 使图表文字正常显示 */
+
 .chart-container text,
 .chart-container tspan {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
