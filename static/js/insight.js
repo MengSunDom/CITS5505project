@@ -146,7 +146,7 @@ $(document).ready(() => {
     
     // Hide custom date range initially
     $('.custom-date-range').hide();
-
+    
     // Add CSS fixes when document is ready
     addUIStyleFixes();
 
@@ -168,7 +168,7 @@ $(document).ready(() => {
                 // Switch back to my data
                 $('.shared-user-selector').hide();
                 selectedSharerId = null;
-                loadAllData();
+    loadAllData();
             } else {
                 // Switch to shared data
                 $('.shared-user-selector').show();
@@ -269,7 +269,7 @@ $(document).ready(() => {
         // Load all data with the new date range
         setTimeout(() => loadAllData(), 100);
     });
-
+    
     // Apply custom date range
     $('#applyDateRange').off('click').on('click', function() {
         const startDateStr = $('#startDate').val();
@@ -298,22 +298,22 @@ $(document).ready(() => {
     // Set up all event listeners
     function addChartTogglesListeners() {
         console.log('Setting up chart toggle listeners');
-        
-        // Chart period selectors
+    
+    // Chart period selectors
         $('.chart-period-selector .btn').off('click').on('click', function() {
-            $(this).parent().find('.btn').removeClass('active');
-            $(this).addClass('active');
-            loadTrendChart();
+        $(this).parent().find('.btn').removeClass('active');
+        $(this).addClass('active');
+        loadTrendChart();
             // Also update monthly comparison chart with the same period
             loadMonthlyComparisonChart();
-        });
-        
-        // Pie chart type toggle
+    });
+    
+    // Pie chart type toggle
         $('[data-pie-type]').off('click').on('click', function() {
-            $(this).parent().find('.btn').removeClass('active');
-            $(this).addClass('active');
-            loadCategoryPieChart();
-        });
+        $(this).parent().find('.btn').removeClass('active');
+        $(this).addClass('active');
+        loadCategoryPieChart();
+    });
         
         // Top categories type toggle
         $('[data-top-categories-type]').off('click').on('click', function() {
@@ -321,27 +321,27 @@ $(document).ready(() => {
             $(this).addClass('active');
             loadTopCategoriesChart();
         });
-        
-        // Monthly comparison type toggle
+    
+    // Monthly comparison type toggle
         $('[data-compare-type]').off('click').on('click', function() {
-            $(this).parent().find('.btn').removeClass('active');
-            $(this).addClass('active');
-            loadMonthlyComparisonChart();
-        });
+        $(this).parent().find('.btn').removeClass('active');
+        $(this).addClass('active');
+        loadMonthlyComparisonChart();
+    });
     }
-
+    
     // Export PDF button
     $('#exportPDF').on('click', function(e) {
         e.preventDefault();
         exportToPDF();
     });
-
+    
     // Export PNG button
     $('#exportPNG').on('click', function(e) {
         e.preventDefault();
         exportToPNG();
     });
-
+    
     // ----- Data Loading Functions -----
     // Load shared users (for dropdown) with improved handling
     function loadSharedUsers() {
@@ -414,10 +414,10 @@ $(document).ready(() => {
         
         // Then load all data
         loadSummaryCards();
-        loadTrendChart();
-        loadCategoryPieChart();
-        loadTopCategoriesChart();
-        loadMonthlyComparisonChart();
+            loadTrendChart();
+            loadCategoryPieChart();
+            loadTopCategoriesChart();
+            loadMonthlyComparisonChart();
     }
 
     // Ensure all API calls add the correct parameters
@@ -451,8 +451,8 @@ $(document).ready(() => {
         const filters = getFilterSettings();
         let apiUrl;
         let apiParams = {
-            startDate: filters.startDate,
-            endDate: filters.endDate
+                startDate: filters.startDate,
+                endDate: filters.endDate
         };
 
         console.log('Loading summary cards with data source:', currentDataSource);
@@ -494,11 +494,11 @@ $(document).ready(() => {
                     $('#totalExpenses').text(formatCurrency(totalExpenses));
                     
                     // Load income summary
-                    $.ajax({
+                $.ajax({
                         url: '/api/income-summary',
-                        method: 'GET',
+                    method: 'GET',
                         data: apiParams,
-                        dataType: 'json',
+                    dataType: 'json',
                         success: (incomeData) => {
                             console.log('Income API response:', incomeData);
                             const totalIncome = incomeData.totalAmount || 0;
@@ -609,696 +609,7 @@ $(document).ready(() => {
         
         $('#topCategoryIcon').text(categoryIcons[topCategory] || '💸');
     }
-
-    // Load trend chart
-    function loadTrendChart() {
-        const filters = getFilterSettings();
-        const period = $('.chart-period-selector .btn.active').data('trend-period') || 'daily';
-        
-        console.log('Loading trend chart with period:', period);
-        
-        // We'll use the daily data endpoint for all periods, then aggregate in JavaScript
-        // This avoids database-specific functions
-        let apiUrl;
-        let apiParams = {
-            startDate: filters.startDate,
-            endDate: filters.endDate
-        };
-
-        if (currentDataSource === 'my-data') {
-            apiUrl = '/api/income-expense-comparison';
-        } else if (currentDataSource === 'shared-data') {
-            if (selectedSharerId === "all") {
-                apiUrl = '/api/shared-insights/comparison-all';
-            } else if (selectedSharerId) {
-                apiUrl = '/api/shared-insights/comparison';
-            } else {
-                return; // No data source or no sharer selected
-            }
-            
-            // Enhance API parameters
-            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
-        } else {
-            return; // No data source or no sharer selected
-        }
-
-        console.log('Loading trend chart from API:', apiUrl, apiParams);
-
-        $.ajax({
-            url: apiUrl,
-            method: 'GET',
-            data: apiParams,
-            dataType: 'json',
-            success: (data) => {
-                console.log('Trend chart data received:', data);
-                
-                // If we need to aggregate by period (weekly or monthly), do it here
-                if (period === 'weekly' || period === 'monthly') {
-                    data = aggregateDataByPeriod(data, period);
-                }
-                
-                drawTrendChart(data, period);
-            },
-            error: (xhr, status, error) => {
-                console.error('Error loading trend chart:', error);
-                console.error('Error details:', xhr.responseText);
-                
-                // Create empty chart with no data indication
-                const emptyData = {
-                    labels: ['No Data'],
-                    income: [0],
-                    expense: [0]
-                };
-                drawTrendChart(emptyData, period);
-                
-                // Show error notification to user
-                showNotification('Error loading chart data. Please check console for details.', 'error');
-            }
-        });
-    }
-
-    // Aggregate data by period (weekly or monthly) in JavaScript
-    // This avoids database-specific functions
-    function aggregateDataByPeriod(data, period) {
-        if (!data || !data.labels || !data.income || !data.expense) {
-            return data;
-        }
-        
-        // Creates an aggregated version of the data based on period
-        const result = {
-            labels: [],
-            income: [],
-            expense: [],
-            period: period
-        };
-        
-        // Maps to hold aggregated values
-        const incomeMap = {};
-        const expenseMap = {};
-        
-        // Function to get period key from a date string
-        const getPeriodKey = (dateStr) => {
-            try {
-                const date = new Date(dateStr);
-                if (period === 'weekly') {
-                    // Get year and week number
-                    const year = date.getFullYear();
-                    // Get ISO week number (1-53)
-                    const weekNumber = getWeekNumber(date);
-                    return `Week ${weekNumber}, ${year}`;
-                } else if (period === 'monthly') {
-                    // Format as "MMM YYYY" (e.g., "Jan 2023")
-                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                }
-                return dateStr; // Default to original for daily
-            } catch (e) {
-                console.error('Error parsing date:', dateStr, e);
-                return dateStr;
-            }
-        };
-        
-        // Aggregate data
-        for (let i = 0; i < data.labels.length; i++) {
-            const periodKey = getPeriodKey(data.labels[i]);
-            
-            // Initialize if first time seeing this period
-            if (!incomeMap[periodKey]) {
-                incomeMap[periodKey] = 0;
-                expenseMap[periodKey] = 0;
-            }
-            
-            // Add values to the period
-            incomeMap[periodKey] += parseFloat(data.income[i] || 0);
-            expenseMap[periodKey] += parseFloat(data.expense[i] || 0);
-        }
-        
-        // Convert maps to arrays
-        const periodKeys = Object.keys(incomeMap).sort();
-        
-        // Sort period keys if needed
-        if (period === 'monthly') {
-            // Sort by year then month
-            periodKeys.sort((a, b) => {
-                const dateA = new Date(a);
-                const dateB = new Date(b);
-                return dateA - dateB;
-            });
-        } else if (period === 'weekly') {
-            // Sort by year then week number
-            periodKeys.sort((a, b) => {
-                const [weekA, yearA] = a.replace('Week ', '').split(', ');
-                const [weekB, yearB] = b.replace('Week ', '').split(', ');
-                
-                if (yearA !== yearB) {
-                    return parseInt(yearA) - parseInt(yearB);
-                }
-                return parseInt(weekA) - parseInt(weekB);
-            });
-        }
-        
-        // Fill result arrays
-        result.labels = periodKeys;
-        result.income = periodKeys.map(key => incomeMap[key]);
-        result.expense = periodKeys.map(key => expenseMap[key]);
-        
-        console.log('Aggregated data:', result);
-        return result;
-    }
-
-    // Helper function to get ISO week number
-    function getWeekNumber(date) {
-        // Create a copy of the date to avoid modifying the original
-        const d = new Date(date);
-        // Set to nearest Thursday: current date + 4 - current day number
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        // Get first day of year
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        // Calculate full weeks to nearest Thursday
-        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        return weekNo;
-    }
-
-    // Load category pie chart
-    function loadCategoryPieChart() {
-        const pieType = $('[data-pie-type].active').data('pie-type') || 'expense';
-        const filters = getFilterSettings();
-        
-        let apiUrl;
-        let apiParams = {
-            startDate: filters.startDate,
-            endDate: filters.endDate
-        };
-
-        if (currentDataSource === 'my-data') {
-            if (pieType === 'expense') {
-                apiUrl = '/api/insights/summary';
-            } else {
-                apiUrl = '/api/income-summary';
-            }
-        } else if (currentDataSource === 'shared-data') {
-            if (selectedSharerId === "all") {
-                apiUrl = '/api/shared-insights/summary-all';  // Endpoint for combined data
-            } else if (selectedSharerId) {
-                apiUrl = '/api/shared-insights/summary';
-            } else {
-                return; // No data source or no sharer selected
-            }
-            
-            // Enhance API parameters
-            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
-        } else {
-            return; // No data source or no sharer selected
-        }
-
-        console.log('Loading category pie chart from API:', apiUrl, apiParams);
-
-        $.ajax({
-            url: apiUrl,
-            method: 'GET',
-            data: apiParams,
-            dataType: 'json',
-            success: (data) => {
-                if (currentDataSource === 'my-data') {
-                    // Standard format
-                    drawCategoryPieChart(data.categoryDistribution, pieType);
-                } else if (currentDataSource === 'shared-data') {
-                    // Shared data format
-                    if (pieType === 'expense' && data.expense) {
-                        drawCategoryPieChart(data.expense.categoryDistribution, pieType);
-                    } else if (pieType === 'income' && data.income) {
-                        drawCategoryPieChart(data.income.categoryDistribution, pieType);
-                    }
-                }
-            },
-            error: handleAjaxError
-        });
-    }
-
-    // Draw category pie chart with improved error handling
-    function drawCategoryPieChart(data, type) {
-        try {
-            // Get the proper canvas element
-            let canvas = $('#categoryPieChart');
-            if (canvas.is('div')) {
-                canvas = canvas.find('canvas');
-                if (canvas.length === 0) {
-                    canvas = $('<canvas>').attr('id', 'categoryPieChartCanvas');
-                    $('#categoryPieChart').empty().append(canvas);
-                    console.log('Created new canvas for category pie chart');
-                }
-            }
-            
-            // Ensure we have a canvas context
-            if (!canvas || canvas.length === 0) {
-                console.error('Could not find or create category pie chart canvas');
-                return;
-            }
-            
-            const ctx = canvas[0].getContext('2d');
-            if (!ctx) {
-                console.error('Could not get 2D context for category pie chart');
-                return;
-            }
-
-            // Check if data is valid
-            if (!data || !data.labels || !data.values || data.labels.length === 0) {
-                console.error('Invalid data for pie chart:', data);
-                $('#categoryPieChart').html('<div class="chart-error">No data available for selected period</div>');
-                return;
-            }
-
-            // Destroy existing chart if any
-            if (pieChart) {
-                pieChart.destroy();
-                pieChart = null;
-            }
-            
-            console.log('Drawing pie chart with data:', data);
-            
-            // Create color arrays based on chart type
-            const backgroundColors = type === 'expense' ? 
-                ['#FF6384', '#FF9F40', '#FFCD56', '#4BC0C0', '#36A2EB', '#9966FF', '#C9CBCF'] :
-                ['#4BC0C0', '#36A2EB', '#9966FF', '#FF6384', '#FF9F40', '#FFCD56', '#C9CBCF'];
-            
-            // Create the new chart with proper config
-            pieChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        data: data.values,
-                        backgroundColor: backgroundColors,
-                        borderColor: backgroundColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                boxWidth: 15,
-                                padding: 15,
-                                font: {
-                                    size: 12
-                                },
-                                color: '#333'
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return `${label}: $${value.toFixed(2)} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            
-            console.log('Pie chart created with data:', data);
-        } catch (error) {
-            console.error('Error creating pie chart:', error);
-            $('#categoryPieChart').html('<div class="chart-error">Error creating chart</div>');
-        }
-    }
-
-    // Load top categories chart with improved handling of shared data
-    function loadTopCategoriesChart() {
-        const filters = getFilterSettings();
-        const topCategoriesType = $('[data-top-categories-type].active').data('top-categories-type') || 'expense';
-        
-        let apiUrl;
-        let apiParams = {
-            startDate: filters.startDate,
-            endDate: filters.endDate
-        };
-
-        // Ensure toggle buttons exist
-        ensureTopCategoriesToggleButtons();
-
-        // Determine API based on data source and type
-        if (currentDataSource === 'my-data') {
-            if (topCategoriesType === 'expense') {
-                apiUrl = '/api/insights/top-categories';
-            } else {
-                apiUrl = '/api/insights/top-income-categories'; 
-            }
-        } else if (currentDataSource === 'shared-data') {
-            if (selectedSharerId === "all") {
-                if (topCategoriesType === 'expense') {
-                    apiUrl = '/api/shared-insights/top-categories-all';
-                } else {
-                    apiUrl = '/api/shared-insights/top-income-categories-all';
-                }
-            } else if (selectedSharerId) {
-                if (topCategoriesType === 'expense') {
-                    apiUrl = '/api/shared-insights/top-categories';
-                } else {
-                    apiUrl = '/api/shared-insights/top-income-categories';
-                }
-            } else {
-                return; // No data source or no sharer selected
-            }
-            
-            // Enhance API parameters
-            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
-        } else {
-            return; // No data source or no sharer selected
-        }
-
-        console.log('Loading top categories from API:', apiUrl, apiParams);
-
-        $.ajax({
-            url: apiUrl,
-            method: 'GET',
-            data: apiParams,
-            dataType: 'json',
-            success: (data) => {
-                drawTopCategoriesChart(data, topCategoriesType);
-            },
-            error: (xhr, status, error) => {
-                console.error('Error loading top categories:', error);
-                // If API doesn't exist or returns error, display empty chart
-                drawTopCategoriesChart({labels: [], values: []}, topCategoriesType);
-            }
-        });
-    }
-
-    // Helper function to ensure toggle buttons exist
-    function ensureTopCategoriesToggleButtons() {
-        // If toggle buttons don't exist, add them
-        if ($('.top-categories-type-selector').length === 0) {
-            const toggleButtons = '<div class="btn-group btn-group-sm top-categories-type-selector my-2" role="group">' +
-                                 '<button type="button" class="btn btn-outline-secondary active" data-top-categories-type="expense">Expenses</button>' +
-                                 '<button type="button" class="btn btn-outline-secondary" data-top-categories-type="income">Income</button>' +
-                                 '</div>';
-            
-            $('.card-header:has(.fa-chart-bar)').append(toggleButtons);
-            
-            // Add toggle event
-            $('[data-top-categories-type]').on('click', function() {
-                $(this).parent().find('.btn').removeClass('active');
-                $(this).addClass('active');
-                loadTopCategoriesChart();
-            });
-        }
-    }
-
-    // Improved drawing of top categories chart with better empty state
-    function drawTopCategoriesChart(data, type) {
-        try {
-            // Get the proper canvas element
-            let canvas = $('#topCategoriesChart');
-            if (canvas.length === 0) {
-                console.error('Could not find top categories chart canvas');
-                return;
-            }
-            
-            // Ensure data is valid
-            if (!data || !data.labels) {
-                data = {labels: [], values: []};
-            }
-            
-            // If data is empty, display no data message
-            if (data.labels.length === 0) {
-                if (topCategoriesChart) {
-                    topCategoriesChart.destroy();
-                    topCategoriesChart = null;
-                }
-                
-                // Create an empty chart with "No Data Available" message
-                topCategoriesChart = new Chart(canvas, {
-                    type: 'bar',
-                    data: {
-                        labels: ['No Data'],
-                        datasets: [{
-                            label: type === 'expense' ? 'Expense Amount' : 'Income Amount',
-                            data: [0],
-                            backgroundColor: 'rgba(200, 200, 200, 0.3)',
-                            borderColor: 'rgba(200, 200, 200, 0.5)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: false
-                            },
-                            title: {
-                                display: true,
-                                text: type === 'expense' ? 'Top Expense Categories' : 'Top Income Categories',
-                                color: '#333',
-                                font: {
-                                    size: 14,
-                                    weight: 'bold'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: {
-                                    display: false
-                                },
-                                grid: {
-                                    display: false
-                                }
-                            },
-                            y: {
-                                ticks: {
-                                    color: '#6c757d'
-                                },
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-                
-                // Add "No Data Available" text in the center
-                const ctx = canvas[0].getContext('2d');
-                setTimeout(() => {
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.font = '14px Arial';
-                    ctx.fillStyle = '#6c757d';
-                    ctx.fillText('No data available for selected period', canvas.width/2, canvas.height/2);
-                    ctx.restore();
-                }, 100);
-                
-                return;
-            }
-            
-            // Destroy existing chart
-            if (topCategoriesChart) {
-                topCategoriesChart.destroy();
-                topCategoriesChart = null;
-            }
-            
-            // Set colors
-            const colors = type === 'expense' ? 
-                ['rgba(255, 99, 132, 0.8)', 'rgba(255, 159, 64, 0.8)', 'rgba(255, 205, 86, 0.8)', 
-                 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)'] :
-                ['rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)', 
-                 'rgba(201, 203, 207, 0.8)', 'rgba(255, 159, 64, 0.8)'];
-            
-            // Create chart
-            topCategoriesChart = new Chart(canvas, {
-                type: 'bar',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: type === 'expense' ? 'Expense Amount' : 'Income Amount',
-                        data: data.values,
-                        backgroundColor: colors,
-                        borderColor: colors.map(color => color.replace('0.8', '1')),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return '$' + context.raw.toFixed(2);
-                                }
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: type === 'expense' ? 'Top Expense Categories' : 'Top Income Categories',
-                            color: '#333',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value;
-                                },
-                                color: '#333'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#333'
-                            },
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        } catch (error) {
-            console.error('Error creating top categories chart:', error);
-            // Clear error message container if it exists
-            if ($('#topCategoriesChart').siblings('.chart-error').length) {
-                $('#topCategoriesChart').siblings('.chart-error').remove();
-            }
-            // Show error message
-            $('#topCategoriesChart').after('<div class="chart-error">Error creating chart</div>');
-        }
-    }
-
-    // Load monthly comparison chart with client-side aggregation
-    function loadMonthlyComparisonChart() {
-        const filters = getFilterSettings();
-        
-        // Get the active period button
-        const periodButton = $('.chart-period-selector .btn.active');
-        // Get period value, default to monthly if not found
-        const period = periodButton.length > 0 ? 
-            (periodButton.data('trend-period') || 'monthly') : 'monthly';
-        
-        console.log('Using period for monthly comparison chart:', period);
-        
-        // We'll use the same approach as with the trend chart:
-        // Get daily data and aggregate it client-side
-        
-        // We can reuse the income-expense-comparison endpoint data
-        let apiUrl;
-        let apiParams = {
-            startDate: filters.startDate,
-            endDate: filters.endDate
-        };
-
-        if (currentDataSource === 'my-data') {
-            apiUrl = '/api/income-expense-comparison';
-        } else if (currentDataSource === 'shared-data') {
-            if (selectedSharerId === "all") {
-                apiUrl = '/api/shared-insights/comparison-all';
-            } else if (selectedSharerId) {
-                apiUrl = '/api/shared-insights/comparison';
-            } else {
-                return; // No data source or no sharer selected
-            }
-            
-            // Enhance API parameters
-            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
-        } else {
-            return; // No data source or no sharer selected
-        }
-
-        console.log('Loading comparison chart from API:', apiUrl, apiParams);
-
-        $.ajax({
-            url: apiUrl,
-            method: 'GET',
-            data: apiParams,
-            dataType: 'json',
-            success: (data) => {
-                console.log('Comparison chart data received:', data);
-                
-                // Aggregate data client-side if needed
-                if (period === 'weekly' || period === 'monthly') {
-                    data = aggregateDataByPeriod(data, period);
-                }
-                
-                // Format for chart.js display
-                const chartData = {
-                    labels: data.labels || ['No Data'],
-                    datasets: [
-                        {
-                            label: 'Income',
-                            data: data.income || [0],
-                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Expenses',
-                            data: data.expense || [0],
-                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                };
-                
-                drawMonthlyComparisonChart(chartData, period);
-            },
-            error: (xhr, status, error) => {
-                console.error('Error loading comparison chart:', error);
-                console.error('Error details:', xhr.responseText);
-                
-                // Create empty chart with no data indication
-                const emptyChartData = {
-                    labels: ['No Data'],
-                    datasets: [
-                        {
-                            label: 'Income',
-                            data: [0],
-                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Expenses',
-                            data: [0],
-                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                };
-                
-                drawMonthlyComparisonChart(emptyChartData, period);
-                showNotification('Error loading chart data. Please check console for details.', 'error');
-            }
-        });
-    }
-
+    
     // Draw trend chart with improved error handling
     function drawTrendChart(data, period) {
         try {
@@ -1438,6 +749,549 @@ $(document).ready(() => {
         }
     }
 
+    // Load category pie chart
+    function loadCategoryPieChart() {
+        const pieType = $('[data-pie-type].active').data('pie-type') || 'expense';
+        const filters = getFilterSettings();
+        
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        if (currentDataSource === 'my-data') {
+                    if (pieType === 'expense') {
+                apiUrl = '/api/insights/summary';
+                    } else {
+                apiUrl = '/api/income-summary';
+            }
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/summary-all';  // Endpoint for combined data
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/summary';
+            } else {
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
+        }
+
+        console.log('Loading category pie chart from API:', apiUrl, apiParams);
+
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                if (currentDataSource === 'my-data') {
+                    // Standard format
+                    drawCategoryPieChart(data.categoryDistribution, pieType);
+                } else if (currentDataSource === 'shared-data') {
+                    // Shared data format
+                    if (pieType === 'expense' && data.expense) {
+                        drawCategoryPieChart(data.expense.categoryDistribution, pieType);
+                    } else if (pieType === 'income' && data.income) {
+                        drawCategoryPieChart(data.income.categoryDistribution, pieType);
+                    }
+                }
+            },
+            error: handleAjaxError
+        });
+    }
+
+    // Draw category pie chart with improved error handling
+    function drawCategoryPieChart(data, type) {
+        try {
+            // Get the proper canvas element
+            let canvas = $('#categoryPieChart');
+            if (canvas.is('div')) {
+                canvas = canvas.find('canvas');
+                if (canvas.length === 0) {
+                    canvas = $('<canvas>').attr('id', 'categoryPieChartCanvas');
+                    $('#categoryPieChart').empty().append(canvas);
+                    console.log('Created new canvas for category pie chart');
+                }
+            }
+            
+            // Ensure we have a canvas context
+            if (!canvas || canvas.length === 0) {
+                console.error('Could not find or create category pie chart canvas');
+                return;
+            }
+            
+            const ctx = canvas[0].getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context for category pie chart');
+                return;
+            }
+
+            // Check if data is valid
+            if (!data || !data.labels || !data.values || data.labels.length === 0) {
+                console.error('Invalid data for pie chart:', data);
+                $('#categoryPieChart').html('<div class="chart-error">No data available for selected period</div>');
+                return;
+            }
+            
+            // Destroy existing chart if any
+            if (pieChart) {
+                pieChart.destroy();
+                pieChart = null;
+            }
+            
+            console.log('Drawing pie chart with data:', data);
+            
+            // Create color arrays based on chart type
+            const backgroundColors = type === 'expense' ? 
+                ['#FF6384', '#FF9F40', '#FFCD56', '#4BC0C0', '#36A2EB', '#9966FF', '#C9CBCF'] :
+                ['#4BC0C0', '#36A2EB', '#9966FF', '#FF6384', '#FF9F40', '#FFCD56', '#C9CBCF'];
+            
+            // Create the new chart with proper config
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#333'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Pie chart created with data:', data);
+        } catch (error) {
+            console.error('Error creating pie chart:', error);
+            $('#categoryPieChart').html('<div class="chart-error">Error creating chart</div>');
+        }
+    }
+    
+    // Load top categories chart with improved handling of shared data
+    function loadTopCategoriesChart() {
+        const filters = getFilterSettings();
+        const topCategoriesType = $('[data-top-categories-type].active').data('top-categories-type') || 'expense';
+        
+        let apiUrl;
+        let apiParams = {
+                startDate: filters.startDate,
+                endDate: filters.endDate
+        };
+
+        // Ensure toggle buttons exist
+        ensureTopCategoriesToggleButtons();
+
+        // Determine API based on data source and type
+        if (currentDataSource === 'my-data') {
+            if (topCategoriesType === 'expense') {
+                apiUrl = '/api/insights/top-categories';
+            } else {
+                apiUrl = '/api/insights/top-income-categories'; 
+            }
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                if (topCategoriesType === 'expense') {
+                    apiUrl = '/api/shared-insights/top-categories-all';
+                } else {
+                    apiUrl = '/api/shared-insights/top-income-categories-all';
+                }
+            } else if (selectedSharerId) {
+                if (topCategoriesType === 'expense') {
+                    apiUrl = '/api/shared-insights/top-categories';
+                } else {
+                    apiUrl = '/api/shared-insights/top-income-categories';
+                }
+            } else {
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
+        }
+
+        console.log('Loading top categories from API:', apiUrl, apiParams);
+
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                drawTopCategoriesChart(data, topCategoriesType);
+            },
+            error: (xhr, status, error) => {
+                console.error('Error loading top categories:', error);
+                // If API doesn't exist or returns error, display empty chart
+                drawTopCategoriesChart({labels: [], values: []}, topCategoriesType);
+            }
+        });
+    }
+
+    // Helper function to ensure toggle buttons exist
+    function ensureTopCategoriesToggleButtons() {
+        // If toggle buttons don't exist, add them
+        if ($('.top-categories-type-selector').length === 0) {
+            const toggleButtons = '<div class="btn-group btn-group-sm top-categories-type-selector my-2" role="group">' +
+                                 '<button type="button" class="btn btn-outline-secondary active" data-top-categories-type="expense">Expenses</button>' +
+                                 '<button type="button" class="btn btn-outline-secondary" data-top-categories-type="income">Income</button>' +
+                                 '</div>';
+            
+            $('.card-header:has(.fa-chart-bar)').append(toggleButtons);
+            
+            // Add toggle event
+            $('[data-top-categories-type]').on('click', function() {
+                $(this).parent().find('.btn').removeClass('active');
+                $(this).addClass('active');
+                loadTopCategoriesChart();
+            });
+        }
+    }
+
+    // Improved drawing of top categories chart with better empty state
+    function drawTopCategoriesChart(data, type) {
+        try {
+            // Get the proper canvas element
+            let canvas = $('#topCategoriesChart');
+            if (canvas.length === 0) {
+                console.error('Could not find top categories chart canvas');
+                            return;
+                        }
+                        
+            // Ensure data is valid
+            if (!data || !data.labels) {
+                data = {labels: [], values: []};
+            }
+            
+            // If data is empty, display no data message
+            if (data.labels.length === 0) {
+                if (topCategoriesChart) {
+                    topCategoriesChart.destroy();
+                    topCategoriesChart = null;
+                }
+                
+                // Create an empty chart with "No Data Available" message
+                topCategoriesChart = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            label: type === 'expense' ? 'Expense Amount' : 'Income Amount',
+                            data: [0],
+                            backgroundColor: 'rgba(200, 200, 200, 0.3)',
+                            borderColor: 'rgba(200, 200, 200, 0.5)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            },
+                            title: {
+                                display: true,
+                                text: type === 'expense' ? 'Top Expense Categories' : 'Top Income Categories',
+                                color: '#333',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    display: false
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#6c757d'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Add "No Data Available" text in the center
+                const ctx = canvas[0].getContext('2d');
+                setTimeout(() => {
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#6c757d';
+                    ctx.fillText('No data available for selected period', canvas.width/2, canvas.height/2);
+                    ctx.restore();
+                }, 100);
+                
+                return;
+            }
+            
+            // Destroy existing chart
+            if (topCategoriesChart) {
+                topCategoriesChart.destroy();
+                topCategoriesChart = null;
+            }
+            
+            // Set colors
+            const colors = type === 'expense' ? 
+                ['rgba(255, 99, 132, 0.8)', 'rgba(255, 159, 64, 0.8)', 'rgba(255, 205, 86, 0.8)', 
+                 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)'] :
+                ['rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)', 
+                 'rgba(201, 203, 207, 0.8)', 'rgba(255, 159, 64, 0.8)'];
+            
+            // Create chart
+            topCategoriesChart = new Chart(canvas, {
+                            type: 'bar',
+                            data: {
+                    labels: data.labels,
+                                datasets: [{
+                        label: type === 'expense' ? 'Expense Amount' : 'Income Amount',
+                        data: data.values,
+                                    backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                                plugins: {
+                                    legend: {
+                            display: false
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                    return '$' + context.raw.toFixed(2);
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: type === 'expense' ? 'Top Expense Categories' : 'Top Income Categories',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: function(value) {
+                                                return '$' + value;
+                                    },
+                                color: '#333'
+                            },
+                                        grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                                        },
+                        y: {
+                                        ticks: {
+                                color: '#333'
+                            },
+                            grid: {
+                                display: false
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error creating top categories chart:', error);
+            // Clear error message container if it exists
+            if ($('#topCategoriesChart').siblings('.chart-error').length) {
+                $('#topCategoriesChart').siblings('.chart-error').remove();
+            }
+            // Show error message
+            $('#topCategoriesChart').after('<div class="chart-error">Error creating chart</div>');
+        }
+    }
+
+    // Load monthly comparison chart with client-side aggregation
+    function loadMonthlyComparisonChart() {
+        const filters = getFilterSettings();
+        
+        // Get the active period button from the comparison period selector
+        const periodButton = $('.comparison-period-selector .btn.active');
+        // Get period value, default to daily if not found
+        const period = periodButton.length > 0 ? 
+            (periodButton.data('compare-period') || 'daily') : 'daily';
+        
+        console.log('Using period for comparison chart:', period);
+        
+        // We'll use the same approach as with the trend chart:
+        // Get daily data and aggregate it client-side
+        
+        // We can reuse the income-expense-comparison endpoint data
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        if (currentDataSource === 'my-data') {
+            apiUrl = '/api/income-expense-comparison';
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/comparison-all';
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/comparison';
+            } else {
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
+        }
+
+        console.log('Loading comparison chart from API:', apiUrl, apiParams);
+
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                console.log('Comparison chart data received:', data);
+                
+                // Aggregate data client-side if needed
+                if (period === 'weekly' || period === 'monthly') {
+                    data = aggregateDataByPeriod(data, period);
+                }
+                
+                // Calculate balance data (income - expense)
+                const balanceData = [];
+                if (data.income && data.expense) {
+                    for (let i = 0; i < data.income.length; i++) {
+                        balanceData.push(data.income[i] - data.expense[i]);
+                    }
+                }
+                
+                // Format for chart.js display
+                const chartData = {
+                    labels: data.labels || ['No Data'],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: data.income || [0],
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: data.expense || [0],
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Balance',
+                            data: balanceData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                };
+                
+                drawMonthlyComparisonChart(chartData, period);
+            },
+            error: (xhr, status, error) => {
+                console.error('Error loading comparison chart:', error);
+                console.error('Error details:', xhr.responseText);
+                
+                // Create empty chart with no data indication
+                const emptyChartData = {
+                    labels: ['No Data'],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: [0],
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [0],
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Balance',
+                            data: [0],
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                };
+                
+                drawMonthlyComparisonChart(emptyChartData, period);
+                showNotification('Error loading chart data. Please check console for details.', 'error');
+            }
+        });
+    }
+
     // Improved drawing of monthly comparison chart
     function drawMonthlyComparisonChart(data, period) {
         try {
@@ -1448,19 +1302,19 @@ $(document).ready(() => {
                 if (canvas.length === 0) {
                     canvas = $('<canvas>').attr('id', 'monthlyComparisonChartCanvas');
                     $('#monthlyComparisonChart').empty().append(canvas);
-                    console.log('Created new canvas for monthly comparison chart');
+                    console.log('Created new canvas for comparison chart');
                 }
             }
             
             // Ensure we have a canvas context
             if (!canvas || canvas.length === 0) {
-                console.error('Could not find or create monthly comparison chart canvas');
+                console.error('Could not find or create comparison chart canvas');
                 return;
             }
             
             const ctx = canvas[0].getContext('2d');
             if (!ctx) {
-                console.error('Could not get 2D context for monthly comparison chart');
+                console.error('Could not get 2D context for comparison chart');
                 return;
             }
             
@@ -1474,14 +1328,16 @@ $(document).ready(() => {
                 monthlyComparisonChart = null;
             }
             
-            console.log('Drawing monthly comparison chart with data:', data);
+            console.log('Drawing comparison chart with data:', data);
             
             // Set chart title based on period
-            let chartTitle = 'Monthly Income vs Expenses';
-            if (period === 'weekly') {
-                chartTitle = 'Weekly Income vs Expenses';
-            } else if (period === 'daily') {
-                chartTitle = 'Daily Income vs Expenses';
+            let chartTitle;
+            if (period === 'daily') {
+                chartTitle = 'Daily Income, Expenses & Balance';
+            } else if (period === 'weekly') {
+                chartTitle = 'Weekly Income, Expenses & Balance';
+            } else {
+                chartTitle = 'Monthly Income, Expenses & Balance';
             }
             
             // Create chart
@@ -1560,7 +1416,7 @@ $(document).ready(() => {
                 }, 100);
             }
         } catch (error) {
-            console.error('Error creating monthly comparison chart:', error);
+            console.error('Error creating comparison chart:', error);
             // Show error message
             $('#monthlyComparisonChart').html('<div class="chart-error">Error creating chart</div>');
         }
@@ -1820,7 +1676,7 @@ $(document).ready(() => {
                     if (today.getMonth() === 0) {
                         // If January, previous month is December of last year
                         endDate = new Date(today.getFullYear() - 1, 12, 0); // December 31st
-                    } else {
+                } else {
                         endDate = new Date(today.getFullYear(), today.getMonth(), 0);
                     }
                     break;
@@ -1853,6 +1709,40 @@ $(document).ready(() => {
         
         // Initialize chart containers
         initChartContainers();
+        
+        // Add period selector for comparison chart
+        if ($('.comparison-period-selector').length === 0) {
+            // Add period selector buttons before the comparison chart
+            const comparisonPeriodSelector = $('<div>')
+                .addClass('btn-group btn-group-sm comparison-period-selector mb-3')
+                .attr('role', 'group')
+                .append(
+                    $('<button>')
+                        .addClass('btn btn-outline-secondary active')
+                        .attr('data-compare-period', 'daily')
+                        .text('Daily'),
+                    $('<button>')
+                        .addClass('btn btn-outline-secondary')
+                        .attr('data-compare-period', 'weekly')
+                        .text('Weekly'),
+                    $('<button>')
+                        .addClass('btn btn-outline-secondary')
+                        .attr('data-compare-period', 'monthly')
+                        .text('Monthly')
+                );
+            
+            // Insert before comparison chart
+            $('#monthlyComparisonChart').before(comparisonPeriodSelector);
+            
+            // Add event listener for comparison period buttons
+            $('.comparison-period-selector .btn').on('click', function() {
+                $('.comparison-period-selector .btn').removeClass('active');
+                $(this).addClass('active');
+                
+                // Reload the comparison chart with the new period
+                loadMonthlyComparisonChart();
+            });
+        }
         
         // Remove the monthly-progress toggle button since we're only keeping income-expense
         $('[data-compare-type="monthly-progress"]').parent().find('[data-compare-type="income-expense"]').addClass('active');
@@ -1937,6 +1827,9 @@ $(document).ready(() => {
             'height': '100%'
         });
         
+        // Update chart titles
+        $('.card-header:contains("Monthly Comparison")').text('Financial Comparison');
+        
         console.log('Chart containers initialized with canvas elements');
     }
 
@@ -2017,8 +1910,8 @@ $(document).ready(() => {
             .on('click', function() {
                 $(this).parent().fadeOut(300, function() {
                     $(this).remove();
-                });
             });
+        });
         
         notification.append(closeBtn);
         
@@ -2414,9 +2307,9 @@ $(document).ready(() => {
                         alert('Shared data debug complete with errors. Check console for results.');
                     }
                 }
-            });
-        });
-        
+    });
+});
+
         return 'Debugging shared data...';
     };
 
@@ -2448,4 +2341,172 @@ $(document).ready(() => {
         
         return 'Date debug info logged to console';
     };
+
+    // Load trend chart
+    function loadTrendChart() {
+        const filters = getFilterSettings();
+        const period = $('.chart-period-selector .btn.active').data('trend-period') || 'daily';
+        
+        console.log('Loading trend chart with period:', period);
+        
+        // We'll use the daily data endpoint for all periods, then aggregate in JavaScript
+        // This avoids database-specific functions
+        let apiUrl;
+        let apiParams = {
+            startDate: filters.startDate,
+            endDate: filters.endDate
+        };
+
+        if (currentDataSource === 'my-data') {
+            apiUrl = '/api/income-expense-comparison';
+        } else if (currentDataSource === 'shared-data') {
+            if (selectedSharerId === "all") {
+                apiUrl = '/api/shared-insights/comparison-all';
+            } else if (selectedSharerId) {
+                apiUrl = '/api/shared-insights/comparison';
+            } else {
+                return; // No data source or no sharer selected
+            }
+            
+            // Enhance API parameters
+            apiParams = enhanceAPIParams(apiParams, true, selectedSharerId);
+        } else {
+            return; // No data source or no sharer selected
+        }
+
+        console.log('Loading trend chart from API:', apiUrl, apiParams);
+
+        $.ajax({
+            url: apiUrl,
+            method: 'GET',
+            data: apiParams,
+            dataType: 'json',
+            success: (data) => {
+                console.log('Trend chart data received:', data);
+                
+                // If we need to aggregate by period (weekly or monthly), do it here
+                if (period === 'weekly' || period === 'monthly') {
+                    data = aggregateDataByPeriod(data, period);
+                }
+                
+                drawTrendChart(data, period);
+            },
+            error: (xhr, status, error) => {
+                console.error('Error loading trend chart:', error);
+                console.error('Error details:', xhr.responseText);
+                
+                // Create empty chart with no data indication
+                const emptyData = {
+                    labels: ['No Data'],
+                    income: [0],
+                    expense: [0]
+                };
+                drawTrendChart(emptyData, period);
+                
+                // Show error notification to user
+                showNotification('Error loading chart data. Please check console for details.', 'error');
+            }
+        });
+    }
+
+    // Aggregate data by period (weekly or monthly) in JavaScript
+    // This avoids database-specific functions
+    function aggregateDataByPeriod(data, period) {
+        if (!data || !data.labels || !data.income || !data.expense) {
+            return data;
+        }
+        
+        // Creates an aggregated version of the data based on period
+        const result = {
+            labels: [],
+            income: [],
+            expense: [],
+            period: period
+        };
+        
+        // Maps to hold aggregated values
+        const incomeMap = {};
+        const expenseMap = {};
+        
+        // Function to get period key from a date string
+        const getPeriodKey = (dateStr) => {
+            try {
+                const date = new Date(dateStr);
+                if (period === 'weekly') {
+                    // Get year and week number
+                    const year = date.getFullYear();
+                    // Get ISO week number (1-53)
+                    const weekNumber = getWeekNumber(date);
+                    return `Week ${weekNumber}, ${year}`;
+                } else if (period === 'monthly') {
+                    // Format as "MMM YYYY" (e.g., "Jan 2023")
+                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                }
+                return dateStr; // Default to original for daily
+            } catch (e) {
+                console.error('Error parsing date:', dateStr, e);
+                return dateStr;
+            }
+        };
+        
+        // Aggregate data
+        for (let i = 0; i < data.labels.length; i++) {
+            const periodKey = getPeriodKey(data.labels[i]);
+            
+            // Initialize if first time seeing this period
+            if (!incomeMap[periodKey]) {
+                incomeMap[periodKey] = 0;
+                expenseMap[periodKey] = 0;
+            }
+            
+            // Add values to the period
+            incomeMap[periodKey] += parseFloat(data.income[i] || 0);
+            expenseMap[periodKey] += parseFloat(data.expense[i] || 0);
+        }
+        
+        // Convert maps to arrays
+        const periodKeys = Object.keys(incomeMap).sort();
+        
+        // Sort period keys if needed
+        if (period === 'monthly') {
+            // Sort by year then month
+            periodKeys.sort((a, b) => {
+                const dateA = new Date(a);
+                const dateB = new Date(b);
+                return dateA - dateB;
+            });
+        } else if (period === 'weekly') {
+            // Sort by year then week number
+            periodKeys.sort((a, b) => {
+                const [weekA, yearA] = a.replace('Week ', '').split(', ');
+                const [weekB, yearB] = b.replace('Week ', '').split(', ');
+                
+                if (yearA !== yearB) {
+                    return parseInt(yearA) - parseInt(yearB);
+                }
+                return parseInt(weekA) - parseInt(weekB);
+            });
+        }
+        
+        // Fill result arrays
+        result.labels = periodKeys;
+        result.income = periodKeys.map(key => incomeMap[key]);
+        result.expense = periodKeys.map(key => expenseMap[key]);
+        
+        console.log('Aggregated data:', result);
+        return result;
+    }
+
+    // Helper function to get ISO week number
+    function getWeekNumber(date) {
+        // Create a copy of the date to avoid modifying the original
+        const d = new Date(date);
+        // Set to nearest Thursday: current date + 4 - current day number
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        // Get first day of year
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        // Calculate full weeks to nearest Thursday
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    }
 });

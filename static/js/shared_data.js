@@ -147,11 +147,11 @@ function renderTable(data, $tableBody, type, isSharedWith) {
                             data-shared-id="${item.shared_id}" 
                             data-type="${type}"
                             onclick="cancelShare(this, ${item.shared_id}, '${type}')">
-                            Cancel Share
-                        </button>
+                    Cancel Share
+                </button>
                         ${!isBulk && item.is_repeat ? '<span class="badge bg-warning ms-2">Repeat</span>' : ''}
                     </div>
-                </td>
+            </td>
             </tr>
         `;
 
