@@ -1,6 +1,7 @@
 from flask import Blueprint, session, jsonify, request
 from datetime import datetime
 from models.models import db, Income, SharedIncome
+from utils.decorators import csrf_required
 
 income_bp = Blueprint('income', __name__)
 
@@ -22,6 +23,7 @@ def get_income():
 
 
 @income_bp.route('/api/incomes', methods=['POST'])
+@csrf_required
 def add_income():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401

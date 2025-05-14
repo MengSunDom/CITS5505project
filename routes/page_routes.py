@@ -1,6 +1,6 @@
 import secrets
 from flask import Blueprint, session, render_template, redirect, url_for, flash
-from forms.auth_forms import RegisterForm,LoginForm
+from forms.auth_forms import RegisterForm,LoginForm, IncomeForm, ExpensesForm
 from models.models import User
 from werkzeug.security import generate_password_hash,check_password_hash
 from models.models import db
@@ -42,14 +42,16 @@ def dashboard():
 def expenses():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
-    return render_template('expenses.html')
+    form = ExpensesForm()
+    return render_template('expenses.html',form=form)
 
 
 @page_bp.route('/income')
 def income():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
-    return render_template('income.html')
+    form = IncomeForm()
+    return render_template('income.html', form=form)
 
 
 @page_bp.route('/shared-data')

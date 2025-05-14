@@ -23,7 +23,8 @@ $(document).ready(function () {
             amount: document.getElementById('amount').value,
             category: document.getElementById('category').value,
             description: document.getElementById('description').value || '',  // Make description optional
-            date: document.getElementById('date').value
+            date: document.getElementById('date').value,
+            csrf_token: $('input[name="csrf_token"]').val()
         };
 
         try {
@@ -128,23 +129,23 @@ function openShareModal(incomeId) {
 }
 
 function deleteLine(incomeId) {
-    notifications.confirmDelete('income', function() {
-    $.ajax({
-        url: '/api/incomes/delete',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            id: incomeId
-        }),
-        success: function (response) {
-            $('#incomeForm')[0].reset();
+    notifications.confirmDelete('income', function () {
+        $.ajax({
+            url: '/api/incomes/delete',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                id: incomeId
+            }),
+            success: function (response) {
+                $('#incomeForm')[0].reset();
                 document.getElementById('date').value = getFormattedDateTime();
-            loadData();
+                loadData();
                 notifications.success('Income deleted successfully');
-        },
-        error: function (xhr) {
+            },
+            error: function (xhr) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to delete income');
-        }
+            }
         });
     });
 }
@@ -250,14 +251,14 @@ let loadUsernames = () => {
         .then(data => {
             // Store the full user list for filtering
             window.allUsers = data || [];
-            
+
             // Update user count display
             $('#shareUserCount').text(`${data.length} users`);
             $('#bulkShareUserCount').text(`${data.length} users`);
-            
+
             // Populate selects
             populateUserSelects(data);
-            
+
             // Setup search functionality
             setupUserSearch();
         })
@@ -269,19 +270,19 @@ let loadUsernames = () => {
 // Helper function to populate all user selects
 function populateUserSelects(users) {
     const selects = ['#shareUsername', '#bulkShareUsername'];
-    
+
     selects.forEach(selectId => {
         const $select = $(selectId);
         $select.empty();
-        
+
         if (!users || users.length === 0) {
             $select.append('<option value="">No users available</option>');
             return;
         }
-        
+
         // Sort users alphabetically
         users.sort((a, b) => a.username.localeCompare(b.username));
-        
+
         users.forEach(user => {
             const option = `<option value="${user.username}">${user.username}</option>`;
             $select.append(option);
@@ -292,33 +293,33 @@ function populateUserSelects(users) {
 // Setup user search functionality
 function setupUserSearch() {
     // For single share modal
-    $('#shareSearch').off('input').on('input', function() {
+    $('#shareSearch').off('input').on('input', function () {
         const searchTerm = $(this).val().toLowerCase().trim();
         filterUsers(searchTerm, '#shareUsername');
     });
-    
+
     // For bulk share modal
-    $('#bulkShareSearch').off('input').on('input', function() {
+    $('#bulkShareSearch').off('input').on('input', function () {
         const searchTerm = $(this).val().toLowerCase().trim();
         filterUsers(searchTerm, '#bulkShareUsername');
     });
-    
+
     // Clear search when modals are hidden
-    $('#shareModal').on('hidden.bs.modal', function() {
+    $('#shareModal').on('hidden.bs.modal', function () {
         $('#shareSearch').val('');
         filterUsers('', '#shareUsername');
     });
-    
-    $('#bulkShareModal').on('hidden.bs.modal', function() {
+
+    $('#bulkShareModal').on('hidden.bs.modal', function () {
         $('#bulkShareSearch').val('');
         filterUsers('', '#bulkShareUsername');
-            });
+    });
 }
 
 // Filter users based on search term
 function filterUsers(searchTerm, selectId) {
     if (!window.allUsers) return;
-    
+
     if (!searchTerm) {
         // If search is empty, show all users
         populateUserSelects(window.allUsers);
@@ -326,16 +327,16 @@ function filterUsers(searchTerm, selectId) {
             .text(`${window.allUsers.length} users`);
         return;
     }
-    
+
     // Filter users based on search term
-    const filteredUsers = window.allUsers.filter(user => 
+    const filteredUsers = window.allUsers.filter(user =>
         user.username.toLowerCase().includes(searchTerm)
     );
-    
+
     // Update the specific select
     const $select = $(selectId);
     $select.empty();
-    
+
     if (filteredUsers.length === 0) {
         $select.append('<option value="">No matching users</option>');
     } else {
@@ -345,7 +346,7 @@ function filterUsers(searchTerm, selectId) {
             $select.append(option);
         });
     }
-    
+
     // Update the counter
     $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
         .text(`${filteredUsers.length} users`);
@@ -397,19 +398,19 @@ $('#deleteSelected').on('click', function () {
         return;
     }
 
-    notifications.confirmDelete('incomes', function() {
-    $.ajax({
-        url: '/api/incomes/bulk-delete',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ids: selectedIds }),
-        success: function () {
-            loadData();
+    notifications.confirmDelete('incomes', function () {
+        $.ajax({
+            url: '/api/incomes/bulk-delete',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: selectedIds }),
+            success: function () {
+                loadData();
                 notifications.success('Selected incomes deleted successfully');
-        },
-        error: function (xhr) {
+            },
+            error: function (xhr) {
                 notifications.error(xhr.responseJSON?.error || 'Failed to delete incomes');
-        }
+            }
         });
     });
 });
@@ -495,8 +496,8 @@ function showCustomTooltip($el, text) {
 }
 
 $(document).off('mouseenter.remark-tooltip mouseleave.remark-tooltip');
-$(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
+$(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function () {
     showCustomTooltip($(this), $(this).data('remark'));
-}).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
+}).on('mouseleave.remark-tooltip', '.remark-tooltip', function () {
     $('.custom-tooltip').remove();
 });
