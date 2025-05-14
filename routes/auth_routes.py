@@ -18,7 +18,7 @@ def register():
 
     username = data.get('username')
     password = data.get('password')
-    hashed_pw = generate_password_hash(password + "_salt")
+    hashed_pw = generate_password_hash(password)
 
     try:
         new_user = User(username=username, password=hashed_pw, role='user')
@@ -42,7 +42,7 @@ def login():
     remember_me = data.get('rememberMe', False)
 
     user = User.query.filter_by(username=username).first()
-    if user and check_password_hash(user.password, password + "_salt"):
+    if user and check_password_hash(user.password, password):
         session.permanent = bool(remember_me)
         session['user'] = {
             'id': user.id,
