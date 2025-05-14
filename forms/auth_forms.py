@@ -37,11 +37,11 @@ class ExpensesForm(FlaskForm):
     category = SelectField(
         'Category',
         choices=[
-            ('Salary', 'Salary'),
-            ('Bonus', 'Bonus'),
-            ('Interest', 'Interest'),
-            ('Transfer_family', 'Transfer_family'),
-            ('Gift', 'Gift'),
+            ('Food', 'Food'),
+            ('Transportation', 'Transportation'),
+            ('Entertainment', 'Entertainment'),
+            ('Shopping', 'Shopping'),
+            ('Bills', 'Bills'),
             ('Other', 'Other')
         ],
         validators=[DataRequired()]
