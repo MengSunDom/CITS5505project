@@ -9,69 +9,44 @@ navbar_left %} {% endblock %} {% block navbar_right %}
 {% endblock %} {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <!-- <div class="card shadow-sm border-0">
+        <div class="card shadow-sm border-0">
             <div class="card-header bg-light rounded-top border-bottom">
                 <h3 class="text-center mb-0">Register</h3>
             </div>
             <div class="card-body">
-                <form id="registerForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <form method="POST" id="registerForm">
+                    {{ form.hidden_tag() }}
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required />
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", size=32) }}
                     </div>
+
                     <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required />
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", size=32) }}
                     </div>
+
                     <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
-                            required />
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control", size=32) }}
                     </div>
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Register</button>
                     </div>
                 </form>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                {% endwith %}
                 <div class="text-center mt-3">
                     <p>Already have an account? <a href="/login">Login here</a></p>
                 </div>
             </div>
-        </div> -->
-        <form method="POST">
-            <div class="card-header bg-light rounded-top border-bottom">
-                {{ form.hidden_tag() }}
-                <h3 class="text-center mb-0">Register</h3>
-            </div>
-
-            <div class="mb-3">
-                {{ form.username.label(class="form-label") }}
-                {{ form.username(class="form-control", size=32) }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.password.label(class="form-label") }}
-                {{ form.password(class="form-control", size=32) }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.confirm_password.label(class="form-label") }}
-                {{ form.confirm_password(class="form-control", size=32) }}
-            </div>
-
-            <div class="d-grid">
-                {{ form.submit(class="btn btn-primary") }}
-            </div>
-        </form>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-        {% endwith %}
-        <div class="text-center mt-3">
-            <p>Already have an account? <a href="/login">Login here</a></p>
         </div>
+
     </div>
 </div>
 {% endblock %} {% block extra_scripts %}
