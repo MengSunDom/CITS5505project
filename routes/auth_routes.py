@@ -18,6 +18,10 @@ def register():
 
     username = data.get('username')
     password = data.get('password')
+
+    if not username or not password:
+        return jsonify({'error': 'Username and password cannot be empty'}), 400
+
     hashed_pw = generate_password_hash(password + "_salt")
 
     try:
