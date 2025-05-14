@@ -1,5 +1,9 @@
 import secrets
-from flask import Blueprint, session, redirect, url_for, render_template
+from flask import Blueprint, session, render_template, redirect, url_for, flash
+from forms.auth_forms import RegisterForm
+from models.models import User
+from werkzeug.security import generate_password_hash
+from models.models import db
 
 page_bp = Blueprint('page', __name__)
 
@@ -18,13 +22,24 @@ def login_page():
     return render_template('login.html', csrf_token=csrf_token)
 
 
-@page_bp.route('/register')
+@page_bp.route('/register', methods=['GET', 'POST'])
 def register_page():
-    if 'user' in session:
-        return redirect(url_for('page.dashboard'))
-    csrf_token = secrets.token_hex(16)
-    session['csrf_token'] = csrf_token
-    return render_template('register.html', csrf_token=csrf_token)
+    form = RegisterForm()
+    if form.validate_on_submit():
+        existing_user = User.query.filter_by(username=form.username.data).first()
+        if existing_user:
+            flash('Username already exists', 'danger')
+        else:
+            new_user = User(
+                username=form.username.data,
+                password=generate_password_hash(form.password.data),
+                role='user'
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Registration successful!', 'success')
+            return redirect(url_for('page.login_page'))
+    return render_template('register.html', form=form)
 
 
 @page_bp.route('/logout')
