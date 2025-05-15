@@ -2,6 +2,7 @@ from flask import Blueprint, session, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models.models import db, User
 from datetime import timedelta
+from utils.decorators import csrf_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -10,12 +11,9 @@ auth_bp.permanent_session_lifetime = timedelta(minutes=30)
 
 
 @auth_bp.route('/api/register', methods=['POST'])
+@csrf_required
 def register():
     data = request.get_json()
-    # CSRF check disabled for development
-    # if data.get('csrf_token') != session.get('csrf_token'):
-    #     return jsonify({'error': 'CSRF token mismatch'}), 403
-
     username = data.get('username')
     password = data.get('password')
 
@@ -35,18 +33,15 @@ def register():
 
 
 @auth_bp.route('/api/login', methods=['POST'])
+@csrf_required
 def login():
     data = request.get_json()
-    # CSRF check disabled for development
-    # if data.get('csrf_token') != session.get('csrf_token'):
-    #     return jsonify({'error': 'CSRF token mismatch'}), 403
-
     username = data.get('username')
     password = data.get('password')
     remember_me = data.get('rememberMe', False)
 
     user = User.query.filter_by(username=username).first()
-    if user and check_password_hash(user.password, password + "_salt"):
+    if user and check_password_hash(user.password, password):
         session.permanent = bool(remember_me)
         session['user'] = {
             'id': user.id,

@@ -71,28 +71,25 @@ extra_head %}
     </div>
     <div class="offcanvas-body">
         <form id="incomeForm">
+            {{ form.hidden_tag() }}
             <div class="mb-3">
-                <label for="amount" class="form-label">Amount</label>
-                <input type="number" class="form-control" id="amount" step="0.01" required />
+                {{ form.amount.label(class="form-label") }}
+                {{ form.amount(class="form-control", step="0.01", required=True) }}
             </div>
+
             <div class="mb-3">
-                <label for="category" class="form-label">Category</label>
-                <select class="form-select" id="category" required>
-                    <option value="Salary">Salary</option>
-                    <option value="Bonus">Bonus</option>
-                    <option value="Interest">Interest</option>
-                    <option value="Transfer_family">Transfer_family</option>
-                    <option value="Gift">Gift</option>
-                    <option value="Other">Other</option>
-                </select>
+                {{ form.category.label(class="form-label") }}
+                {{ form.category(class="form-select", required=True) }}
             </div>
+
             <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <input type="text" class="form-control" id="description" name="description" />
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control") }}
             </div>
+
             <div class="mb-3">
-                <label for="date" class="form-label">Date</label>
-                <input type="datetime-local" class="form-control" id="date" step="1" required />
+                {{ form.date.label(class="form-label") }}
+                {{ form.date(class="form-control", step="1", required=True) }}
             </div>
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary">Add Income</button>
@@ -116,7 +113,8 @@ extra_head %}
                 <h5 class="modal-title">
                     <i class="fas fa-share-alt me-2"></i>Share Selected Incomes
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="bulkShareForm">
@@ -124,21 +122,21 @@ extra_head %}
                         <label for="bulkShareSearch" class="form-label text-muted small">
                             <i class="fas fa-search me-1"></i>Search Users
                         </label>
-                        <input type="text" id="bulkShareSearch" class="form-control form-control-lg mb-2" 
+                        <input type="text" id="bulkShareSearch" class="form-control form-control-lg mb-2"
                             placeholder="Type to search users..." autocomplete="off">
-                        
+
                         <label for="bulkShareUsername" class="form-label d-flex justify-content-between">
                             <span>Select User to Share With</span>
                             <span class="text-primary small" id="bulkShareUserCount">0 users</span>
                         </label>
-                        
+
                         <div class="user-select-container">
-                            <select class="form-select form-select-lg" id="bulkShareUsername" required 
-                                size="6" style="overflow-y: auto;">
+                            <select class="form-select form-select-lg" id="bulkShareUsername" required size="6"
+                                style="overflow-y: auto;">
                                 <option value="">Loading users...</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-text text-muted mt-1">
                             <i class="fas fa-info-circle me-1"></i>
                             The selected user will be able to view these incomes
@@ -166,7 +164,8 @@ extra_head %}
                 <h5 class="modal-title">
                     <i class="fas fa-share-alt me-2"></i>Share Income
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="shareForm">
@@ -174,21 +173,21 @@ extra_head %}
                         <label for="shareSearch" class="form-label text-muted small">
                             <i class="fas fa-search me-1"></i>Search Users
                         </label>
-                        <input type="text" id="shareSearch" class="form-control form-control-lg mb-2" 
+                        <input type="text" id="shareSearch" class="form-control form-control-lg mb-2"
                             placeholder="Type to search users..." autocomplete="off">
-                        
+
                         <label for="shareUsername" class="form-label d-flex justify-content-between">
                             <span>Select User to Share With</span>
                             <span class="text-primary small" id="shareUserCount">0 users</span>
                         </label>
-                        
+
                         <div class="user-select-container">
-                            <select class="form-select form-select-lg" id="shareUsername" required 
-                                size="6" style="overflow-y: auto;">
+                            <select class="form-select form-select-lg" id="shareUsername" required size="6"
+                                style="overflow-y: auto;">
                                 <option value="">Loading users...</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-text text-muted mt-1">
                             <i class="fas fa-info-circle me-1"></i>
                             The selected user will be able to view this income

@@ -6,27 +6,15 @@
                 <h3 class="text-center mb-0">Login</h3>
             </div>
             <div class="card-body">
-                <form id="loginForm">
+                <!-- <form id="loginForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
                     <div class="mb-3">
                         <label for="username" class="form-label">Username</label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="username"
-                            name="username"
-                            required
-                        />
+                        <input type="text" class="form-control" id="username" name="username" required />
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input
-                            type="password"
-                            class="form-control"
-                            id="password"
-                            name="password"
-                            required
-                        />
+                        <input type="password" class="form-control" id="password" name="password" required />
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
@@ -35,7 +23,37 @@
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Login</button>
                     </div>
+                </form> -->
+
+                <form method="POST" id="loginForm">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", placeholder="Enter username") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", placeholder="Enter password") }}
+                    </div>
+
+                    <div class="form-check mb-3">
+                        {{ form.remember_me(class="form-check-input") }}
+                        {{ form.remember_me.label(class="form-check-label") }}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+                    {% endfor %}
+                    {% endwith %}
                 </form>
+
                 <div class="text-center mt-3">
                     <p>Don't have an account? <a href="/register">Register here</a></p>
                 </div>

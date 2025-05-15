@@ -1,5 +1,9 @@
 import secrets
-from flask import Blueprint, session, redirect, url_for, render_template
+from flask import Blueprint, session, render_template, redirect, url_for, flash
+from forms.auth_forms import RegisterForm,LoginForm, IncomeForm, ExpensesForm
+from models.models import User
+from werkzeug.security import generate_password_hash,check_password_hash
+from models.models import db
 
 page_bp = Blueprint('page', __name__)
 
@@ -9,22 +13,16 @@ def index():
     return render_template('home.html')
 
 
-@page_bp.route('/login')
+@page_bp.route('/login', methods=['GET'])
 def login_page():
-    if 'user' in session:
-        return redirect(url_for('page.dashboard'))
-    csrf_token = secrets.token_hex(16)
-    session['csrf_token'] = csrf_token
-    return render_template('login.html', csrf_token=csrf_token)
+    form = LoginForm()
+    return render_template('login.html', form=form)
 
 
-@page_bp.route('/register')
+@page_bp.route('/register', methods=['GET', 'POST'])
 def register_page():
-    if 'user' in session:
-        return redirect(url_for('page.dashboard'))
-    csrf_token = secrets.token_hex(16)
-    session['csrf_token'] = csrf_token
-    return render_template('register.html', csrf_token=csrf_token)
+    form = RegisterForm()
+    return render_template('register.html', form=form)
 
 
 @page_bp.route('/logout')
@@ -44,14 +42,16 @@ def dashboard():
 def expenses():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
-    return render_template('expenses.html')
+    form = ExpensesForm()
+    return render_template('expenses.html',form=form)
 
 
 @page_bp.route('/income')
 def income():
     if 'user' not in session:
         return redirect(url_for('page.login_page'))
-    return render_template('income.html')
+    form = IncomeForm()
+    return render_template('income.html', form=form)
 
 
 @page_bp.route('/shared-data')

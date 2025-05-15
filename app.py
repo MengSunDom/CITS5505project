@@ -54,6 +54,7 @@ def create_app():
                                error=str(e),
                                traceback=traceback.format_exc()), 500
 
+
     return app
 
 
@@ -62,5 +63,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
+    app.config['SECRET_KEY'] = 'a3f38c9d6b7e423e97b2c1d9a1f7c9f5e8e4388e6cfb8b9831c2fbd1f40c9b20'
+    app.config['WTF_CSRF_ENABLED'] = True
 
     app.run(debug=True, port=5001)
