@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %}Shared Expenses{% endblock %} {% block extra_head %}
+{% extends "base.html" %} {% block title %}Share - Expense Tracker{% endblock %} {% block extra_head %}
 <link rel="stylesheet" href="/static/css/shared_data.css" />
 {% endblock %} {% block content %}
 <div class="row">
@@ -108,9 +108,9 @@
             </div>
             <h6 class="empty-state-text">No shared data available</h6>
             <p class="empty-state-subtext text-muted">Items will appear here when you share or receive shared data</p>
-        </div>
-    </td>
-</tr>
+            </div>
+        </td>
+    </tr>
 </template>
 {% endblock %} {% block extra_scripts %}
 <script src="/static/js/shared_data.js"></script>

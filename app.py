@@ -17,30 +17,29 @@ from routes.error_routes import error_bp
 
 import config
 
+migrate = Migrate()
+csrf = CSRFProtect()
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(config)
-    app.secret_key = app.config.get('SECRET_KEY', secrets.token_hex(32))
 
+def register_extensions(app):
     db.init_app(app)
-    Migrate(app, db)
-
-    csrf = CSRFProtect()
+    migrate.init_app(app, db)
     csrf.init_app(app)
-    
-    with app.app_context():
-        init_db()
-        app.register_blueprint(auth_bp)
-        app.register_blueprint(expense_bp)
-        app.register_blueprint(income_bp)
-        app.register_blueprint(page_bp)
-        app.register_blueprint(share_bp)
-        app.register_blueprint(shareIncome_bp)
-        app.register_blueprint(insights_bp)
-        app.register_blueprint(error_bp)
 
-    # Custom error handler for 500 errors
+
+def register_blueprints(app):
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(expense_bp)
+    app.register_blueprint(income_bp)
+    app.register_blueprint(page_bp)
+    app.register_blueprint(share_bp)
+    app.register_blueprint(shareIncome_bp)
+    app.register_blueprint(insights_bp)
+    app.register_blueprint(error_bp)
+
+
+def register_error_handlers(app):
+
     @app.errorhandler(500)
     def handle_500_error(e):
         app.logger.error(f"500 error: {str(e)}")
@@ -52,9 +51,30 @@ def create_app():
                 "message": str(e),
                 "traceback": traceback.format_exc()
             }), 500
+
         return render_template('error.html',
                                error=str(e),
                                traceback=traceback.format_exc()), 500
+
+
+def create_app(testing=False):
+    app = Flask(__name__)
+    app.config.from_object(config)
+    app.secret_key = app.config.get('SECRET_KEY', secrets.token_hex(32))
+
+    if testing:
+        app.config["TESTING"] = True
+        app.config["PROPAGATE_EXCEPTIONS"] = False
+        # Use in-memory SQLite database for testing
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        app.config["WTF_CSRF_ENABLED"] = False
+
+    register_extensions(app)
+
+    with app.app_context():
+        init_db()
+        register_blueprints(app)
+        register_error_handlers(app)
 
     return app
 
@@ -65,4 +85,4 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
 
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=5001)
