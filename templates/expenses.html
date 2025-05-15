@@ -104,7 +104,7 @@ extra_head %}
             </button>
             <button type="button" class="btn btn-primary" id="uploadButton">Upload Template</button>
             <input type="file" id="uploadTemplate" accept=".xlsx, .xls" hidden />
-            <!-- 新增 OCR 按钮 -->
+            <!-- OCR button -->
             <button type="button" class="btn btn-primary" id="ocrButton">Add Expense by OCR</button>
             <input type="file" id="uploadPicture" accept=".png, .jpg, .jpeg" hidden />
         </div>
@@ -119,7 +119,8 @@ extra_head %}
                 <h5 class="modal-title">
                     <i class="fas fa-share-alt me-2"></i>Share Selected Expenses
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="bulkShareForm">
@@ -127,20 +128,20 @@ extra_head %}
                         <label for="bulkShareSearch" class="form-label text-muted small">
                             <i class="fas fa-search me-1"></i>Search Users
                         </label>
-                        <input type="text" id="bulkShareSearch" class="form-control form-control-lg mb-2" 
+                        <input type="text" id="bulkShareSearch" class="form-control form-control-lg mb-2"
                             placeholder="Type to search users..." autocomplete="off">
-                        
+
                         <label for="bulkShareUsername" class="form-label d-flex justify-content-between">
                             <span>Select User to Share With</span>
                             <span class="text-primary small" id="bulkShareUserCount">0 users</span>
                         </label>
-                        
+
                         <div class="user-select-container">
                             <select class="form-select form-select-lg" id="bulkShareUsername" required size="6">
                                 <option value="">Loading users...</option>
-                        </select>
+                            </select>
                         </div>
-                        
+
                         <div class="form-text text-muted mt-1">
                             <i class="fas fa-info-circle me-1"></i>
                             The selected user will be able to view these expenses
@@ -168,7 +169,8 @@ extra_head %}
                 <h5 class="modal-title">
                     <i class="fas fa-share-alt me-2"></i>Share Expense
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="shareForm">
@@ -176,20 +178,20 @@ extra_head %}
                         <label for="shareSearch" class="form-label text-muted small">
                             <i class="fas fa-search me-1"></i>Search Users
                         </label>
-                        <input type="text" id="shareSearch" class="form-control form-control-lg mb-2" 
+                        <input type="text" id="shareSearch" class="form-control form-control-lg mb-2"
                             placeholder="Type to search users..." autocomplete="off">
-                        
+
                         <label for="shareUsername" class="form-label d-flex justify-content-between">
                             <span>Select User to Share With</span>
                             <span class="text-primary small" id="shareUserCount">0 users</span>
                         </label>
-                        
+
                         <div class="user-select-container">
                             <select class="form-select form-select-lg" id="shareUsername" required size="6">
                                 <option value="">Loading users...</option>
-                        </select>
+                            </select>
                         </div>
-                        
+
                         <div class="form-text text-muted mt-1">
                             <i class="fas fa-info-circle me-1"></i>
                             The selected user will be able to view this expense

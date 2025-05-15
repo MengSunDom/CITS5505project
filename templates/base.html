@@ -38,13 +38,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/insights' or request.path == '/insights/' %}active{% endif %}" href="/insights">
+                        <a class="nav-link {% if request.path == '/insights' or request.path == '/insights/' %}active{% endif %}"
+                            href="/insights">
                             <i class="fas fa-chart-pie me-1"></i>Insights
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/shared-data' %}active{% endif %}" href="/shared-data">
-                            <i class="fas fa-share-alt me-1"></i>Shared Data
+                        <a class="nav-link {% if request.path == '/shared-data' %}active{% endif %}"
+                            href="/shared-data">
+                            <i class="fas fa-share-alt me-1"></i>Share
                         </a>
                     </li>
                     {% endif %}
