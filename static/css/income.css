@@ -125,6 +125,18 @@
     /* Darker blue on hover */
 }
 
+button.form-action {
+    min-width: 90px;
+    height: 34px;
+    margin-bottom: 2px;
+}
+
+button#deleteSelected,
+button#shareSelected {
+    min-width: 160px;
+    height: 40px;
+}
+
 /* Card spacing and size */
 .card {
     margin-bottom: 1rem;

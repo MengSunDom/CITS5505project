@@ -425,6 +425,18 @@
     margin-right: 0.25rem;
 }
 
+button.form-action {
+    min-width: 90px;
+    height: 34px;
+    margin-bottom: 2px;
+}
+
+button#deleteSelected,
+button#shareSelected {
+    min-width: 160px;
+    height: 40px;
+}
+
 .table th:first-child,
 .table td:first-child {
     width: 50px;
