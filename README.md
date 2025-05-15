@@ -67,6 +67,10 @@ Copy the generated value and set it as your `SECRET_KEY` in `config.py` to ensur
 ### Running the App
 
 ```bash
+# Apply database migrations, initializing the database
+flask db upgrade
+
+# Run the application
 python app.py
 ```
 
