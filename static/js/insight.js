@@ -1815,7 +1815,7 @@ $(document).ready(() => {
         initializeUI();
 
         // Add debugging functionality
-        addDebugButton();
+        //addDebugButton();
 
         // Load data
         loadAllData();

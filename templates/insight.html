@@ -34,26 +34,30 @@ extra_head %}
                     </div>
                 </div>
 
-                <div class="date-range-selector flex-grow-1">
-                    <div class="d-flex flex-wrap align-items-center">
-                        <div class="btn-group period-selector me-3 mb-0">
-                            <button type="button" class="btn btn-outline-primary active" data-period="month">This
-                                Month</button>
-                            <button type="button" class="btn btn-outline-primary" data-period="prev-month">Last
-                                Month</button>
-                            <button type="button" class="btn btn-outline-primary" data-period="year">This Year</button>
-                            <button type="button" class="btn btn-outline-primary" data-period="custom">Custom</button>
-                        </div>
+                <div class="date-range-selector">
+                <div class="btn-group period-selector mb-3" role="group">
+                    <button type="button" class="btn btn-outline-primary" data-period="month">This Month</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="prev-month">Last Month</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="year">This Year</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="custom">Custom</button>
+                </div>
 
-                        <div class="custom-date-range d-flex align-items-center mt-0 d-none">
-                            <input type="date" id="startDate" class="form-control form-control-sm" />
-                            <span class="mx-2">to</span>
-                            <input type="date" id="endDate" class="form-control form-control-sm" />
-                            <button class="btn btn-sm btn-primary ms-2" id="applyDateRange">
-                                <i class="fas fa-check"></i> Apply
-                            </button>
-                        </div>
+                <div class="custom-date-range row g-2 align-items-center d-none">
+                    <div class="col-auto">
+                    <input type="date" id="startDate" class="form-control form-control-sm" />
                     </div>
+                    <div class="col-auto">
+                    <span class="text-nowrap">to</span>
+                    </div>
+                    <div class="col-auto">
+                    <input type="date" id="endDate" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" id="applyDateRange">
+                        <i class="fas fa-check"></i> Apply
+                    </button>
+                    </div>
+                </div>
                 </div>
 
 
