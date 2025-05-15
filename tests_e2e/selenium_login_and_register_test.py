@@ -13,7 +13,7 @@ def test_register_and_login_flow():
 
         driver.find_element(By.ID, "username").send_keys("seleniumuser")
         driver.find_element(By.ID, "password").send_keys("testpass123")
-        driver.find_element(By.ID, "confirmPassword").send_keys("testpass123")
+        driver.find_element(By.ID, "confirm_password").send_keys("testpass123")
         driver.find_element(By.ID, "registerForm").submit()
         time.sleep(2)
 

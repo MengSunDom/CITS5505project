@@ -14,9 +14,8 @@ def test_add_expense():
     try:
         driver.get("http://127.0.0.1:5001/login")
         wait.until(EC.presence_of_element_located(
-            (By.ID, "username"))).send_keys("test_admin")
-        driver.find_element(By.ID,
-                            "password").send_keys("test_admin", Keys.ENTER)
+            (By.ID, "username"))).send_keys("admin")
+        driver.find_element(By.ID, "password").send_keys("admin", Keys.ENTER)
 
         wait.until(EC.url_contains("/dashboard"))
         driver.get("http://127.0.0.1:5001/expenses")
