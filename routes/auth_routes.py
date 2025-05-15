@@ -20,7 +20,7 @@ def register():
     if not username or not password:
         return jsonify({'error': 'Username and password cannot be empty'}), 400
 
-    hashed_pw = generate_password_hash(password + "_salt")
+    hashed_pw = generate_password_hash(password)
 
     try:
         new_user = User(username=username, password=hashed_pw, role='user')
