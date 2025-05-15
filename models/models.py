@@ -66,11 +66,11 @@ class SharedIncome(db.Model):
 
 
 def init_db():
-    db.create_all()
+    # db.create_all()
     # Create default categories
-    default_categories = [
-        'Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'
-    ]
+    # default_categories = [
+    #     'Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'
+    # ]
 
     # Create default admin user if not exists
     admin = User.query.filter_by(username='admin').first()
