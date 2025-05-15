@@ -1,4 +1,4 @@
-# CITS5505project
+# 📦 CITS5505project
 
 ## 📘 Project Overview
 
@@ -9,9 +9,9 @@ This is a web-based expense tracking application developed for the University of
 - 🧑‍💻 User registration and login system
 - 💰 Add, manage, and delete expense records
 - 📊 Data visualization and expense insights
-- 🤝 Share expense data with other users
-- 📸 Add expenses via receipt images using OCR technology
-- 📑 Support for bulk importing expense data
+- 🔗 Share expense data with other users
+- 🧾 Add expenses via receipt images using OCR technology
+- 💑 Support for bulk importing expense data
 - 🔍 Expense filtering and search functionality
 
 ## 🛠️ Tech Stack
@@ -23,11 +23,11 @@ This is a web-based expense tracking application developed for the University of
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### 📦 Prerequisites
 
 Ensure Python 3 and pip are installed.
 
-### Installation
+### ⚙️ Installation
 
 ```bash
 # Clone the repository
@@ -46,16 +46,16 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Configuration
+### 🔐 Configuration
 
 Copy `config-example.py` to `config.py`, and add your OpenAI API key:
 
 ```bash
 cp config-example.py config.py
-# Edit config.py to add your openai API key and flask secret key.
+# Edit config.py to add your OpenAI API key and Flask secret key.
 ```
 
-You can generate a secure Flask secret key by running the following in Python:
+Generate a secure Flask secret key:
 
 ```python
 import secrets
@@ -64,7 +64,7 @@ print(secrets.token_hex(32))
 
 Copy the generated value and set it as your `SECRET_KEY` in `config.py` to ensure session security.
 
-### Running the App
+### ▶️ Running the App
 
 ```bash
 # Apply database migrations, initializing the database
@@ -74,7 +74,7 @@ flask db upgrade
 python app.py
 ```
 
-Open your browser and go to `http://localhost:5001`.
+Open your browser and go to: `http://localhost:5001`
 
 ## 📁 Project Structure
 
@@ -98,23 +98,8 @@ CITS5505project/
 │   └── js/                  # JavaScript files
 ├── templates/               # HTML templates
 ├── utils/                   # Utility functions
-│   ├── llm.py               # OpenAI integration
-│   └── ocr.py               # OCR functionality
-├── tests/
-│    ├── __init__.py                               
-│    ├── test_api.py                               
-│    ├── test_pages.py                             
-│    ├── selenium_add_expense_test.py              # Adds a new expense via UI (offcanvas form)
-│    ├── selenium_delete_expense_test.py           # Deletes a specific expense through modal confirmation
-│    ├── selenium_home_page_test.py                # Verifies the home page loads and title is correct
-│    ├── selenium_login_and_register_test.py       # Registers and logs in a user via UI
-│    ├── selenium_login_bypass_test.py             # Tests redirect when accessing pages without login
-│    ├── selenium_register_page_load_test.py       # Checks if the register page loads correctly
-│    ├── selenium_wrong_login_test.py              # Attempts login with wrong credentials
-│    ├── e2e/
-│    │   └── test_selenium.py                      
-│    └── unit/
-│        └── test_app.py                           
+├── tests/                   # Unit tests
+├── tests_e2e/               # System tests
 ├── requirements.txt         # Python dependencies
 └── README.md                # Project documentation
 ```
@@ -130,18 +115,21 @@ CITS5505project/
 
 ## 🧪 Running Tests
 
-⚙️ How to Run the Selenium Tests
-	1.	Place the chromedriver executable in the project root directory.
-	2.	Start the Flask server in one terminal by executing:
+### 🧰 Unit Tests
 
-            python app.py
+```bash
+pytest tests/
+```
 
-    3.	Open another terminal and run tests like:
+The `tests/conftest.py` file contains fixtures for setting up the Flask application and database for testing purposes. It ensures that the database is properly initialized and cleaned up after each test module.
 
-            python tests/selenium_add_expense_test.py
+### 🧰 System Tests
 
+```bash
+pytest tests_e2e/
+```
 
-
+The `tests_e2e/conftest.py` file is responsible for starting the Flask server before the tests and shutting it down afterward. It ensures that the server is running on `http://127.0.0.1:5001` during the tests.
 
 ## 📄 License
 
