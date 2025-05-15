@@ -487,50 +487,76 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     reader.readAsArrayBuffer(file);
 });
 
-document.getElementById('uploadImageButton').addEventListener('click', async function () {
-    const fileInput = document.getElementById('expenseImage');
-    const file = fileInput.files[0];
-
-    if (!file) {
-        notifications.warning('Please select an image file first');
-        return;
-    }
+document.getElementById('uploadPicture').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('file', file);
+    formData.append('csrf_token', $('input[name="csrf_token"]').val());
 
-    try {
-        // Upload file for OCR
-        $.ajax({
-            url: '/api/ocr/expense',
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (result) {
-                // Populate form with OCR results
-                if (result.success && result.data) {
-                    $('#amount').val(result.data.amount || '');
-                    $('#category').val(result.data.category || 'Other');
-                    $('#description').val(result.data.description || '');
+    // Show progress bar and disable buttons
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.position = 'fixed';
+    progressBar.style.top = '0';
+    progressBar.style.left = '0';
+    progressBar.style.width = '100%';
+    progressBar.style.height = '5px';
+    progressBar.style.backgroundColor = '#0d6efd';
+    progressBar.style.transition = 'width 0.4s ease';
+    progressBar.style.zIndex = '1050';
+    document.body.appendChild(progressBar);
 
-                    $('#amount').focus();
+    const disableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
+    };
 
-                    notifications.success('Successfully extracted data from image');
-                } else {
-                    notifications.warning('Could not extract all data from image. Please fill in the form manually.');
+    const enableUI = () => {
+        document.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
+    };
+
+    disableUI();
+
+    $.ajax({
+        url: '/api/expenses/by-ocr',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        xhr: function () {
+            const xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = `${percentComplete}%`;
                 }
-            },
-            error: function (xhr) {
-                const result = xhr.responseJSON || {};
-                notifications.error(`Error: ${result.error || 'Failed to process image'}`);
+            });
+            return xhr;
+        },
+        success: function (response) {
+            try {
+                if (response.error) {
+                    alert(`Error: ${response.error}`);
+                    return;
+                }
+                data = JSON.parse(response.result);
+                addExpense(data);
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                alert('An unexpected error occurred. Please try again.');
             }
-        });
+        },
+        error: function (xhr) {
+            console.error('Error:', xhr);
+            alert('An error occurred while processing the Picture.');
+        },
+        complete: function () {
+            document.body.removeChild(progressBar);
+            enableUI();
 
-    } catch (err) {
-        console.error(err);
-        notifications.error('An error occurred while processing the image.');
-    }
+        }
+    });
 });
 
 async function addExpense(expenseData) {
@@ -538,7 +564,8 @@ async function addExpense(expenseData) {
         amount: expenseData.amount,
         category: expenseData.category,
         description: expenseData.description || '',  // Make description optional
-        date: expenseData.date
+        date: expenseData.date,
+        csrf_token: $('input[name="csrf_token"]').val()
     };
 
     $.ajax({

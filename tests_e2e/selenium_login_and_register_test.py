@@ -1,11 +1,11 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 import time
 
+from tests_e2e.driver_utils import get_test_driver
+
+
 def test_register_and_login_flow():
-    service = Service('../chromedriver')
-    driver = webdriver.Chrome(service=service)
+    driver = get_test_driver()
 
     try:
         driver.get("http://127.0.0.1:5001/register")
@@ -13,7 +13,7 @@ def test_register_and_login_flow():
 
         driver.find_element(By.ID, "username").send_keys("seleniumuser")
         driver.find_element(By.ID, "password").send_keys("testpass123")
-        driver.find_element(By.ID, "confirmPassword").send_keys("testpass123")
+        driver.find_element(By.ID, "confirm_password").send_keys("testpass123")
         driver.find_element(By.ID, "registerForm").submit()
         time.sleep(2)
 
@@ -30,6 +30,7 @@ def test_register_and_login_flow():
         print("Login test passed.")
     finally:
         driver.quit()
+
 
 if __name__ == "__main__":
     test_register_and_login_flow()

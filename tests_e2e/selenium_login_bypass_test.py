@@ -1,11 +1,10 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 import time
 
+from tests_e2e.driver_utils import get_test_driver
+
+
 def test_dashboard_requires_login():
-    service = Service('../chromedriver')
-    driver = webdriver.Chrome(service=service)
+    driver = get_test_driver()
 
     try:
         driver.get("http://127.0.0.1:5001/dashboard")
@@ -15,6 +14,7 @@ def test_dashboard_requires_login():
         print("Redirect to login when unauthenticated passed.")
     finally:
         driver.quit()
+
 
 if __name__ == "__main__":
     test_dashboard_requires_login()

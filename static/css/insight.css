@@ -213,7 +213,6 @@
 .custom-date-range {
     display: flex;
     align-items: center;
-    display: none;
     margin-top: 10px !important;
     flex-wrap: nowrap;
 }

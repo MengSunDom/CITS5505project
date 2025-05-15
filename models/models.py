@@ -1,3 +1,4 @@
+from sqlalchemy import inspect
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
@@ -66,12 +67,12 @@ class SharedIncome(db.Model):
 
 
 def init_db():
-    # db.create_all()
-    # Create default categories
-    # default_categories = [
-    #     'Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'
-    # ]
-
+    # This function should be called after the database is created
+    inspector = inspect(db.engine)
+    if not inspector.has_table("user"):
+        print("User table does not exist yet. Skipping admin creation.")
+        return
+    
     # Create default admin user if not exists
     admin = User.query.filter_by(username='admin').first()
     if not admin:
