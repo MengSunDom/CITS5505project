@@ -487,7 +487,7 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
     reader.readAsArrayBuffer(file);
 });
 
-document.getElementById('uploadImageButton').addEventListener('click', async function () {
+document.getElementById('uploadPicture').addEventListener('click', async function () {
     const fileInput = document.getElementById('expenseImage');
     const file = fileInput.files[0];
 
