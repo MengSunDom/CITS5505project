@@ -106,10 +106,10 @@ function updateIncomeTable(incomes) {
                 <td><span class="remark-tooltip" data-remark="${income.description || ''}">${getShortRemark(income.description)}</span></td>
                 <td>$${income.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${income.id})">
+                    <button class="btn btn-primary btn-sm form-action" onclick="openShareModal(${income.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${income.id})">
+                    <button class="btn btn-danger btn-sm form-action" onclick="deleteLine(${income.id})">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>

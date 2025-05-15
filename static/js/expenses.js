@@ -213,10 +213,10 @@ function updateExpenseTable(expenses) {
                 <td><span class="remark-tooltip" data-remark="${expense.description || ''}">${getShortRemark(expense.description)}</span></td>
                 <td>$${expense.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm me-1" onclick="openShareModal(${expense.id})">
+                    <button class="btn btn-primary btn-sm form-action" onclick="openShareModal(${expense.id})">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteLine(${expense.id})">
+                    <button class="btn btn-danger btn-sm form-action" onclick="deleteLine(${expense.id})">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>

@@ -39,6 +39,7 @@
 /* Quick Action Cards */
 .quick-actions {
     margin-bottom: 2rem;
+    animation-delay: 0.1s;
 }
 
 .quick-action-card {
@@ -108,6 +109,7 @@
 /* Finance Metric Cards */
 .financial-summary-card {
     box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.05);
+    animation-delay: 0.2s;
 }
 
 .badge.bg-primary-subtle {
@@ -306,7 +308,7 @@
 }
 
 .goal-progress-circle::before {
-    content: '';
+    content: "";
     position: absolute;
     width: 40px;
     height: 40px;
@@ -410,14 +412,6 @@
     /* Darker text for better contrast */
 }
 
-/* Add margin for cards in vertical layout */
-@media (max-width: 768px) {
-    .col-md-4 {
-        margin-bottom: 15px;
-        /* Add bottom margin for spacing */
-    }
-}
-
 /* Action Buttons in Transaction Tables */
 .action-buttons {
     display: flex;
@@ -440,11 +434,11 @@
     .dashboard-title {
         font-size: 1.75rem;
     }
-    
+
     .quick-action-card {
         padding: 1.25rem 0.75rem;
     }
-    
+
     .icon-circle {
         width: 50px;
         height: 50px;
@@ -455,42 +449,42 @@
     .dashboard-header {
         text-align: center;
     }
-    
+
     .date-display {
         margin-top: 1rem;
     }
-    
-    .col-md-4 {
-        margin-bottom: 15px;
-    }
-    
+
     .chart-container {
         height: 250px;
     }
-    
+
     .finance-metric-card {
         padding: 1rem;
+    }
+
+    /* Add margin for cards in vertical layout */
+    .col-md-4 {
+        /* Add bottom margin for spacing */
+        margin-bottom: 15px;
     }
 }
 
 /* Animation for key elements */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .dashboard-header,
 .quick-actions,
 .financial-summary-card {
     animation: fadeIn 0.5s ease-out forwards;
-}
-
-.quick-actions {
-    animation-delay: 0.1s;
-}
-
-.financial-summary-card {
-    animation-delay: 0.2s;
 }
 
 /* Savings Goal Card */
@@ -578,15 +572,15 @@
 
 /* Tab Navigation Styling */
 .nav-tabs .nav-link {
-    color: #6c757d; 
+    color: #6c757d;
     font-weight: 500;
 }
 
 .nav-tabs .nav-link.active {
-    color: #495057; 
+    color: #495057;
     font-weight: 600;
 }
 
 .nav-tabs .nav-link:hover:not(.active) {
-    color: #495057; 
+    color: #495057;
 }

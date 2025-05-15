@@ -1,27 +1,26 @@
-/* Clean and elegant design - Shared data page */
-
 /* Global variables */
 :root {
-    --primary-color: #B9A8C2; /* Base lavender color */
-    --primary-light: #D7CCD9; /* Lighter lavender */
-    --primary-dark: #9A84A7; /* Darker lavender */
-    --accent-color: #E2C795; /* Complementary gold accent */
-    --text-primary: #3E3748; /* Dark purple for text */
-    --text-secondary: #6D6378; /* Medium purple for secondary text */
-    --background-main: #F8F6FA; /* Very light lavender background */
-    --background-card: #FFFFFF;
+    --primary-color: #b9a8c2; /* Base lavender color */
+    --primary-light: #d7ccd9; /* Lighter lavender */
+    --primary-dark: #9a84a7; /* Darker lavender */
+    --accent-color: #e2c795; /* Complementary gold accent */
+    --text-primary: #3e3748; /* Dark purple for text */
+    --text-secondary: #6d6378; /* Medium purple for secondary text */
+    --background-main: #f8f6fa; /* Very light lavender background */
+    --background-card: #ffffff;
     --shadow-soft: 0 2px 8px rgba(185, 168, 194, 0.1);
     --shadow-hover: 0 4px 12px rgba(185, 168, 194, 0.15);
     --transition-main: all 0.25s ease-out;
     --border-radius: 8px;
-    --border-color: #E9E2EE; /* Light lavender border */
+    --border-color: #e9e2ee; /* Light lavender border */
 }
 
 /* Base styles */
 body {
     background-color: var(--background-main);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+        "Open Sans", "Helvetica Neue", sans-serif;
     line-height: 1.5;
 }
 
@@ -34,6 +33,8 @@ body {
     box-shadow: var(--shadow-soft);
     margin-bottom: 1.5rem;
     border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px rgba(185, 168, 194, 0.08);
 }
 
 .card:hover {
@@ -45,6 +46,8 @@ body {
     color: var(--text-primary);
     border-bottom: none;
     padding: 1rem 1.25rem;
+    background: linear-gradient(to right, var(--primary-light), rgba(215, 204, 217, 0.7));
+    border-bottom: 1px solid var(--border-color);
 }
 
 .card-header h5 {
@@ -75,6 +78,7 @@ h3 {
     margin-bottom: 1.5rem;
     transition: var(--transition-main);
     border: 1px solid var(--border-color);
+    animation: fadeIn 0.3s ease-out;
 }
 
 .table-responsive:hover {
@@ -89,7 +93,8 @@ table {
     margin-bottom: 0;
 }
 
-th, td {
+th,
+td {
     text-align: left;
     padding: 0.75rem 1rem;
 }
@@ -103,6 +108,11 @@ thead th {
     position: sticky;
     top: 0;
     z-index: 10;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: linear-gradient(to right, var(--primary-light), rgba(215, 204, 217, 0.7));
 }
 
 thead th:first-child {
@@ -142,7 +152,11 @@ tr:hover {
 
 .badge.bg-warning {
     background-color: var(--accent-color);
-    color: #573A08;
+    color: #573a08;
+    background-color: rgba(226, 199, 149, 0.7) !important;
+    color: #5e4615;
+    font-weight: 500;
+    border: 1px solid rgba(226, 199, 149, 0.2);
 }
 
 /* Button styles */
@@ -195,7 +209,7 @@ tr:hover {
 
 /* Fixed cancel button styling - visible and lighter red */
 .btn-danger {
-    background-color: #E57373;
+    background-color: #e57373;
     border: none;
     border-radius: 6px;
     box-shadow: none;
@@ -207,21 +221,21 @@ tr:hover {
 }
 
 .btn-danger:hover {
-    background-color: #EF5350;
+    background-color: #ef5350;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
 }
 
 .btn-outline-danger {
-    border: 1px solid #E57373;
-    color: #E57373;
+    border: 1px solid #e57373;
+    color: #e57373;
     background: transparent;
     font-weight: 400;
     font-size: 0.875rem;
 }
 
 .btn-outline-danger:hover {
-    background-color: #E57373;
+    background-color: #e57373;
     color: white;
     box-shadow: 0 2px 5px rgba(231, 76, 60, 0.15);
 }
@@ -249,6 +263,7 @@ tr:hover {
     background-color: var(--primary-light);
     color: var(--primary-dark);
     border-color: var(--primary-color);
+    transform: translateY(-2px);
 }
 
 .btn-info {
@@ -263,12 +278,14 @@ tr:hover {
 
 /* Animation effects */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.table-responsive {
-    animation: fadeIn 0.3s ease-out;
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Notification styles */
@@ -283,8 +300,14 @@ tr:hover {
 }
 
 @keyframes toastIn {
-    from { transform: translateY(10px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .toast-header {
@@ -375,7 +398,7 @@ tr:hover {
 }
 
 .loading-indicator::after {
-    content: '';
+    content: "";
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -385,7 +408,9 @@ tr:hover {
 }
 
 @keyframes spinner {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Responsive design */
@@ -393,30 +418,31 @@ tr:hover {
     .card-body {
         padding: 1rem;
     }
-    
+
     .table-responsive {
         padding: 1rem;
     }
 }
 
 @media (max-width: 768px) {
-    th, td {
+    th,
+    td {
         padding: 0.625rem 0.75rem;
     }
-    
+
     th {
         font-size: 0.75rem;
     }
-    
+
     .table-responsive {
         padding: 0.8rem;
         border-radius: 6px;
     }
-    
+
     h3 {
         font-size: 1rem;
     }
-    
+
     .action-btn {
         width: 26px;
         height: 26px;
@@ -426,7 +452,7 @@ tr:hover {
 
 /* Subtle background texture */
 body::before {
-    content: '';
+    content: "";
     position: fixed;
     top: 0;
     left: 0;
@@ -464,18 +490,6 @@ body::before {
 
 .table tbody tr:nth-of-type(even) {
     background-color: rgba(255, 255, 255, 1);
-}
-
-/* Add a subtle border to cards */
-.card {
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 6px rgba(185, 168, 194, 0.08);
-}
-
-/* Add a nice gradient background to cards */
-.card-header {
-    background: linear-gradient(to right, var(--primary-light), rgba(215, 204, 217, 0.7));
-    border-bottom: 1px solid var(--border-color);
 }
 
 /* Empty state styling */
@@ -528,12 +542,12 @@ body::before {
 
 /* Amount styling */
 .amount-positive {
-    color: #4CAF50;
+    color: #4caf50;
     font-weight: 500;
 }
 
 .amount-negative {
-    color: #E57373;
+    color: #e57373;
     font-weight: 500;
 }
 
@@ -542,7 +556,7 @@ body::before {
     display: inline-flex;
     align-items: center;
     background-color: rgba(226, 199, 149, 0.15);
-    color: #8A7038;
+    color: #8a7038;
     border-radius: 30px;
     padding: 0.35rem 0.6rem;
     font-size: 0.75rem;
@@ -554,26 +568,13 @@ body::before {
     font-size: 0.8rem;
 }
 
-/* Table header enhancements */
-thead th {
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: linear-gradient(to right, var(--primary-light), rgba(215, 204, 217, 0.7));
-}
-
 /* Action button enhancements */
 .action-btn.view-btn {
     color: var(--primary-color);
 }
 
 .action-btn.delete-btn {
-    color: #E57373;
-}
-
-.action-btn:hover {
-    transform: translateY(-2px);
+    color: #e57373;
 }
 
 /* Date styling */
@@ -667,12 +668,4 @@ thead th {
 
 .details-row {
     background-color: rgba(185, 168, 194, 0.03) !important;
-}
-
-/* Status badges */
-.badge.bg-warning {
-    background-color: rgba(226, 199, 149, 0.7) !important;
-    color: #5E4615;
-    font-weight: 500;
-    border: 1px solid rgba(226, 199, 149, 0.2);
 }
