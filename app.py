@@ -56,6 +56,15 @@ def register_error_handlers(app):
                                error=str(e),
                                traceback=traceback.format_exc()), 500
 
+    @app.errorhandler(404)
+    def handle_404_error(e):
+        app.logger.warning(f"404 error: {str(e)}")
+
+        if request.path.startswith('/api/'):
+            return jsonify({"error": "Not Found", "message": str(e)}), 404
+
+        return render_template('not_found.html', error=str(e)), 404
+
 
 def create_app(testing=False):
     app = Flask(__name__)
