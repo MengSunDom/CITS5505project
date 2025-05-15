@@ -7,7 +7,7 @@ from utils.decorators import csrf_required
 auth_bp = Blueprint('auth', __name__)
 
 # Set session expiration time to 30 minutes
-auth_bp.permanent_session_lifetime = timedelta(minutes=30)
+auth_bp.permanent_session_lifetime = timedelta(minutes=60)
 
 
 @auth_bp.route('/api/register', methods=['POST'])

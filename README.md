@@ -52,8 +52,17 @@ Copy `config-example.py` to `config.py`, and add your OpenAI API key:
 
 ```bash
 cp config-example.py config.py
-# Edit config.py to add your API key
+# Edit config.py to add your openai API key and flask secret key.
 ```
+
+You can generate a secure Flask secret key by running the following in Python:
+
+```python
+import secrets
+print(secrets.token_hex(32))
+```
+
+Copy the generated value and set it as your `SECRET_KEY` in `config.py` to ensure session security.
 
 ### Running the App
 
@@ -67,35 +76,38 @@ Open your browser and go to `http://localhost:5001`.
 
 ```plaintext
 CITS5505project/
-├── app.py                  # Application entry point
-├── config.py               # Configuration file (contains API keys)
-├── models/                 # Database models
-│   └── models.py           # User, expense and sharing models
-├── routes/                 # Flask route definitions
-│   ├── auth_routes.py      # Authentication-related routes
-│   ├── expense_routes.py   # Expense management routes
-│   ├── insights_routes.py  # Data analysis routes
-│   ├── page_routes.py      # Page routes
-│   └── share_routes.py     # Data sharing routes
-├── static/                 # Static assets
-│   ├── css/                # CSS stylesheets
-│   └── js/                 # JavaScript files
-├── templates/              # HTML templates
-├── utils/                  # Utility functions
-│   ├── llm.py              # OpenAI integration
-│   └── ocr.py              # OCR functionality
-├── tests/                  # Unit tests
-├── requirements.txt        # Python dependencies
-└── README.md               # Project documentation
+├── app.py                   # Application entry point
+├── config.py                # Configuration file (contains API keys)
+├── models/                  # Database models
+│   └── models.py            # User, expense and sharing models
+├── routes/                  # Flask route definitions
+│   ├── auth_routes.py       # Authentication-related routes
+│   ├── error_routes.py      # Error testing routes
+│   ├── expense_routes.py    # Expense management routes
+│   ├── income_routes.py     # Income management routes
+│   ├── insights_routes.py   # Data analysis routes
+│   ├── page_routes.py       # Page routes
+│   ├── share_routes.py      # Expense data sharing routes
+│   └── shareIncome_routes.py# Income data sharing routes
+├── static/                  # Static assets
+│   ├── css/                 # CSS stylesheets
+│   └── js/                  # JavaScript files
+├── templates/               # HTML templates
+├── utils/                   # Utility functions
+│   ├── llm.py               # OpenAI integration
+│   └── ocr.py               # OCR functionality
+├── tests/                   # Unit tests
+├── requirements.txt         # Python dependencies
+└── README.md                # Project documentation
 ```
 
 ## ✅ Usage Instructions
 
 1. Visit the homepage to learn about the project  
 2. Register a new account or log in  
-3. After logging in, you can add and manage your expenses  
+3. After logging in, you can add and manage your expenses/income  
 4. View charts and insights to analyze your spending habits  
-5. Share your expense data with other users  
+5. Share your expense/income data with other users  
 6. Quickly add expenses using receipt photos via OCR  
 
 ## 🧪 Running Tests

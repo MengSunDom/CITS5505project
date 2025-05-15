@@ -12,7 +12,6 @@ from routes.share_routes import share_bp
 from routes.insights_routes import insights_bp
 from routes.income_routes import income_bp
 from routes.shareIncome_routes import shareIncome_bp
-from routes.shared_data_routes import shared_data_bp
 from routes.error_routes import error_bp
 
 import config
@@ -20,8 +19,8 @@ import config
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = secrets.token_hex(16)
     app.config.from_object(config)
+    app.secret_key = app.config.get('SECRET_KEY', secrets.token_hex(32))
 
     db.init_app(app)
     migrate = Migrate(app, db)
@@ -35,7 +34,6 @@ def create_app():
         app.register_blueprint(share_bp)
         app.register_blueprint(shareIncome_bp)
         app.register_blueprint(insights_bp)
-        app.register_blueprint(shared_data_bp)
         app.register_blueprint(error_bp)
 
     # Custom error handler for 500 errors
@@ -54,7 +52,6 @@ def create_app():
                                error=str(e),
                                traceback=traceback.format_exc()), 500
 
-
     return app
 
 
@@ -63,7 +60,5 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
-    app.config['SECRET_KEY'] = 'a3f38c9d6b7e423e97b2c1d9a1f7c9f5e8e4388e6cfb8b9831c2fbd1f40c9b20'
-    app.config['WTF_CSRF_ENABLED'] = True
 
     app.run(debug=True, port=5001)
