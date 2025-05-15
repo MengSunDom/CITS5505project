@@ -14,6 +14,3 @@ def csrf_required(f):
             return jsonify({'error': 'Invalid CSRF token'}), 400
         return f(*args, **kwargs)
     return decorated_function
-
-
-
