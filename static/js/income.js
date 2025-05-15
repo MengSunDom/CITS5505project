@@ -28,28 +28,26 @@ $(document).ready(function () {
         };
 
         try {
-            const response = await fetch('/api/incomes', {
+            $.ajax({
+                url: '/api/incomes',
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function (data) {
+                    $('#incomeForm')[0].reset();
+                    document.getElementById('date').value = getFormattedDateTime();
+                    loadData();
+
+                    const offcanvasElement = document.getElementById('addIncomeCanvas');
+                    const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+                    offcanvasInstance.hide();
                 },
-                body: JSON.stringify(formData)
+                error: function (xhr) {
+                    const errorMsg = xhr.responseJSON?.error || 'Failed to add income';
+                    notifications.error(errorMsg);
+                }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                $('#incomeForm')[0].reset();
-                // Reset date to today after form reset
-                document.getElementById('date').value = getFormattedDateTime();
-                loadData();
-                // Close the offcanvas panel
-                const offcanvasElement = document.getElementById('addIncomeCanvas');
-                const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
-                offcanvasInstance.hide();
-            } else {
-                notifications.error(data.error || 'Failed to add income');
-            }
         } catch (error) {
             console.error('Error:', error);
             notifications.error('An error occurred while adding the income');
@@ -246,9 +244,11 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 });
 
 let loadUsernames = () => {
-    return fetch('/api/users')
-        .then(response => response.json())
-        .then(data => {
+    return $.ajax({
+        url: '/api/users',
+        method: 'GET',
+        dataType: 'json',
+        success: function (data) {
             // Store the full user list for filtering
             window.allUsers = data || [];
 
@@ -261,10 +261,11 @@ let loadUsernames = () => {
 
             // Setup search functionality
             setupUserSearch();
-        })
-        .catch(() => {
+        },
+        error: function () {
             notifications.error('Failed to load usernames. Cannot share.');
-        });
+        }
+    });
 }
 
 // Helper function to populate all user selects

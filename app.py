@@ -3,6 +3,7 @@ from flask import Flask, render_template, jsonify, request
 import secrets
 from flask_migrate import Migrate
 import traceback
+from flask_wtf import CSRFProtect
 
 from models.models import db, init_db
 from routes.auth_routes import auth_bp
@@ -23,8 +24,11 @@ def create_app():
     app.secret_key = app.config.get('SECRET_KEY', secrets.token_hex(32))
 
     db.init_app(app)
-    migrate = Migrate(app, db)
+    Migrate(app, db)
 
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+    
     with app.app_context():
         init_db()
         app.register_blueprint(auth_bp)

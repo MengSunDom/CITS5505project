@@ -76,26 +76,25 @@ $(document).ready(function () {
         };
 
         try {
-            const response = await fetch('/api/expenses', {
+            $.ajax({
+                url: '/api/expenses',
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function (data) {
+                    $('#expenseForm')[0].reset();
+                    document.getElementById('date').value = getFormattedDateTime();
+                    loadExpenses();
+                    const offcanvasElement = document.getElementById('addExpenseCanvas');
+                    const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
+                    offcanvasInstance.hide();
                 },
-                body: JSON.stringify(formData)
+                error: function (xhr) {
+                    const errorMsg = xhr.responseJSON?.error || 'Failed to add expense';
+                    notifications.error(errorMsg);
+                }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                $('#expenseForm')[0].reset();
-                document.getElementById('date').value = getFormattedDateTime();
-                loadExpenses();
-                const offcanvasElement = document.getElementById('addExpenseCanvas');
-                const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
-                offcanvasInstance.hide();
-            } else {
-                notifications.error(data.error || 'Failed to add expense');
-            }
         } catch (error) {
             console.error('Error:', error);
             notifications.error('An error occurred while adding the expense');
@@ -112,17 +111,14 @@ $(document).ready(function () {
             return;
         }
 
-        fetch(`/api/share/${expenseId}`, {
+        $.ajax({
+            url: `/api/share/${expenseId}`,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+            contentType: 'application/json',
+            data: JSON.stringify({
                 username: username
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
+            }),
+            success: function (data) {
                 if (data.error) {
                     notifications.error(data.error);
                 } else {
@@ -130,11 +126,13 @@ $(document).ready(function () {
                     $('#shareModal').modal('hide');
                     loadExpenses(); // Refresh the expenses list
                 }
-            })
-            .catch(error => {
+            },
+            error: function (xhr, status, error) {
                 console.error('Error:', error);
                 notifications.error('Failed to share expense. Please try again.');
-            });
+            }
+        });
+
     });
 
     // Handle bulk share button click
@@ -232,9 +230,11 @@ let currentExpenses = [];
 
 // Function to load usernames for sharing
 function loadUsernames() {
-    return fetch('/api/users')
-        .then(response => response.json())
-        .then(data => {
+    return $.ajax({
+        url: '/api/users',
+        method: 'GET',
+        dataType: 'json',
+        success: function (data) {
             // Store the full user list for filtering
             window.allUsers = data || [];
 
@@ -247,12 +247,14 @@ function loadUsernames() {
 
             // Setup search functionality
             setupUserSearch();
-        })
-        .catch(error => {
+        },
+        error: function (xhr, status, error) {
             console.error('Failed to load usernames:', error);
             notifications.error('Failed to load usernames.');
-        });
+        }
+    });
 }
+
 
 // Helper function to populate all user selects
 function populateUserSelects(users) {
@@ -499,31 +501,32 @@ document.getElementById('uploadImageButton').addEventListener('click', async fun
 
     try {
         // Upload file for OCR
-        const response = await fetch('/api/ocr/expense', {
+        $.ajax({
+            url: '/api/ocr/expense',
             method: 'POST',
-            body: formData
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (result) {
+                // Populate form with OCR results
+                if (result.success && result.data) {
+                    $('#amount').val(result.data.amount || '');
+                    $('#category').val(result.data.category || 'Other');
+                    $('#description').val(result.data.description || '');
+
+                    $('#amount').focus();
+
+                    notifications.success('Successfully extracted data from image');
+                } else {
+                    notifications.warning('Could not extract all data from image. Please fill in the form manually.');
+                }
+            },
+            error: function (xhr) {
+                const result = xhr.responseJSON || {};
+                notifications.error(`Error: ${result.error || 'Failed to process image'}`);
+            }
         });
 
-        const result = await response.json();
-
-        if (!response.ok) {
-            notifications.error(`Error: ${result.error || 'Failed to process image'}`);
-            return;
-        }
-
-        // Populate form with OCR results
-        if (result.success && result.data) {
-            $('#amount').val(result.data.amount || '');
-            $('#category').val(result.data.category || 'Other');
-            $('#description').val(result.data.description || '');
-
-            // Scroll to and focus the amount field
-            $('#amount').focus();
-
-            notifications.success('Successfully extracted data from image');
-        } else {
-            notifications.warning('Could not extract all data from image. Please fill in the form manually.');
-        }
     } catch (err) {
         console.error(err);
         notifications.error('An error occurred while processing the image.');
