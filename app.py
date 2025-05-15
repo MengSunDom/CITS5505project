@@ -94,4 +94,4 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
 
-    app.run(debug=False, port=5001)
+    app.run(debug=True, port=5001)

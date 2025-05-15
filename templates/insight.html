@@ -8,13 +8,15 @@ extra_head %}
 <div class="container">
     <!-- Date Range Selection Card -->
     <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
+        <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center">
                 <!-- Data Source Selection -->
                 <div class="data-source-selector me-4">
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-primary active" data-source="my-data">My Data</button>
-                        <button type="button" class="btn btn-outline-primary" data-source="shared-data">Shared With Me</button>
+                        <button type="button" class="btn btn-outline-primary active" data-source="my-data">My
+                            Data</button>
+                        <button type="button" class="btn btn-outline-primary" data-source="shared-data">Shared With
+                            Me</button>
                     </div>
                 </div>
 
@@ -35,13 +37,15 @@ extra_head %}
                 <div class="date-range-selector flex-grow-1">
                     <div class="d-flex flex-wrap align-items-center">
                         <div class="btn-group period-selector me-3 mb-0">
-                            <button type="button" class="btn btn-outline-primary active" data-period="month">This Month</button>
-                            <button type="button" class="btn btn-outline-primary" data-period="prev-month">Last Month</button>
+                            <button type="button" class="btn btn-outline-primary active" data-period="month">This
+                                Month</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="prev-month">Last
+                                Month</button>
                             <button type="button" class="btn btn-outline-primary" data-period="year">This Year</button>
                             <button type="button" class="btn btn-outline-primary" data-period="custom">Custom</button>
                         </div>
-                        
-                        <div class="custom-date-range d-flex align-items-center mt-0" style="display: none;">
+
+                        <div class="custom-date-range d-flex align-items-center mt-0 d-none">
                             <input type="date" id="startDate" class="form-control form-control-sm" />
                             <span class="mx-2">to</span>
                             <input type="date" id="endDate" class="form-control form-control-sm" />
@@ -52,15 +56,18 @@ extra_head %}
                     </div>
                 </div>
 
-                
+
                 <div class="export-options">
                     <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-download me-1"></i> Export
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                            <li><a class="dropdown-item" href="#" id="exportPDF"><i class="far fa-file-pdf me-2"></i>Export as PDF</a></li>
-                            <li><a class="dropdown-item" href="#" id="exportPNG"><i class="far fa-file-image me-2"></i>Export as PNG</a></li>
+                            <li><a class="dropdown-item" href="#" id="exportPDF"><i
+                                        class="far fa-file-pdf me-2"></i>Export as PDF</a></li>
+                            <li><a class="dropdown-item" href="#" id="exportPNG"><i
+                                        class="far fa-file-image me-2"></i>Export as PNG</a></li>
                         </ul>
                     </div>
                 </div>
@@ -86,15 +93,15 @@ extra_head %}
                             </span>
                             <span class="period-label">vs. previous period</span>
                         </p>
-    </div>
-</div>
+                    </div>
+                </div>
             </div>
         </div>
-        
+
         <!-- Total Expense Card -->
         <div class="col-md-3">
             <div class="card stats-card expense-card">
-            <div class="card-body">
+                <div class="card-body">
                     <div class="stats-icon">
                         <i class="fas fa-arrow-up"></i>
                     </div>
@@ -111,7 +118,7 @@ extra_head %}
                 </div>
             </div>
         </div>
-        
+
         <!-- Net Balance Card -->
         <div class="col-md-3">
             <div class="card stats-card balance-card">
@@ -128,15 +135,15 @@ extra_head %}
                             </span>
                             <span class="period-label">vs. previous period</span>
                         </p>
-        </div>
-    </div>
+                    </div>
+                </div>
             </div>
         </div>
-        
+
         <!-- Top Category Card -->
         <div class="col-md-3">
             <div class="card stats-card category-card">
-            <div class="card-body">
+                <div class="card-body">
                     <div class="stats-icon">
                         <i class="fas fa-chart-pie"></i>
                     </div>
@@ -163,17 +170,17 @@ extra_head %}
                 <div class="card-body">
                     <h5 class="stats-title">Average Daily Income</h5>
                     <h3 class="stats-value" id="averageDailyIncome">0.00</h3>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
         <!-- Average Daily Expense Card -->
-    <div class="col-md-6">
+        <div class="col-md-6">
             <div class="card stats-card average-expense-card">
                 <div class="card-body">
                     <h5 class="stats-title">Average Daily Expense</h5>
                     <h3 class="stats-value" id="averageDailyExpense">0.00</h3>
-            </div>
+                </div>
             </div>
         </div>
     </div>
@@ -188,9 +195,12 @@ extra_head %}
                         <i class="fas fa-chart-line me-2"></i>Income & Expense Trends
                     </h5>
                     <div class="chart-period-selector btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-secondary active" data-trend-period="daily">Daily</button>
-                        <button type="button" class="btn btn-outline-secondary" data-trend-period="weekly">Weekly</button>
-                        <button type="button" class="btn btn-outline-secondary" data-trend-period="monthly">Monthly</button>
+                        <button type="button" class="btn btn-outline-secondary active"
+                            data-trend-period="daily">Daily</button>
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-trend-period="weekly">Weekly</button>
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-trend-period="monthly">Monthly</button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -198,7 +208,7 @@ extra_head %}
                 </div>
             </div>
         </div>
-        
+
         <!-- Category Distribution Pie Chart -->
         <div class="col-lg-4">
             <div class="card chart-card h-100">
@@ -207,19 +217,20 @@ extra_head %}
                         <i class="fas fa-chart-pie me-2"></i>Category Distribution
                     </h5>
                     <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary active" data-pie-type="expense">Expenses</button>
+                        <button type="button" class="btn btn-outline-secondary active"
+                            data-pie-type="expense">Expenses</button>
                         <button type="button" class="btn btn-outline-secondary" data-pie-type="income">Income</button>
                     </div>
-            </div>
-            <div class="card-body">
+                </div>
+                <div class="card-body">
                     <div id="categoryPieChart" class="chart-container"></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <!-- Charts Row 2 -->
-<div class="row mb-4">
+    <div class="row mb-4">
         <!-- Top Categories Bar Chart -->
         <div class="col-lg-6">
             <div class="card chart-card h-100">
@@ -233,20 +244,16 @@ extra_head %}
                 </div>
             </div>
         </div>
-        
+
         <!-- Monthly Comparison -->
         <div class="col-lg-6">
             <div class="card chart-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i>Monthly Comparison
+                        <i class="fas fa-calendar-alt me-2"></i>Financial Comparison
                     </h5>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary active" data-compare-type="income-expense">Income vs Expense</button>
-                        <button type="button" class="btn btn-outline-secondary" data-compare-type="monthly-progress">Monthly Progress</button>
-    </div>
-            </div>
-            <div class="card-body">
+                </div>
+                <div class="card-body">
                     <div id="monthlyComparisonChart" class="chart-container"></div>
                 </div>
             </div>
