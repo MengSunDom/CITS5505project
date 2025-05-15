@@ -100,7 +100,21 @@ CITS5505project/
 ├── utils/                   # Utility functions
 │   ├── llm.py               # OpenAI integration
 │   └── ocr.py               # OCR functionality
-├── tests/                   # Unit tests
+├── tests/
+│    ├── __init__.py                               
+│    ├── test_api.py                               
+│    ├── test_pages.py                             
+│    ├── selenium_add_expense_test.py              # Adds a new expense via UI (offcanvas form)
+│    ├── selenium_delete_expense_test.py           # Deletes a specific expense through modal confirmation
+│    ├── selenium_home_page_test.py                # Verifies the home page loads and title is correct
+│    ├── selenium_login_and_register_test.py       # Registers and logs in a user via UI
+│    ├── selenium_login_bypass_test.py             # Tests redirect when accessing pages without login
+│    ├── selenium_register_page_load_test.py       # Checks if the register page loads correctly
+│    ├── selenium_wrong_login_test.py              # Attempts login with wrong credentials
+│    ├── e2e/
+│    │   └── test_selenium.py                      
+│    └── unit/
+│        └── test_app.py                           
 ├── requirements.txt         # Python dependencies
 └── README.md                # Project documentation
 ```
@@ -116,7 +130,17 @@ CITS5505project/
 
 ## 🧪 Running Tests
 
-(To be added as applicable)
+⚙️ How to Run the Selenium Tests
+	1.	Place the chromedriver executable in the project root directory.
+	2.	Start the Flask server in one terminal by executing:
+
+            python app.py
+
+    3.	Open another terminal and run tests like:
+
+            python tests/selenium_add_expense_test.py
+
+
 
 
 ## 📄 License
