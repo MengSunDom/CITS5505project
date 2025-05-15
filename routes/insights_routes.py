@@ -1,8 +1,8 @@
 import logging
 from flask import Blueprint, session, jsonify, request, redirect, url_for, render_template
 from datetime import datetime, timedelta
-from models.models import db, Expense, Income
-from sqlalchemy import func
+from models.models import db, Expense, Income, SharedExpense, SharedIncome, User
+from sqlalchemy import func, or_
 
 insights_bp = Blueprint('insights', __name__)
 
@@ -21,9 +21,9 @@ def parse_date_range():
         # Default to current month if no dates provided
         today = datetime.now()
         start_date = datetime(today.year, today.month, 1).strftime('%Y-%m-%d')
-        next_month = datetime(today.year + 1 if today.month == 12 else today.year, 
-                             1 if today.month == 12 else today.month + 1, 1)
-        end_date = next_month.strftime('%Y-%m-%d')
+        
+        # For current month, use today as end date
+        end_date = today.strftime('%Y-%m-%d')
         logging.debug(f"Using default dates: startDate={start_date}, endDate={end_date}")
     
     try:
@@ -31,40 +31,81 @@ def parse_date_range():
         start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
         end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
         
-        # IMPORTANT: For end_date, make it inclusive of the whole day
-        # Instead of setting to 0:00:00, set to 23:59:59 and add one day
+        # Set start date to beginning of day (00:00:00)
         start_date_obj = datetime(start_date_obj.year, start_date_obj.month, start_date_obj.day, 0, 0, 0)
         
-        # Check if end_date is already the first day of next month - common for preset periods
-        if end_date_obj.day == 1 and (start_date_obj.month != end_date_obj.month or 
-                                     start_date_obj.year != end_date_obj.year):
-            # This is already set to first day of next month (exclusive end)
-            pass
-        else:
-            # For custom ranges, add a day to make it inclusive
-            end_date_obj = datetime(end_date_obj.year, end_date_obj.month, end_date_obj.day, 0, 0, 0)
-            end_date_obj = end_date_obj + timedelta(days=1)
+        # Check if end date is today
+        today = datetime.now()
+        logging.debug(f"Current time is: {today.isoformat()}")
         
-        logging.debug(f"Parsed date range: {start_date_obj} to {end_date_obj}")
+        is_today = (end_date_obj.year == today.year and 
+                   end_date_obj.month == today.month and 
+                   end_date_obj.day == today.day)
+        
+        if is_today:
+            # If end date is today, ensure we include all of today's data
+            # Set end_date_obj to today at 23:59:59 instead of current time + 1 minute
+            end_date_obj = datetime(today.year, today.month, today.day, 23, 59, 59)
+            logging.debug(f"End date is today, using end of day: {end_date_obj}")
+            
+            # For today, next_day should be tomorrow at 00:00:00
+            tomorrow = datetime(today.year, today.month, today.day, 0, 0, 0) + timedelta(days=1)
+            next_day = tomorrow
+            logging.debug(f"End date is today, setting next_day to tomorrow at midnight: {next_day}")
+        else:
+            # For non-today dates, set end date to end of day (23:59:59)
+            end_date_obj = datetime(end_date_obj.year, end_date_obj.month, end_date_obj.day, 23, 59, 59)
+            logging.debug(f"End date is not today, using end of day: {end_date_obj}")
+            
+            # Make sure to include the entire end day by setting the comparison to the next day at 00:00:00
+            next_day = datetime(end_date_obj.year, end_date_obj.month, end_date_obj.day, 0, 0, 0) + timedelta(days=1)
+            logging.debug(f"End date is not today, setting next_day to day after end date: {next_day}")
+        
+        logging.debug(f"Parsed date range: {start_date_obj} to {end_date_obj} (query will use < {next_day})")
         
         # Check if we have data in this date range (for debugging)
         if 'user' in session:
             user_id = session['user']['id']
+            
+            # Check specifically for today's data
+            today_start = datetime(today.year, today.month, today.day, 0, 0, 0)
+            today_end = today_start + timedelta(days=1)
+            
+            today_expense_count = Expense.query.filter(
+                Expense.user_id == user_id,
+                Expense.date >= today_start,
+                Expense.date < today_end
+            ).count()
+            
+            today_income_count = Income.query.filter(
+                Income.user_id == user_id,
+                Income.date >= today_start,
+                Income.date < today_end
+            ).count()
+            
+            logging.debug(f"Today's data counts: expenses={today_expense_count}, income={today_income_count}")
+            
+            # Check if today's data is included in the date range
+            today_in_range = (start_date_obj <= today_start < next_day)
+            logging.debug(f"Is today in the selected date range? {today_in_range}")
+            
+            # Get data for the full date range
             expense_count = Expense.query.filter(
                 Expense.user_id == user_id,
                 Expense.date >= start_date_obj,
-                Expense.date < end_date_obj
+                Expense.date < next_day
             ).count()
             
             income_count = Income.query.filter(
                 Income.user_id == user_id,
                 Income.date >= start_date_obj,
-                Income.date < end_date_obj
+                Income.date < next_day
             ).count()
             
-            logging.debug(f"Data counts in range: expenses={expense_count}, income={income_count}")
+            logging.debug(f"Data counts in full range: expenses={expense_count}, income={income_count}")
         
-        return start_date_obj, end_date_obj
+        # Return start date and the next day at 00:00:00 for proper comparison
+        return start_date_obj, next_day
     except ValueError as e:
         logging.error(f"Date parsing error: {e}")
         raise ValueError('Invalid date format. Use YYYY-MM-DD.')
@@ -230,66 +271,155 @@ def income_expense_comparison():
         return jsonify({'error': str(e)}), 400
 
     user_id = session['user']['id']
-
-    # Get income data
-    income_data = db.session.query(
-        func.date(Income.date).label('date'),
-        func.sum(Income.amount).label('total')
-    ).filter(
-        Income.user_id == user_id,
-        Income.date >= start_date,
-        Income.date < end_date
-    ).group_by(func.date(Income.date)).all()
-
-    # Get expense data
-    expense_data = db.session.query(
-        func.date(Expense.date).label('date'),
-        func.sum(Expense.amount).label('total')
-    ).filter(
-        Expense.user_id == user_id,
-        Expense.type == 'expense',
-        Expense.date >= start_date,
-        Expense.date < end_date
-    ).group_by(func.date(Expense.date)).all()
-
-
-    date_set = set()
     
-
-    income_map = {}
-    for date_val, amount in income_data:
-
-        if hasattr(date_val, 'strftime'):
-            date_str = date_val.strftime('%Y-%m-%d')
-        else:
-            date_str = str(date_val)
+    # Get period parameter (daily, weekly, monthly)
+    period = request.args.get('period', 'daily')
+    
+    # Handle different periods for data aggregation
+    if period == 'weekly':
+        # Weekly aggregation
+        # Get income data by week
+        income_data = db.session.query(
+            func.date_trunc('week', Income.date).label('week_start'),
+            func.sum(Income.amount).label('total')
+        ).filter(
+            Income.user_id == user_id,
+            Income.date >= start_date,
+            Income.date < end_date
+        ).group_by(func.date_trunc('week', Income.date)).order_by(func.date_trunc('week', Income.date)).all()
         
-        date_set.add(date_str)
-        income_map[date_str] = float(amount)
-    
-
-    expense_map = {}
-    for date_val, amount in expense_data:
-
-        if hasattr(date_val, 'strftime'):
-            date_str = date_val.strftime('%Y-%m-%d')
-        else:
-            date_str = str(date_val)
+        # Get expense data by week
+        expense_data = db.session.query(
+            func.date_trunc('week', Expense.date).label('week_start'),
+            func.sum(Expense.amount).label('total')
+        ).filter(
+            Expense.user_id == user_id,
+            Expense.type == 'expense',
+            Expense.date >= start_date,
+            Expense.date < end_date
+        ).group_by(func.date_trunc('week', Expense.date)).order_by(func.date_trunc('week', Expense.date)).all()
         
-        date_set.add(date_str)
-        expense_map[date_str] = float(amount)
-    
+        # Create maps for date values to amounts
+        date_set = set()
+        income_map = {}
+        for date_val, amount in income_data:
+            if hasattr(date_val, 'strftime'):
+                # Format as "Week of YYYY-MM-DD"
+                date_str = f"Week of {date_val.strftime('%Y-%m-%d')}"
+            else:
+                date_str = f"Week of {str(date_val)}"
+            
+            date_set.add(date_str)
+            income_map[date_str] = float(amount)
+        
+        expense_map = {}
+        for date_val, amount in expense_data:
+            if hasattr(date_val, 'strftime'):
+                date_str = f"Week of {date_val.strftime('%Y-%m-%d')}"
+            else:
+                date_str = f"Week of {str(date_val)}"
+            
+            date_set.add(date_str)
+            expense_map[date_str] = float(amount)
+        
+    elif period == 'monthly':
+        # Monthly aggregation
+        # Get income data by month
+        income_data = db.session.query(
+            func.date_trunc('month', Income.date).label('month_start'),
+            func.sum(Income.amount).label('total')
+        ).filter(
+            Income.user_id == user_id,
+            Income.date >= start_date,
+            Income.date < end_date
+        ).group_by(func.date_trunc('month', Income.date)).order_by(func.date_trunc('month', Income.date)).all()
+        
+        # Get expense data by month
+        expense_data = db.session.query(
+            func.date_trunc('month', Expense.date).label('month_start'),
+            func.sum(Expense.amount).label('total')
+        ).filter(
+            Expense.user_id == user_id,
+            Expense.type == 'expense',
+            Expense.date >= start_date,
+            Expense.date < end_date
+        ).group_by(func.date_trunc('month', Expense.date)).order_by(func.date_trunc('month', Expense.date)).all()
+        
+        # Create maps for date values to amounts
+        date_set = set()
+        income_map = {}
+        for date_val, amount in income_data:
+            if hasattr(date_val, 'strftime'):
+                date_str = date_val.strftime('%b %Y')  # e.g. "Jan 2023"
+            else:
+                date_str = str(date_val)
+            
+            date_set.add(date_str)
+            income_map[date_str] = float(amount)
+        
+        expense_map = {}
+        for date_val, amount in expense_data:
+            if hasattr(date_val, 'strftime'):
+                date_str = date_val.strftime('%b %Y')  # e.g. "Jan 2023"
+            else:
+                date_str = str(date_val)
+            
+            date_set.add(date_str)
+            expense_map[date_str] = float(amount)
+        
+    else:  # Default to daily
+        # Daily aggregation (existing implementation)
+        # Get income data
+        income_data = db.session.query(
+            func.date(Income.date).label('date'),
+            func.sum(Income.amount).label('total')
+        ).filter(
+            Income.user_id == user_id,
+            Income.date >= start_date,
+            Income.date < end_date
+        ).group_by(func.date(Income.date)).all()
+
+        # Get expense data
+        expense_data = db.session.query(
+            func.date(Expense.date).label('date'),
+            func.sum(Expense.amount).label('total')
+        ).filter(
+            Expense.user_id == user_id,
+            Expense.type == 'expense',
+            Expense.date >= start_date,
+            Expense.date < end_date
+        ).group_by(func.date(Expense.date)).all()
+
+        date_set = set()
+        income_map = {}
+        for date_val, amount in income_data:
+            if hasattr(date_val, 'strftime'):
+                date_str = date_val.strftime('%Y-%m-%d')
+            else:
+                date_str = str(date_val)
+            
+            date_set.add(date_str)
+            income_map[date_str] = float(amount)
+        
+        expense_map = {}
+        for date_val, amount in expense_data:
+            if hasattr(date_val, 'strftime'):
+                date_str = date_val.strftime('%Y-%m-%d')
+            else:
+                date_str = str(date_val)
+            
+            date_set.add(date_str)
+            expense_map[date_str] = float(amount)
   
     date_list = sorted(date_set)
-
-
     income_list = [income_map.get(d, 0.0) for d in date_list]
     expense_list = [expense_map.get(d, 0.0) for d in date_list]
 
     return jsonify({
         'labels': date_list,
         'income': income_list,
-        'expense': expense_list
+        'expense': expense_list,
+        'period': period
     })
 
 # HTML route for insights page
@@ -740,7 +870,7 @@ def expense_summary_api():
     return get_expense_summary()
 
 @insights_bp.route('/api/insights/top-categories', methods=['GET'])
-def get_top_categories():
+def get_top_expense_categories():
     """
     Get top 5 expense categories by amount.
     This endpoint provides data for the Top 5 Categories chart.
@@ -771,3 +901,1884 @@ def get_top_categories():
         'labels': labels,
         'values': values
     })
+
+@insights_bp.route('/api/insights/top-income-categories', methods=['GET'])
+def get_top_income_categories():
+    """
+    Get top 5 income categories by amount.
+    This endpoint provides data for the Top 5 Income Categories chart.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    user_id = session['user']['id']
+
+    # Get top 5 income categories
+    top_categories = db.session.query(
+        Income.category, func.sum(Income.amount).label('total')
+    ).filter(
+        Income.user_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).group_by(Income.category).order_by(db.desc('total')).limit(5).all()
+
+    labels = [item[0] for item in top_categories]
+    values = [float(item[1]) for item in top_categories]
+
+    return jsonify({
+        'labels': labels,
+        'values': values
+    })
+
+@insights_bp.route('/api/shared-insights/users', methods=['GET'])
+def get_shared_insight_users():
+    """
+    Get list of users who have shared data with the current user.
+    This provides the list of users to select from for shared insights.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session['user']['id']
+    
+    # Get users who shared expenses with current user
+    expense_sharers = db.session.query(
+        User.id, User.username
+    ).join(
+        Expense, User.id == Expense.user_id
+    ).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id
+    ).distinct().all()
+    
+    # Get users who shared income with current user
+    income_sharers = db.session.query(
+        User.id, User.username
+    ).join(
+        Income, User.id == Income.user_id
+    ).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id
+    ).distinct().all()
+    
+    # Combine and deduplicate
+    all_sharers = {}
+    for user_id, username in expense_sharers + income_sharers:
+        all_sharers[user_id] = username
+    
+    result = [{"id": user_id, "username": username} for user_id, username in all_sharers.items()]
+    
+    return jsonify(result)
+
+@insights_bp.route('/api/shared-insights/summary', methods=['GET'])
+def get_shared_insights_summary():
+    """
+    Get summary of shared data from a specific user.
+    This is similar to expense_summary_api but for shared data.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    sharer_id = request.args.get('sharer_id')
+    
+    if not sharer_id:
+        return jsonify({'error': 'No sharer ID provided'}), 400
+    
+    try:
+        sharer_id = int(sharer_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid sharer ID'}), 400
+    
+    # Process all shared expenses, including those in bulk shares
+    all_shared_expenses = []
+    
+    # Get directly shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        Expense.user_id == sharer_id,
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).all()
+    
+    all_shared_expenses.extend(direct_shared_expenses)
+    
+    # Get bulk shared expenses from this specific sharer
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).join(
+        Expense, Expense.id == SharedExpense.expense_id
+    ).filter(
+        Expense.user_id == sharer_id
+    ).all()
+    
+    # Process each bulk share
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.user_id == sharer_id,
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    all_shared_expenses.extend(bulk_expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Process all shared incomes, including those in bulk shares
+    all_shared_incomes = []
+    
+    # Get directly shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        Income.user_id == sharer_id,
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).all()
+    
+    all_shared_incomes.extend(direct_shared_incomes)
+    
+    # Get bulk shared incomes from this specific sharer
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).join(
+        Income, Income.id == SharedIncome.income_id
+    ).filter(
+        Income.user_id == sharer_id
+    ).all()
+    
+    # Process each bulk income share
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.user_id == sharer_id,
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    all_shared_incomes.extend(bulk_incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate expenses and incomes
+    unique_expense_ids = set()
+    unique_expenses = []
+    for expense in all_shared_expenses:
+        if expense.id not in unique_expense_ids:
+            unique_expense_ids.add(expense.id)
+            unique_expenses.append(expense)
+    
+    unique_income_ids = set()
+    unique_incomes = []
+    for income in all_shared_incomes:
+        if income.id not in unique_income_ids:
+            unique_income_ids.add(income.id)
+            unique_incomes.append(income)
+    
+    # Calculate expense summary
+    total_expense_entries = len(unique_expenses)
+    total_expense_amount = sum(float(expense.amount) for expense in unique_expenses)
+    
+    # Calculate expense category distribution
+    expense_category_totals = {}
+    for expense in unique_expenses:
+        category = expense.category
+        if category not in expense_category_totals:
+            expense_category_totals[category] = 0
+        expense_category_totals[category] += float(expense.amount)
+    
+    expense_labels = list(expense_category_totals.keys())
+    expense_values = [expense_category_totals[category] for category in expense_labels]
+    
+    # Calculate income summary
+    total_income_entries = len(unique_incomes)
+    total_income_amount = sum(float(income.amount) for income in unique_incomes)
+    
+    # Calculate income category distribution
+    income_category_totals = {}
+    for income in unique_incomes:
+        category = income.category
+        if category not in income_category_totals:
+            income_category_totals[category] = 0
+        income_category_totals[category] += float(income.amount)
+    
+    income_labels = list(income_category_totals.keys())
+    income_values = [income_category_totals[category] for category in income_labels]
+    
+    # Get sharer's username
+    sharer = User.query.get(sharer_id)
+    sharer_name = sharer.username if sharer else "Unknown User"
+    
+    return jsonify({
+        'expense': {
+            'totalEntries': total_expense_entries,
+            'totalAmount': total_expense_amount,
+            'categoryDistribution': {'labels': expense_labels, 'values': expense_values}
+        },
+        'income': {
+            'totalEntries': total_income_entries,
+            'totalAmount': total_income_amount,
+            'categoryDistribution': {'labels': income_labels, 'values': income_values}
+        },
+        'sharer': {
+            'id': sharer_id,
+            'name': sharer_name
+        },
+        'debug': {
+            'direct_expenses': len(direct_shared_expenses),
+            'bulk_expenses': len(all_shared_expenses) - len(direct_shared_expenses),
+            'unique_expenses': len(unique_expenses),
+            'direct_incomes': len(direct_shared_incomes),
+            'bulk_incomes': len(all_shared_incomes) - len(direct_shared_incomes),
+            'unique_incomes': len(unique_incomes)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/top-income-categories', methods=['GET'])
+def get_shared_insights_top_income_categories():
+    """
+    Get top income categories from shared data.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    sharer_id = request.args.get('sharer_id')
+    
+    if not sharer_id:
+        return jsonify({'error': 'No sharer ID provided'}), 400
+    
+    try:
+        sharer_id = int(sharer_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid sharer ID'}), 400
+    
+    # Process all shared incomes, including those in bulk shares
+    all_shared_incomes = []
+    
+    # Get directly shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        Income.user_id == sharer_id,
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).all()
+    
+    all_shared_incomes.extend(direct_shared_incomes)
+    
+    # Get bulk shared incomes from this specific sharer
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).join(
+        Income, Income.id == SharedIncome.income_id
+    ).filter(
+        Income.user_id == sharer_id
+    ).all()
+    
+    # Process each bulk income share
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.user_id == sharer_id,
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    all_shared_incomes.extend(bulk_incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate incomes
+    unique_income_ids = set()
+    unique_incomes = []
+    for income in all_shared_incomes:
+        if income.id not in unique_income_ids:
+            unique_income_ids.add(income.id)
+            unique_incomes.append(income)
+    
+    # Calculate category distribution
+    category_totals = {}
+    for income in unique_incomes:
+        category = income.category
+        if category not in category_totals:
+            category_totals[category] = 0
+        category_totals[category] += float(income.amount)
+    
+    # Sort categories by total amount
+    sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    
+    # Take top 10 categories
+    top_categories = sorted_categories[:10]
+    
+    # Format results
+    labels = [category for category, _ in top_categories]
+    values = [total for _, total in top_categories]
+    
+    return jsonify({
+        'labels': labels,
+        'values': values,
+        'debug': {
+            'direct_incomes': len(direct_shared_incomes),
+            'bulk_incomes': len(all_shared_incomes) - len(direct_shared_incomes),
+            'unique_incomes': len(unique_incomes)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/top-categories', methods=['GET'])
+def get_shared_insights_top_categories():
+    """
+    Get top categories from shared data.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    sharer_id = request.args.get('sharer_id')
+    
+    if not sharer_id:
+        return jsonify({'error': 'No sharer ID provided'}), 400
+    
+    try:
+        sharer_id = int(sharer_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid sharer ID'}), 400
+    
+    # Process all shared expenses, including those in bulk shares
+    all_shared_expenses = []
+    
+    # Get directly shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        Expense.user_id == sharer_id,
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).all()
+    
+    all_shared_expenses.extend(direct_shared_expenses)
+    
+    # Get bulk shared expenses from this specific sharer
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).join(
+        Expense, Expense.id == SharedExpense.expense_id
+    ).filter(
+        Expense.user_id == sharer_id
+    ).all()
+    
+    # Process each bulk share
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.user_id == sharer_id,
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    all_shared_expenses.extend(bulk_expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate expenses
+    unique_expense_ids = set()
+    unique_expenses = []
+    for expense in all_shared_expenses:
+        if expense.id not in unique_expense_ids:
+            unique_expense_ids.add(expense.id)
+            unique_expenses.append(expense)
+    
+    # Calculate category distribution
+    category_totals = {}
+    for expense in unique_expenses:
+        category = expense.category
+        if category not in category_totals:
+            category_totals[category] = 0
+        category_totals[category] += float(expense.amount)
+    
+    # Sort categories by total amount
+    sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    
+    # Take top 10 categories
+    top_categories = sorted_categories[:10]
+    
+    # Format results
+    labels = [category for category, _ in top_categories]
+    values = [total for _, total in top_categories]
+    
+    return jsonify({
+        'labels': labels,
+        'values': values,
+        'debug': {
+            'direct_expenses': len(direct_shared_expenses),
+            'bulk_expenses': len(all_shared_expenses) - len(direct_shared_expenses),
+            'unique_expenses': len(unique_expenses)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/by-month', methods=['GET'])
+def get_shared_insights_by_month():
+    """
+    Get monthly data for shared expenses and incomes.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    sharer_id = request.args.get('sharer_id')
+    data_type = request.args.get('type', 'expense')  # 'expense' or 'income'
+    
+    if not sharer_id:
+        return jsonify({'error': 'No sharer ID provided'}), 400
+    
+    try:
+        sharer_id = int(sharer_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid sharer ID'}), 400
+    
+    # Determine which model and shared model to use based on data_type
+    if data_type == 'expense':
+        # Process all shared expenses, including those in bulk shares
+        all_shared_items = []
+        
+        # Get directly shared expenses
+        direct_shared_items = db.session.query(Expense).join(
+            SharedExpense, SharedExpense.expense_id == Expense.id
+        ).filter(
+            Expense.user_id == sharer_id,
+            SharedExpense.shared_with_id == user_id,
+            Expense.date >= start_date,
+            Expense.date < end_date
+        ).all()
+        
+        all_shared_items.extend(direct_shared_items)
+        
+        # Get bulk shared expenses from this specific sharer
+        bulk_shares = db.session.query(SharedExpense).filter(
+            SharedExpense.shared_with_id == user_id,
+            SharedExpense.is_bulk_share == True
+        ).join(
+            Expense, Expense.id == SharedExpense.expense_id
+        ).filter(
+            Expense.user_id == sharer_id
+        ).all()
+        
+        # Process each bulk share
+        for bulk_share in bulk_shares:
+            if bulk_share.bulk_expense_ids:
+                try:
+                    bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                    if bulk_ids:
+                        bulk_items = db.session.query(Expense).filter(
+                            Expense.id.in_(bulk_ids),
+                            Expense.user_id == sharer_id,
+                            Expense.date >= start_date,
+                            Expense.date < end_date
+                        ).all()
+                        all_shared_items.extend(bulk_items)
+                except Exception as e:
+                    logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    else:
+        # Process all shared incomes, including those in bulk shares
+        all_shared_items = []
+        
+        # Get directly shared incomes
+        direct_shared_items = db.session.query(Income).join(
+            SharedIncome, SharedIncome.income_id == Income.id
+        ).filter(
+            Income.user_id == sharer_id,
+            SharedIncome.shared_with_id == user_id,
+            Income.date >= start_date,
+            Income.date < end_date
+        ).all()
+        
+        all_shared_items.extend(direct_shared_items)
+        
+        # Get bulk shared incomes from this specific sharer
+        bulk_shares = db.session.query(SharedIncome).filter(
+            SharedIncome.shared_with_id == user_id,
+            SharedIncome.is_bulk_share == True
+        ).join(
+            Income, Income.id == SharedIncome.income_id
+        ).filter(
+            Income.user_id == sharer_id
+        ).all()
+        
+        # Process each bulk share
+        for bulk_share in bulk_shares:
+            if bulk_share.bulk_income_ids:
+                try:
+                    bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                    if bulk_ids:
+                        bulk_items = db.session.query(Income).filter(
+                            Income.id.in_(bulk_ids),
+                            Income.user_id == sharer_id,
+                            Income.date >= start_date,
+                            Income.date < end_date
+                        ).all()
+                        all_shared_items.extend(bulk_items)
+                except Exception as e:
+                    logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate items
+    unique_item_ids = set()
+    unique_items = []
+    for item in all_shared_items:
+        if item.id not in unique_item_ids:
+            unique_item_ids.add(item.id)
+            unique_items.append(item)
+    
+    # Group by month
+    data_by_month = {}
+    for item in unique_items:
+        year = item.date.year
+        month = item.date.month
+        month_key = f"{year}-{month:02d}"
+        
+        if month_key not in data_by_month:
+            data_by_month[month_key] = 0
+        
+        data_by_month[month_key] += float(item.amount)
+    
+    # Format results
+    months = []
+    values = []
+    
+    # Sort month keys
+    sorted_months = sorted(data_by_month.keys())
+    
+    for month_key in sorted_months:
+        year, month = month_key.split('-')
+        month_date = datetime(int(year), int(month), 1)
+        month_name = month_date.strftime('%b %Y')  # e.g. "Jan 2023"
+        months.append(month_name)
+        values.append(data_by_month[month_key])
+    
+    return jsonify({
+        'labels': months,
+        'values': values,
+        'debug': {
+            'data_type': data_type,
+            'unique_items': len(unique_items)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/comparison', methods=['GET'])
+def get_shared_insights_comparison():
+    """
+    Get date-wise income & expense comparison for shared data.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    sharer_id = request.args.get('sharer_id')
+    
+    if not sharer_id:
+        return jsonify({'error': 'No sharer ID provided'}), 400
+    
+    try:
+        sharer_id = int(sharer_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid sharer ID'}), 400
+    
+    # Process all shared expenses, including those in bulk shares
+    all_shared_expenses = []
+    
+    # Get directly shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        Expense.user_id == sharer_id,
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).all()
+    
+    all_shared_expenses.extend(direct_shared_expenses)
+    
+    # Get bulk shared expenses from this specific sharer
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).join(
+        Expense, Expense.id == SharedExpense.expense_id
+    ).filter(
+        Expense.user_id == sharer_id
+    ).all()
+    
+    # Process each bulk share
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.user_id == sharer_id,
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    all_shared_expenses.extend(bulk_expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Process all shared incomes, including those in bulk shares
+    all_shared_incomes = []
+    
+    # Get directly shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        Income.user_id == sharer_id,
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).all()
+    
+    all_shared_incomes.extend(direct_shared_incomes)
+    
+    # Get bulk shared incomes from this specific sharer
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).join(
+        Income, Income.id == SharedIncome.income_id
+    ).filter(
+        Income.user_id == sharer_id
+    ).all()
+    
+    # Process each bulk income share
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.user_id == sharer_id,
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    all_shared_incomes.extend(bulk_incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate expenses and incomes
+    unique_expense_ids = set()
+    unique_expenses = []
+    for expense in all_shared_expenses:
+        if expense.id not in unique_expense_ids:
+            unique_expense_ids.add(expense.id)
+            unique_expenses.append(expense)
+    
+    unique_income_ids = set()
+    unique_incomes = []
+    for income in all_shared_incomes:
+        if income.id not in unique_income_ids:
+            unique_income_ids.add(income.id)
+            unique_incomes.append(income)
+    
+    # Group expenses by date
+    expense_by_date = {}
+    for expense in unique_expenses:
+        date_str = expense.date.strftime('%Y-%m-%d')
+        if date_str not in expense_by_date:
+            expense_by_date[date_str] = 0
+        expense_by_date[date_str] += float(expense.amount)
+    
+    # Group incomes by date
+    income_by_date = {}
+    for income in unique_incomes:
+        date_str = income.date.strftime('%Y-%m-%d')
+        if date_str not in income_by_date:
+            income_by_date[date_str] = 0
+        income_by_date[date_str] += float(income.amount)
+    
+    # Combine all dates
+    all_dates = sorted(set(list(expense_by_date.keys()) + list(income_by_date.keys())))
+    
+    # Create expense and income arrays
+    expense_values = [expense_by_date.get(date_str, 0) for date_str in all_dates]
+    income_values = [income_by_date.get(date_str, 0) for date_str in all_dates]
+    
+    return jsonify({
+        'labels': all_dates,
+        'income': income_values,
+        'expense': expense_values,
+        'series': [
+            {'name': 'Income', 'data': income_values},
+            {'name': 'Expenses', 'data': expense_values}
+        ],
+        'debug': {
+            'direct_expenses': len(direct_shared_expenses),
+            'bulk_expenses': len(all_shared_expenses) - len(direct_shared_expenses),
+            'unique_expenses': len(unique_expenses),
+            'direct_incomes': len(direct_shared_incomes),
+            'bulk_incomes': len(all_shared_incomes) - len(direct_shared_incomes),
+            'unique_incomes': len(unique_incomes)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/top-categories-all', methods=['GET'])
+def get_shared_insights_top_categories_all():
+    """
+    Get top categories from all shared data combined.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    
+    # Process all shared expenses, including those in bulk shares
+    all_shared_expenses = []
+    
+    # Get directly shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).all()
+    
+    all_shared_expenses.extend(direct_shared_expenses)
+    
+    # Get bulk shared expenses
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).all()
+    
+    # Process each bulk share
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    all_shared_expenses.extend(bulk_expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate expenses
+    unique_expense_ids = set()
+    unique_expenses = []
+    for expense in all_shared_expenses:
+        if expense.id not in unique_expense_ids:
+            unique_expense_ids.add(expense.id)
+            unique_expenses.append(expense)
+    
+    # Calculate category distribution
+    category_totals = {}
+    for expense in unique_expenses:
+        category = expense.category
+        if category not in category_totals:
+            category_totals[category] = 0
+        category_totals[category] += float(expense.amount)
+    
+    # Sort categories by total amount
+    sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    
+    # Take top 10 categories
+    top_categories = sorted_categories[:10]
+    
+    # Format results
+    labels = [category for category, _ in top_categories]
+    values = [total for _, total in top_categories]
+    
+    return jsonify({
+        'labels': labels,
+        'values': values,
+        'debug': {
+            'direct_expenses': len(direct_shared_expenses),
+            'bulk_expenses': len(all_shared_expenses) - len(direct_shared_expenses),
+            'unique_expenses': len(unique_expenses)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/top-income-categories-all', methods=['GET'])
+def get_shared_insights_top_income_categories_all():
+    """
+    Get top income categories from all shared data combined.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    
+    # Process all shared incomes, including those in bulk shares
+    all_shared_incomes = []
+    
+    # Get directly shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).all()
+    
+    all_shared_incomes.extend(direct_shared_incomes)
+    
+    # Get bulk shared incomes
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).all()
+    
+    # Process each bulk income share
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    all_shared_incomes.extend(bulk_incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate incomes
+    unique_income_ids = set()
+    unique_incomes = []
+    for income in all_shared_incomes:
+        if income.id not in unique_income_ids:
+            unique_income_ids.add(income.id)
+            unique_incomes.append(income)
+    
+    # Calculate category distribution
+    category_totals = {}
+    for income in unique_incomes:
+        category = income.category
+        if category not in category_totals:
+            category_totals[category] = 0
+        category_totals[category] += float(income.amount)
+    
+    # Sort categories by total amount
+    sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    
+    # Take top 10 categories
+    top_categories = sorted_categories[:10]
+    
+    # Format results
+    labels = [category for category, _ in top_categories]
+    values = [total for _, total in top_categories]
+    
+    return jsonify({
+        'labels': labels,
+        'values': values,
+        'debug': {
+            'direct_incomes': len(direct_shared_incomes),
+            'bulk_incomes': len(all_shared_incomes) - len(direct_shared_incomes),
+            'unique_incomes': len(unique_incomes)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/comparison-all', methods=['GET'])
+def get_shared_insights_comparison_all():
+    """
+    Get date-wise income & expense comparison for all shared data combined.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    
+    # Process all shared expenses, including those in bulk shares
+    all_shared_expenses = []
+    
+    # Get directly shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).all()
+    
+    all_shared_expenses.extend(direct_shared_expenses)
+    
+    # Get bulk shared expenses
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).all()
+    
+    # Process each bulk share
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    all_shared_expenses.extend(bulk_expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Process all shared incomes, including those in bulk shares
+    all_shared_incomes = []
+    
+    # Get directly shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).all()
+    
+    all_shared_incomes.extend(direct_shared_incomes)
+    
+    # Get bulk shared incomes
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).all()
+    
+    # Process each bulk income share
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    all_shared_incomes.extend(bulk_incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate expenses and incomes
+    unique_expense_ids = set()
+    unique_expenses = []
+    for expense in all_shared_expenses:
+        if expense.id not in unique_expense_ids:
+            unique_expense_ids.add(expense.id)
+            unique_expenses.append(expense)
+    
+    unique_income_ids = set()
+    unique_incomes = []
+    for income in all_shared_incomes:
+        if income.id not in unique_income_ids:
+            unique_income_ids.add(income.id)
+            unique_incomes.append(income)
+    
+    # Group expenses by date
+    expense_by_date = {}
+    for expense in unique_expenses:
+        date_str = expense.date.strftime('%Y-%m-%d')
+        if date_str not in expense_by_date:
+            expense_by_date[date_str] = 0
+        expense_by_date[date_str] += float(expense.amount)
+    
+    # Group incomes by date
+    income_by_date = {}
+    for income in unique_incomes:
+        date_str = income.date.strftime('%Y-%m-%d')
+        if date_str not in income_by_date:
+            income_by_date[date_str] = 0
+        income_by_date[date_str] += float(income.amount)
+    
+    # Combine all dates
+    all_dates = sorted(set(list(expense_by_date.keys()) + list(income_by_date.keys())))
+    
+    # Create expense and income arrays
+    expense_values = [expense_by_date.get(date_str, 0) for date_str in all_dates]
+    income_values = [income_by_date.get(date_str, 0) for date_str in all_dates]
+    
+    return jsonify({
+        'labels': all_dates,
+        'income': income_values,
+        'expense': expense_values,
+        'debug': {
+            'direct_expenses': len(direct_shared_expenses),
+            'bulk_expenses': len(all_shared_expenses) - len(direct_shared_expenses),
+            'unique_expenses': len(unique_expenses),
+            'direct_incomes': len(direct_shared_incomes),
+            'bulk_incomes': len(all_shared_incomes) - len(direct_shared_incomes),
+            'unique_incomes': len(unique_incomes)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/raw-data', methods=['GET'])
+def get_shared_insights_raw_data():
+    """
+    Get raw shared data for debugging purposes.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    sharer_id = request.args.get('sharer_id')
+    
+    # Get all shared expenses
+    all_shared_expenses = []
+    
+    # Direct shared expenses query
+    direct_expenses_query = db.session.query(
+        Expense.id, 
+        Expense.amount, 
+        Expense.category, 
+        Expense.date,
+        Expense.user_id.label('sharer_id'),
+        SharedExpense.id.label('share_id'),
+        SharedExpense.is_bulk_share,
+        SharedExpense.bulk_expense_ids
+    ).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    )
+    
+    # Filter by sharer if specified
+    if sharer_id and sharer_id != 'all':
+        try:
+            sharer_id = int(sharer_id)
+            direct_expenses_query = direct_expenses_query.filter(Expense.user_id == sharer_id)
+        except ValueError:
+            pass
+    
+    direct_expenses = direct_expenses_query.all()
+    
+    # Convert to dictionaries for JSON serialization
+    result = []
+    for expense in direct_expenses:
+        expense_dict = {
+            'id': expense.id,
+            'amount': float(expense.amount),
+            'category': expense.category,
+            'date': expense.date.strftime('%Y-%m-%d'),
+            'sharer_id': expense.sharer_id,
+            'share_id': expense.share_id,
+            'is_bulk_share': expense.is_bulk_share,
+            'type': 'expense'
+        }
+        
+        if expense.is_bulk_share and expense.bulk_expense_ids:
+            expense_dict['bulk_ids'] = expense.bulk_expense_ids
+        
+        result.append(expense_dict)
+    
+    # Get all bulk shared expenses
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    )
+    
+    if sharer_id and sharer_id != 'all':
+        bulk_shares = bulk_shares.join(Expense, Expense.id == SharedExpense.expense_id).filter(Expense.user_id == sharer_id)
+    
+    bulk_shares = bulk_shares.all()
+    
+    # Add bulk shared expenses to result
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(
+                        Expense.id, 
+                        Expense.amount, 
+                        Expense.category, 
+                        Expense.date,
+                        Expense.user_id.label('sharer_id')
+                    ).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    
+                    for expense in bulk_expenses:
+                        # Check if this expense is already in the result (to avoid duplicates)
+                        if not any(e['id'] == expense.id and e['type'] == 'expense' for e in result):
+                            expense_dict = {
+                                'id': expense.id,
+                                'amount': float(expense.amount),
+                                'category': expense.category,
+                                'date': expense.date.strftime('%Y-%m-%d'),
+                                'sharer_id': expense.sharer_id,
+                                'share_id': bulk_share.id,
+                                'is_bulk_share': True,
+                                'from_bulk_share': True,
+                                'type': 'expense'
+                            }
+                            result.append(expense_dict)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Similar process for incomes
+    direct_incomes_query = db.session.query(
+        Income.id, 
+        Income.amount, 
+        Income.category, 
+        Income.date,
+        Income.user_id.label('sharer_id'),
+        SharedIncome.id.label('share_id'),
+        SharedIncome.is_bulk_share,
+        SharedIncome.bulk_income_ids
+    ).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    )
+    
+    if sharer_id and sharer_id != 'all':
+        direct_incomes_query = direct_incomes_query.filter(Income.user_id == sharer_id)
+    
+    direct_incomes = direct_incomes_query.all()
+    
+    for income in direct_incomes:
+        income_dict = {
+            'id': income.id,
+            'amount': float(income.amount),
+            'category': income.category,
+            'date': income.date.strftime('%Y-%m-%d'),
+            'sharer_id': income.sharer_id,
+            'share_id': income.share_id,
+            'is_bulk_share': income.is_bulk_share,
+            'type': 'income'
+        }
+        
+        if income.is_bulk_share and income.bulk_income_ids:
+            income_dict['bulk_ids'] = income.bulk_income_ids
+        
+        result.append(income_dict)
+    
+    # Get all bulk shared incomes
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    )
+    
+    if sharer_id and sharer_id != 'all':
+        bulk_income_shares = bulk_income_shares.join(Income, Income.id == SharedIncome.income_id).filter(Income.user_id == sharer_id)
+    
+    bulk_income_shares = bulk_income_shares.all()
+    
+    # Add bulk shared incomes to result
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(
+                        Income.id, 
+                        Income.amount, 
+                        Income.category, 
+                        Income.date,
+                        Income.user_id.label('sharer_id')
+                    ).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    
+                    for income in bulk_incomes:
+                        # Check if this income is already in the result (to avoid duplicates)
+                        if not any(i['id'] == income.id and i['type'] == 'income' for i in result):
+                            income_dict = {
+                                'id': income.id,
+                                'amount': float(income.amount),
+                                'category': income.category,
+                                'date': income.date.strftime('%Y-%m-%d'),
+                                'sharer_id': income.sharer_id,
+                                'share_id': bulk_share.id,
+                                'is_bulk_share': True,
+                                'from_bulk_share': True,
+                                'type': 'income'
+                            }
+                            result.append(income_dict)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    return jsonify(result)
+
+@insights_bp.route('/api/shared-insights/by-month-all', methods=['GET'])
+def get_shared_insights_by_month_all():
+    """
+    Get monthly data for all shared expenses and incomes combined.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    data_type = request.args.get('type', 'expense')  # 'expense' or 'income'
+    
+    # Process all shared items, including those in bulk shares
+    all_shared_items = []
+    
+    if data_type == 'expense':
+        # Get directly shared expenses
+        direct_shared_items = db.session.query(Expense).join(
+            SharedExpense, SharedExpense.expense_id == Expense.id
+        ).filter(
+            SharedExpense.shared_with_id == user_id,
+            Expense.date >= start_date,
+            Expense.date < end_date
+        ).all()
+        
+        all_shared_items.extend(direct_shared_items)
+        
+        # Get bulk shared expenses
+        bulk_shares = db.session.query(SharedExpense).filter(
+            SharedExpense.shared_with_id == user_id,
+            SharedExpense.is_bulk_share == True
+        ).all()
+        
+        # Process each bulk share
+        for bulk_share in bulk_shares:
+            if bulk_share.bulk_expense_ids:
+                try:
+                    bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                    if bulk_ids:
+                        bulk_items = db.session.query(Expense).filter(
+                            Expense.id.in_(bulk_ids),
+                            Expense.date >= start_date,
+                            Expense.date < end_date
+                        ).all()
+                        all_shared_items.extend(bulk_items)
+                except Exception as e:
+                    logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    else:
+        # Get directly shared incomes
+        direct_shared_items = db.session.query(Income).join(
+            SharedIncome, SharedIncome.income_id == Income.id
+        ).filter(
+            SharedIncome.shared_with_id == user_id,
+            Income.date >= start_date,
+            Income.date < end_date
+        ).all()
+        
+        all_shared_items.extend(direct_shared_items)
+        
+        # Get bulk shared incomes
+        bulk_shares = db.session.query(SharedIncome).filter(
+            SharedIncome.shared_with_id == user_id,
+            SharedIncome.is_bulk_share == True
+        ).all()
+        
+        # Process each bulk share
+        for bulk_share in bulk_shares:
+            if bulk_share.bulk_income_ids:
+                try:
+                    bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                    if bulk_ids:
+                        bulk_items = db.session.query(Income).filter(
+                            Income.id.in_(bulk_ids),
+                            Income.date >= start_date,
+                            Income.date < end_date
+                        ).all()
+                        all_shared_items.extend(bulk_items)
+                except Exception as e:
+                    logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate items
+    unique_item_ids = set()
+    unique_items = []
+    for item in all_shared_items:
+        if item.id not in unique_item_ids:
+            unique_item_ids.add(item.id)
+            unique_items.append(item)
+    
+    # Group by month
+    data_by_month = {}
+    for item in unique_items:
+        year = item.date.year
+        month = item.date.month
+        month_key = f"{year}-{month:02d}"
+        
+        if month_key not in data_by_month:
+            data_by_month[month_key] = 0
+        
+        data_by_month[month_key] += float(item.amount)
+    
+    # Format results
+    months = []
+    values = []
+    
+    # Sort month keys
+    sorted_months = sorted(data_by_month.keys())
+    
+    for month_key in sorted_months:
+        year, month = month_key.split('-')
+        month_date = datetime(int(year), int(month), 1)
+        month_name = month_date.strftime('%b %Y')  # e.g. "Jan 2023"
+        months.append(month_name)
+        values.append(data_by_month[month_key])
+    
+    return jsonify({
+        'labels': months,
+        'values': values,
+        'debug': {
+            'data_type': data_type,
+            'unique_items': len(unique_items)
+        }
+    })
+
+@insights_bp.route('/api/shared-insights/summary-all', methods=['GET'])
+def get_shared_insights_summary_all():
+    """
+    Get summary of all shared data combined.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        start_date, end_date = parse_date_range()
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    
+    user_id = session['user']['id']
+    
+    # Process all shared expenses, including those in bulk shares
+    all_shared_expenses = []
+    
+    # Get directly shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= start_date,
+        Expense.date < end_date
+    ).all()
+    
+    all_shared_expenses.extend(direct_shared_expenses)
+    
+    # Get bulk shared expenses
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).all()
+    
+    # Process each bulk share
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.date >= start_date,
+                        Expense.date < end_date
+                    ).all()
+                    all_shared_expenses.extend(bulk_expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Process all shared incomes, including those in bulk shares
+    all_shared_incomes = []
+    
+    # Get directly shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= start_date,
+        Income.date < end_date
+    ).all()
+    
+    all_shared_incomes.extend(direct_shared_incomes)
+    
+    # Get bulk shared incomes
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).all()
+    
+    # Process each bulk income share
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    bulk_incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.date >= start_date,
+                        Income.date < end_date
+                    ).all()
+                    all_shared_incomes.extend(bulk_incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Deduplicate expenses and incomes
+    unique_expense_ids = set()
+    unique_expenses = []
+    for expense in all_shared_expenses:
+        if expense.id not in unique_expense_ids:
+            unique_expense_ids.add(expense.id)
+            unique_expenses.append(expense)
+    
+    unique_income_ids = set()
+    unique_incomes = []
+    for income in all_shared_incomes:
+        if income.id not in unique_income_ids:
+            unique_income_ids.add(income.id)
+            unique_incomes.append(income)
+    
+    # Calculate expense summary
+    total_expense_entries = len(unique_expenses)
+    total_expense_amount = sum(float(expense.amount) for expense in unique_expenses)
+    
+    # Calculate expense category distribution
+    expense_category_totals = {}
+    for expense in unique_expenses:
+        category = expense.category
+        if category not in expense_category_totals:
+            expense_category_totals[category] = 0
+        expense_category_totals[category] += float(expense.amount)
+    
+    expense_labels = list(expense_category_totals.keys())
+    expense_values = [expense_category_totals[category] for category in expense_labels]
+    
+    # Calculate income summary
+    total_income_entries = len(unique_incomes)
+    total_income_amount = sum(float(income.amount) for income in unique_incomes)
+    
+    # Calculate income category distribution
+    income_category_totals = {}
+    for income in unique_incomes:
+        category = income.category
+        if category not in income_category_totals:
+            income_category_totals[category] = 0
+        income_category_totals[category] += float(income.amount)
+    
+    income_labels = list(income_category_totals.keys())
+    income_values = [income_category_totals[category] for category in income_labels]
+    
+    return jsonify({
+        'expense': {
+            'totalEntries': total_expense_entries,
+            'totalAmount': total_expense_amount,
+            'categoryDistribution': {'labels': expense_labels, 'values': expense_values}
+        },
+        'income': {
+            'totalEntries': total_income_entries,
+            'totalAmount': total_income_amount,
+            'categoryDistribution': {'labels': income_labels, 'values': income_values}
+        },
+        'sharer': {
+            'id': 'all',
+            'name': 'All Shared Data'
+        },
+        'debug': {
+            'direct_expenses': len(direct_shared_expenses),
+            'bulk_expenses': len(all_shared_expenses) - len(direct_shared_expenses),
+            'unique_expenses': len(unique_expenses),
+            'direct_incomes': len(direct_shared_incomes),
+            'bulk_incomes': len(all_shared_incomes) - len(direct_shared_incomes),
+            'unique_incomes': len(unique_incomes)
+        }
+    })
+
+@insights_bp.route('/api/insights/today-debug', methods=['GET'])
+def today_debug():
+    """
+    Debug endpoint to specifically check if today's data is being found and processed correctly.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Get current date
+    today = datetime.now()
+    today_start = datetime(today.year, today.month, today.day, 0, 0, 0)
+    today_end = datetime(today.year, today.month, today.day, 23, 59, 59)
+    tomorrow = today_start + timedelta(days=1)
+    
+    user_id = session['user']['id']
+    
+    # Check personal data for today
+    personal_expenses = Expense.query.filter(
+        Expense.user_id == user_id,
+        Expense.type == 'expense',
+        Expense.date >= today_start,
+        Expense.date < tomorrow
+    ).all()
+    
+    personal_incomes = Income.query.filter(
+        Income.user_id == user_id,
+        Income.date >= today_start,
+        Income.date < tomorrow
+    ).all()
+    
+    # Check shared data for today
+    # Direct shared expenses
+    direct_shared_expenses = db.session.query(Expense).join(
+        SharedExpense, SharedExpense.expense_id == Expense.id
+    ).filter(
+        SharedExpense.shared_with_id == user_id,
+        Expense.date >= today_start,
+        Expense.date < tomorrow
+    ).all()
+    
+    # Bulk shared expenses
+    bulk_shares = db.session.query(SharedExpense).filter(
+        SharedExpense.shared_with_id == user_id,
+        SharedExpense.is_bulk_share == True
+    ).all()
+    
+    bulk_shared_expenses = []
+    for bulk_share in bulk_shares:
+        if bulk_share.bulk_expense_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_expense_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    expenses = db.session.query(Expense).filter(
+                        Expense.id.in_(bulk_ids),
+                        Expense.date >= today_start,
+                        Expense.date < tomorrow
+                    ).all()
+                    bulk_shared_expenses.extend(expenses)
+            except Exception as e:
+                logging.error(f"Error processing bulk expense share {bulk_share.id}: {str(e)}")
+    
+    # Direct shared incomes
+    direct_shared_incomes = db.session.query(Income).join(
+        SharedIncome, SharedIncome.income_id == Income.id
+    ).filter(
+        SharedIncome.shared_with_id == user_id,
+        Income.date >= today_start,
+        Income.date < tomorrow
+    ).all()
+    
+    # Bulk shared incomes
+    bulk_income_shares = db.session.query(SharedIncome).filter(
+        SharedIncome.shared_with_id == user_id,
+        SharedIncome.is_bulk_share == True
+    ).all()
+    
+    bulk_shared_incomes = []
+    for bulk_share in bulk_income_shares:
+        if bulk_share.bulk_income_ids:
+            try:
+                bulk_ids = [int(id) for id in bulk_share.bulk_income_ids.split(',') if id.strip()]
+                if bulk_ids:
+                    incomes = db.session.query(Income).filter(
+                        Income.id.in_(bulk_ids),
+                        Income.date >= today_start,
+                        Income.date < tomorrow
+                    ).all()
+                    bulk_shared_incomes.extend(incomes)
+            except Exception as e:
+                logging.error(f"Error processing bulk income share {bulk_share.id}: {str(e)}")
+    
+    # Format the data for the response
+    personal_expense_details = [{
+        'id': e.id,
+        'date': e.date.isoformat(),
+        'amount': float(e.amount),
+        'category': e.category,
+        'description': e.description
+    } for e in personal_expenses]
+    
+    personal_income_details = [{
+        'id': i.id,
+        'date': i.date.isoformat(),
+        'amount': float(i.amount),
+        'category': i.category,
+        'description': i.description
+    } for i in personal_incomes]
+    
+    direct_shared_expense_details = [{
+        'id': e.id,
+        'date': e.date.isoformat(),
+        'amount': float(e.amount),
+        'category': e.category,
+        'description': e.description,
+        'user_id': e.user_id
+    } for e in direct_shared_expenses]
+    
+    bulk_shared_expense_details = [{
+        'id': e.id,
+        'date': e.date.isoformat(),
+        'amount': float(e.amount),
+        'category': e.category,
+        'description': e.description,
+        'user_id': e.user_id
+    } for e in bulk_shared_expenses]
+    
+    direct_shared_income_details = [{
+        'id': i.id,
+        'date': i.date.isoformat(),
+        'amount': float(i.amount),
+        'category': i.category,
+        'description': i.description,
+        'user_id': i.user_id
+    } for i in direct_shared_incomes]
+    
+    bulk_shared_income_details = [{
+        'id': i.id,
+        'date': i.date.isoformat(),
+        'amount': float(i.amount),
+        'category': i.category,
+        'description': i.description,
+        'user_id': i.user_id
+    } for i in bulk_shared_incomes]
+    
+    # Get date range used in parse_date_range for comparison
+    current_start_date, current_end_date = parse_date_range()
+    
+    return jsonify({
+        'today': today.isoformat(),
+        'today_start': today_start.isoformat(),
+        'today_end': today_end.isoformat(),
+        'tomorrow': tomorrow.isoformat(),
+        'current_date_range': {
+            'start_date': current_start_date.isoformat(),
+            'end_date': current_end_date.isoformat(),
+            'today_included': today_start >= current_start_date and today_end < current_end_date
+        },
+        'personal_data': {
+            'expenses': {
+                'count': len(personal_expenses),
+                'details': personal_expense_details
+            },
+            'incomes': {
+                'count': len(personal_incomes),
+                'details': personal_income_details
+            }
+        },
+        'shared_data': {
+            'expenses': {
+                'direct': {
+                    'count': len(direct_shared_expenses),
+                    'details': direct_shared_expense_details
+                },
+                'bulk': {
+                    'count': len(bulk_shared_expenses),
+                    'details': bulk_shared_expense_details
+                },
+                'total': len(direct_shared_expenses) + len(bulk_shared_expenses)
+            },
+            'incomes': {
+                'direct': {
+                    'count': len(direct_shared_incomes),
+                    'details': direct_shared_income_details
+                },
+                'bulk': {
+                    'count': len(bulk_shared_incomes),
+                    'details': bulk_shared_income_details
+                },
+                'total': len(direct_shared_incomes) + len(bulk_shared_incomes)
+            }
+        }
+    })
+
+@insights_bp.route('/api/insights/date-debug', methods=['GET'])
+def date_debug():
+    """
+    Debug endpoint to specifically check date handling logic.
+    This endpoint helps diagnose issues with date parsing and filtering.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Get raw date parameters
+    start_date_str = request.args.get('startDate')
+    end_date_str = request.args.get('endDate')
+    
+    # Current time
+    now = datetime.now()
+    today_start = datetime(now.year, now.month, now.day, 0, 0, 0)
+    today_end = datetime(now.year, now.month, now.day, 23, 59, 59)
+    tomorrow = today_start + timedelta(days=1)
+    
+    # Process dates using our parsing function
+    try:
+        start_date_obj, end_date_obj = parse_date_range()
+        
+        # Get user_id
+        user_id = session['user']['id']
+        
+        # Check for today's data
+        today_expense_count = Expense.query.filter(
+            Expense.user_id == user_id,
+            Expense.date >= today_start,
+            Expense.date < tomorrow
+        ).count()
+        
+        today_income_count = Income.query.filter(
+            Income.user_id == user_id,
+            Income.date >= today_start,
+            Income.date < tomorrow
+        ).count()
+        
+        # Check for data in the requested range
+        range_expense_count = Expense.query.filter(
+            Expense.user_id == user_id,
+            Expense.date >= start_date_obj,
+            Expense.date < end_date_obj
+        ).count()
+        
+        range_income_count = Income.query.filter(
+            Income.user_id == user_id,
+            Income.date >= start_date_obj,
+            Income.date < end_date_obj
+        ).count()
+        
+        # Get sample data for today
+        today_expenses = Expense.query.filter(
+            Expense.user_id == user_id,
+            Expense.date >= today_start,
+            Expense.date < tomorrow
+        ).order_by(Expense.date).limit(5).all()
+        
+        today_incomes = Income.query.filter(
+            Income.user_id == user_id,
+            Income.date >= today_start,
+            Income.date < tomorrow
+        ).order_by(Income.date).limit(5).all()
+        
+        # Format sample data
+        today_expense_samples = [{
+            'id': e.id,
+            'date': e.date.isoformat(),
+            'amount': float(e.amount),
+            'category': e.category,
+            'description': e.description
+        } for e in today_expenses]
+        
+        today_income_samples = [{
+            'id': i.id,
+            'date': i.date.isoformat(),
+            'amount': float(i.amount),
+            'category': i.category,
+            'description': i.description
+        } for i in today_incomes]
+        
+        # Return debug info
+        return jsonify({
+            'request': {
+                'startDate': start_date_str,
+                'endDate': end_date_str,
+            },
+            'processed': {
+                'startDate': start_date_obj.isoformat() if start_date_obj else None,
+                'endDate': end_date_obj.isoformat() if end_date_obj else None,
+                'is_today_included': (start_date_obj <= today_start < end_date_obj),
+            },
+            'current_time': {
+                'now': now.isoformat(),
+                'today_start': today_start.isoformat(),
+                'today_end': today_end.isoformat(),
+                'tomorrow': tomorrow.isoformat()
+            },
+            'data_counts': {
+                'today': {
+                    'expenses': today_expense_count,
+                    'income': today_income_count
+                },
+                'requested_range': {
+                    'expenses': range_expense_count,
+                    'income': range_income_count
+                }
+            },
+            'today_samples': {
+                'expenses': today_expense_samples,
+                'incomes': today_income_samples
+            }
+        })
+    except Exception as e:
+        logging.error(f"Date debug error: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'request': {
+                'startDate': start_date_str,
+                'endDate': end_date_str
+            }
+        }), 400

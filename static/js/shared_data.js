@@ -97,30 +97,77 @@ function renderTable(data, $tableBody, type, isSharedWith) {
     $tableBody.empty();
     
     if (!data || data.length === 0) {
-        const label = type === 'Income' ? 'incomes' : 'expenses';
-        const message = isSharedWith ? `No ${label} have been shared with you` : `You haven't shared any ${label}`;
-        $tableBody.html(`<tr><td colspan="6" class="text-center">${message}</td></tr>`);
+        // Use the empty state template if available
+        const $emptyTemplate = $('#emptyStateTemplate');
+        if ($emptyTemplate.length) {
+            $tableBody.append($emptyTemplate.html());
+        } else {
+            const label = type === 'Income' ? 'incomes' : 'expenses';
+            const message = isSharedWith ? `No ${label} have been shared with you` : `You haven't shared any ${label}`;
+            $tableBody.html(`<tr><td colspan="6" class="text-center">${message}</td></tr>`);
+        }
         return;
     }
+    
+    // Define category icons
+    const categoryIcons = {
+        'Food': 'fa-utensils',
+        'Transportation': 'fa-car',
+        'Entertainment': 'fa-film',
+        'Shopping': 'fa-shopping-bag',
+        'Bills': 'fa-file-invoice-dollar',
+        'Other': 'fa-tags',
+        'Salary': 'fa-money-bill-wave',
+        'Bonus': 'fa-gift',
+        'Interest': 'fa-piggy-bank',
+        'Transfer_family': 'fa-home',
+        'Gift': 'fa-gift'
+    };
     
     data.forEach(item => {
         const isBulk = item.is_bulk;
         const categories = isBulk ? item.categories : [item.category];
-        const displayCategories = categories.length > 2 
-            ? `${categories.slice(0, 2).join(', ')} +${categories.length - 2} more` 
-            : categories.join(', ');
         
-        const sharedLabel = item.shared_with 
-            ? `Shared with: ${item.shared_with}` 
-            : `Shared by: ${item.shared_by}`;
+        // Format category display with badges and tooltip for multiple categories
+        let categoryDisplay = '';
+        if (categories.length > 2) {
+            // For more than 2 categories, show 2 with badges and +X more
+            const allCategoriesText = categories.join(', ');
+            categoryDisplay = `
+                <div class="category-container" title="${allCategoriesText}">
+                    ${formatCategoryBadge(categories[0], categoryIcons)}
+                    ${formatCategoryBadge(categories[1], categoryIcons)}
+                    <span class="badge bg-secondary ms-1 category-more">+${categories.length - 2} more</span>
+                </div>
+            `;
+        } else {
+            // For 1-2 categories, show all with badges
+            categoryDisplay = categories.map(cat => formatCategoryBadge(cat, categoryIcons)).join(' ');
+        }
         
-        // Format the description/label
+        // Format user display with badge
+        const userIcon = isSharedWith ? 'fa-user' : 'fa-share-alt';
+        const userName = isSharedWith ? item.shared_by : item.shared_with;
+        const userDisplay = `
+            <span class="user-badge">
+                <i class="fas ${userIcon}"></i>${userName}
+            </span>
+        `;
+        
+        // Format amount
+        const amountClass = type === 'Income' ? 'amount-positive' : 'amount-negative';
+        const amountDisplay = `<span class="${amountClass}">$${(item.total_amount || item.amount).toFixed(2)}</span>`;
+        
+        // Format date
+        const dateDisplay = `<span class="date-text">${formatDate(item.date)}</span>`;
+        
+        // Format description/label
         let mainLabel = '';
         if (isBulk) {
             const count = item.expense_count || item.Income_count || (item.details?.length || 0);
-            mainLabel = `Multiple items (${count} merged)`;
+            mainLabel = `<span class="description-text"><i class="fas fa-layer-group me-1"></i>Multiple items (${count})</span>`;
         } else {
-            mainLabel = `<span class="remark-tooltip" data-remark="${item.description || ''}">${getShortRemark(item.description)}</span>`;
+            mainLabel = `<span class="description-text" title="${item.description || ''}">${getShortRemark(item.description)}</span>`;
         }
         
         // Create row HTML
@@ -129,25 +176,26 @@ function renderTable(data, $tableBody, type, isSharedWith) {
                 <td>
                     <div class="d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            ${isBulk ? `<button class="btn btn-link p-0" onclick="toggleDetails(${item.id}, '${type}', '${isBulk}')"><i class="fas fa-chevron-right" id="icon-${type}-${item.id}"></i></button>` : ''}
-                            ${isBulk ? `<span class="me-2">${mainLabel}</span>` : mainLabel}
+                            ${isBulk ? `<button class="btn btn-link p-0 me-2" onclick="toggleDetails(${item.id}, '${type}', '${isBulk}')"><i class="fas fa-chevron-right" id="icon-${type}-${item.id}"></i></button>` : ''}
+                            ${mainLabel}
                             ${isBulk && item.details?.some(d => d.is_repeat)
                                 ? '<span class="badge bg-warning ms-2">Contains individually shared items</span>'
                                 : ''}
                         </div>
                     </div>
                 </td>
-                <td><small class="text-muted">${sharedLabel}</small></td>
-                <td><span class="categories-tooltip" data-bs-toggle="tooltip" title="${categories.join('<br>')}">${displayCategories}</span></td>
-                <td>$${(item.total_amount || item.amount).toFixed(2)}</td>
-                <td>${item.date}</td>
+                <td>${userDisplay}</td>
+                <td>${categoryDisplay}</td>
+                <td>${amountDisplay}</td>
+                <td>${dateDisplay}</td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-danger btn-sm me-2 cancel-share-btn" 
+                        <button class="action-btn delete-btn" 
                             data-shared-id="${item.shared_id}" 
                             data-type="${type}"
-                            onclick="cancelShare(this, ${item.shared_id}, '${type}')">
-                            Cancel Share
+                            onclick="cancelShare(this, ${item.shared_id}, '${type}')"
+                            title="Cancel Share">
+                            <i class="fas fa-times"></i>
                         </button>
                         ${!isBulk && item.is_repeat ? '<span class="badge bg-warning ms-2">Repeat</span>' : ''}
                     </div>
@@ -159,30 +207,54 @@ function renderTable(data, $tableBody, type, isSharedWith) {
 
         // Add details row for bulk items
         if (isBulk && item.details && item.details.length) {
-            const $detailsRow = $(`<tr id="details-${type}-${item.id}" style="display: none;"><td colspan="6"></td></tr>`);
+            const $detailsRow = $(`<tr id="details-${type}-${item.id}" class="details-row" style="display: none;"><td colspan="6"></td></tr>`);
             const $detailsTable = $('<table class="table table-sm mb-0"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody></tbody></table>');
             
             item.details.forEach(detail => {
                 $detailsTable.find('tbody').append(`
                     <tr>
-                        <td>${detail.date}</td>
-                        <td>${detail.category}</td>
-                        <td title="${detail.description}"><span class="remark-tooltip" data-remark="${detail.description}">${getShortRemark(detail.description)}</span></td>
-                        <td>$${detail.amount.toFixed(2)}</td>
+                        <td><span class="date-text">${formatDate(detail.date)}</span></td>
+                        <td>${formatCategoryBadge(detail.category, categoryIcons)}</td>
+                        <td title="${detail.description}"><span class="description-text">${getShortRemark(detail.description)}</span></td>
+                        <td><span class="${type === 'Income' ? 'amount-positive' : 'amount-negative'}">$${detail.amount.toFixed(2)}</span></td>
                         <td>${detail.is_repeat ? '<span class="badge bg-warning">Already shared individually</span>' : ''}</td>
                     </tr>
                 `);
             });
             
-            $detailsRow.find('td').append($('<div class="ms-4"></div>').append($detailsTable));
+            $detailsRow.find('td').append($('<div class="ms-4 p-3 mt-2" style="background: rgba(185, 168, 194, 0.03); border-radius: 8px;"></div>').append($detailsTable));
             $tableBody.append($detailsRow);
         }
     });
-
-    // Initialize tooltips
-    if (bootstrap.Tooltip && bootstrap.Tooltip.getInstance) {
-        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]', html: true });
+    
+    // Initialize tooltips for categories
+    initializeCategoryTooltips();
 }
+
+// Helper to format date nicely
+function formatDate(dateStr) {
+    try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return dateStr;
+    }
+}
+
+// Helper to format category with badge and icon
+function formatCategoryBadge(category, categoryIcons) {
+    const icon = categoryIcons[category] || 'fa-tag';
+    return `
+        <span class="category-badge">
+            <i class="fas ${icon}"></i>${category}
+        </span>
+    `;
 }
 
 // Toggle details for bulk items
@@ -199,98 +271,25 @@ function cancelShare(button, sharedId, type) {
     $(button).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
     
     notifications.confirmDelete('share', function() {
-    $.ajax({
-        url: `/api/share${type ? "/income" : ""}/cancel`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ shared_id: sharedId }),
+        $.ajax({
+            url: `/api/share${type ? "/income" : ""}/cancel`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ shared_id: sharedId }),
             success: function(response) {
-                // Completely clear and rebuild all tables to ensure clean state
-                const tables = ['#sharedByMeTableBody', '#sharedByMeIncomeTableBody', 
-                               '#sharedWithMeTableBody', '#sharedWithMeIncomeTableBody'];
-                
-                tables.forEach(table => {
-                    $(table).empty().html('<tr><td colspan="6" class="text-center">Refreshing...</td></tr>');
-                });
-                
-                // Add a small forced delay to ensure backend has time to update all records
-                setTimeout(function() {
-                    // Force browser to make fresh requests by adding a cache-busting parameter
-                    const cacheBuster = new Date().getTime();
-                    
-                    // Rebuild shared by me data
-                    $.ajax({
-                        url: '/api/share/by-me?_=' + cacheBuster,
-                        method: 'GET',
-                        dataType: 'json',
-                        cache: false,
-                        success: function(data) {
-                            renderTable(data, $('#sharedByMeTableBody'), '', false);
-                        },
-                        error: function(err) {
-                            $('#sharedByMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-                            console.error('Error loading shared by me data:', err);
-                            notifications.error('Failed to refresh shared expense data');
-        }
-    });
-                    
-                    // Rebuild shared income by me data
-                    $.ajax({
-                        url: '/api/share/income/by-me?_=' + cacheBuster,
-                        method: 'GET',
-                        dataType: 'json',
-                        cache: false,
-                        success: function(data) {
-                            renderTable(data, $('#sharedByMeIncomeTableBody'), 'Income', false);
-                        },
-                        error: function(err) {
-                            $('#sharedByMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-                            console.error('Error loading shared income by me data:', err);
-                            notifications.error('Failed to refresh shared income data');
-                        }
-                    });
-                    
-                    // Rebuild shared with me data
-                    $.ajax({
-                        url: '/api/share/with-me?_=' + cacheBuster,
-                        method: 'GET',
-                        dataType: 'json',
-                        cache: false,
-                        success: function(data) {
-                            renderTable(data, $('#sharedWithMeTableBody'), '', true);
-                        },
-                        error: function(err) {
-                            $('#sharedWithMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-                            console.error('Error loading shared with me data:', err);
-                            notifications.error('Failed to refresh expenses shared with you');
-                        }
-                    });
-                    
-                    // Rebuild shared income with me data
-                    $.ajax({
-                        url: '/api/share/income/with-me?_=' + cacheBuster,
-                        method: 'GET',
-                        dataType: 'json',
-                        cache: false,
-                        success: function(data) {
-                            renderTable(data, $('#sharedWithMeIncomeTableBody'), 'Income', true);
-                        },
-                        error: function(err) {
-                            $('#sharedWithMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-                            console.error('Error loading shared income with me data:', err);
-                            notifications.error('Failed to refresh income shared with you');
-                        }
-                    });
-                    
-                    notifications.success('Share canceled successfully');
-                }, 150);
+                notifications.success('Share canceled successfully');
+                // Reload all data after a successful operation
+                loadAllSharedData(new Date().getTime());
             },
-            error: function(xhr) {
-                // Re-enable button on error
-                $(button).prop('disabled', false).html('Cancel Share');
-                notifications.error(xhr.responseJSON?.error || 'Failed to cancel share');
+            error: function(err) {
+                $(button).prop('disabled', false).html('<i class="fas fa-times"></i>');
+                console.error('Error canceling share:', err);
+                notifications.error('Failed to cancel sharing');
             }
         });
+    }, function() {
+        // If user cancels the confirmation, re-enable the button
+        $(button).prop('disabled', false).html('<i class="fas fa-times"></i>');
     });
 }
 window.cancelShare = cancelShare;
@@ -333,3 +332,48 @@ $(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function() {
 }).on('mouseleave.remark-tooltip', '.remark-tooltip', function() {
     $('.custom-tooltip').remove();
 });
+
+// Add initializeCategoryTooltips function
+function initializeCategoryTooltips() {
+    // Use Bootstrap tooltips if available
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('.category-container'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                placement: 'top',
+                trigger: 'hover',
+                html: true
+            });
+        });
+    } else {
+        // Fallback to custom tooltip handling
+        $('.category-container').on('mouseenter', function() {
+            const allCategories = $(this).attr('title');
+            if (allCategories) {
+                showCategoryTooltip($(this), allCategories);
+                $(this).attr('data-original-title', allCategories).removeAttr('title');
+            }
+        }).on('mouseleave', function() {
+            $('.category-tooltip').remove();
+        });
+    }
+}
+
+// Helper function to show custom tooltip for categories
+function showCategoryTooltip($el, categories) {
+    const categoriesArray = categories.split(', ');
+    let tooltipContent = categoriesArray.map(cat => `<div class="tooltip-category">${cat}</div>`).join('');
+    
+    const $tip = $(`<div class="category-tooltip"><div class="tooltip-inner">${tooltipContent}</div><div class="tooltip-arrow"></div></div>`).appendTo('body');
+    const offset = $el.offset();
+    const width = $el.outerWidth();
+    const height = $el.outerHeight();
+    
+    $tip.css({
+        left: offset.left + (width / 2) - ($tip.outerWidth() / 2),
+        top: offset.top - $tip.outerHeight() - 5,
+        position: 'absolute',
+        zIndex: 1070,
+        display: 'block'
+    });
+}
