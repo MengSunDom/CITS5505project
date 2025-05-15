@@ -29,7 +29,7 @@ def create_app():
     Migrate(app, db)
 
     with app.app_context():
-        # init_db()
+        init_db()
         app.register_blueprint(auth_bp)
         app.register_blueprint(expense_bp)
         app.register_blueprint(income_bp)
