@@ -35,50 +35,50 @@ def create_app():
         app.register_blueprint(insights_bp)
         app.register_blueprint(shared_data_bp)
 
-    # Custom error handler for 500 errors
-    @app.errorhandler(500)
-    def handle_500_error(e):
-        app.logger.error(f"500 error: {str(e)}")
-        app.logger.error(traceback.format_exc())
+    # # Custom error handler for 500 errors
+    # @app.errorhandler(500)
+    # def handle_500_error(e):
+    #     app.logger.error(f"500 error: {str(e)}")
+    #     app.logger.error(traceback.format_exc())
         
-        if request.path.startswith('/api/'):
-            return jsonify({
-                "error": "Internal Server Error",
-                "message": str(e),
-                "traceback": traceback.format_exc()
-            }), 500
-        return render_template('error.html', error=str(e), traceback=traceback.format_exc()), 500
+    #     if request.path.startswith('/api/'):
+    #         return jsonify({
+    #             "error": "Internal Server Error",
+    #             "message": str(e),
+    #             "traceback": traceback.format_exc()
+    #         }), 500
+    #     return render_template('error.html', error=str(e), traceback=traceback.format_exc()), 500
 
-    # 在这里定义路由，确保app已经创建
-    @app.route('/')
-    def index():
-        if 'user' in session:
-            return redirect(url_for('dashboard'))
-        return render_template('home.html')
+    # # 在这里定义路由，确保app已经创建
+    # @app.route('/')
+    # def index():
+    #     if 'user' in session:
+    #         return redirect(url_for('dashboard'))
+    #     return render_template('home.html')
 
-    @app.route('/dashboard')
-    def dashboard():
-        if 'user' not in session:
-            return redirect(url_for('auth.login'))
-        return render_template('dashboard.html')
+    # @app.route('/dashboard')
+    # def dashboard():
+    #     if 'user' not in session:
+    #         return redirect(url_for('auth.login'))
+    #     return render_template('dashboard.html')
 
-    @app.route('/expenses')
-    def expenses():
-        if 'user' not in session:
-            return redirect(url_for('auth.login'))
-        return render_template('expenses.html')
+    # @app.route('/expenses')
+    # def expenses():
+    #     if 'user' not in session:
+    #         return redirect(url_for('auth.login'))
+    #     return render_template('expenses.html')
 
-    @app.route('/income')
-    def income():
-        if 'user' not in session:
-            return redirect(url_for('auth.login'))
-        return render_template('income.html')
+    # @app.route('/income')
+    # def income():
+    #     if 'user' not in session:
+    #         return redirect(url_for('auth.login'))
+    #     return render_template('income.html')
 
-    @app.route('/shared-data')
-    def shared_data():
-        if 'user' not in session:
-            return redirect(url_for('auth.login'))
-        return render_template('shared_data.html')
+    # @app.route('/shared-data')
+    # def shared_data():
+    #     if 'user' not in session:
+    #         return redirect(url_for('auth.login'))
+    #     return render_template('shared_data.html')
 
     return app
 
@@ -87,5 +87,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
+    app.config['SECRET_KEY'] = 'a3f38c9d6b7e423e97b2c1d9a1f7c9f5e8e4388e6cfb8b9831c2fbd1f40c9b20'
+    app.config['WTF_CSRF_ENABLED'] = True
 
     app.run(debug=True, port=5001)

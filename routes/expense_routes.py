@@ -3,7 +3,7 @@ from datetime import datetime
 from models.models import db, Expense, User, SharedExpense
 from utils.llm import process_receipt
 from utils.ocr import ocr_image
-
+from utils.decorators import csrf_required
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -26,6 +26,7 @@ def get_expenses():
 
 
 @expense_bp.route('/api/expenses', methods=['POST'])
+@csrf_required
 def add_expense():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
