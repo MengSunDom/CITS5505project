@@ -3,6 +3,7 @@ from flask import Flask, render_template, redirect, url_for, session, jsonify, r
 import secrets
 from flask_migrate import Migrate
 import traceback
+from flask_wtf import CSRFProtect
 
 from models.models import db, init_db, User
 from routes.auth_routes import auth_bp
@@ -28,6 +29,9 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
 
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+    
     with app.app_context():
         init_db()
         app.register_blueprint(auth_bp)
