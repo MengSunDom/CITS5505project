@@ -7,7 +7,7 @@ from utils.decorators import csrf_required
 auth_bp = Blueprint('auth', __name__)
 
 # Set session expiration time to 30 minutes
-auth_bp.permanent_session_lifetime = timedelta(minutes=30)
+auth_bp.permanent_session_lifetime = timedelta(minutes=60)
 
 
 @auth_bp.route('/api/register', methods=['POST'])
@@ -16,6 +16,10 @@ def register():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+
+    if not username or not password:
+        return jsonify({'error': 'Username and password cannot be empty'}), 400
+
     hashed_pw = generate_password_hash(password)
 
     try:
