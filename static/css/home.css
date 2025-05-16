@@ -95,11 +95,12 @@
 
 /* --- Hero Section --- */
 .hero-bg {
-    background: linear-gradient(120deg, #2196f3 0%, #4caf50 100%);
+    background-image: url("/static/img/hero-bg.png");
+    background-size: cover; 
+    background-position: center;
+    background-repeat: no-repeat;
     position: relative;
-    overflow: hidden;
-    min-height: 480px;
-    border-radius: 0 0 48px 48px/0 0 32px 32px;
+    z-index: 1;
 }
 .hero-title {
     font-size: 3.2rem;
