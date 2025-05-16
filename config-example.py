@@ -1,8 +1,6 @@
-
-from datetime import timedelta
-
 OPENAI_API_KEY = "actual-openai-key"
-SQLALCHEMY_DATABASE_URI = 'sqlite:///users.db'
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-PERMANENT_SESSION_LIFETIME = timedelta(days=30)
+SECRET_KEY = 'actual-secret-key'
 
+SQLALCHEMY_DATABASE_URI = 'sqlite:///tracker.db'
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+WTF_CSRF_ENABLED = True

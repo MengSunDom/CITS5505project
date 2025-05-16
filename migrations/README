@@ -1,0 +1,28 @@
+# 📦 Database Migration Guide (Flask-Migrate + Alembic)
+
+This project uses **Flask-Migrate** and **Alembic** to manage database schema changes in a version-controlled way. Below is the step-by-step guide for initializing and updating your database schema.
+
+---
+
+## ✅ Initial Setup (First-Time Only)
+
+Run these commands when setting up the project for the first time:
+
+```bash
+# 1. Initialize migration environment
+flask db init
+
+# 2. Generate initial migration script from your models
+flask db migrate -m "Initial migration"
+
+# 3. Apply the migration to create all tables
+flask db upgrade
+
+
+## 🔁 Updating Tables (Every Time Models Change)
+Whenever you update your SQLAlchemy models (e.g. add a new column or model), do the following:
+# 1. Generate a new migration script
+flask db migrate -m "Describe what changed"
+
+# 2. Apply the changes to the database
+flask db upgrade

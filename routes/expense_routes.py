@@ -3,7 +3,7 @@ from datetime import datetime
 from models.models import db, Expense, User, SharedExpense
 from utils.llm import process_receipt
 from utils.ocr import ocr_image
-
+from utils.decorators import csrf_required
 
 expense_bp = Blueprint('expense', __name__)
 
@@ -26,6 +26,7 @@ def get_expenses():
 
 
 @expense_bp.route('/api/expenses', methods=['POST'])
+@csrf_required
 def add_expense():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
@@ -73,7 +74,8 @@ def add_expenses_bulk():
                               category=data['category'],
                               description=data.get('description', ''),
                               user_id=session['user']['id'],
-                              date=datetime.strptime(data['date'], '%Y-%m-%dT%H:%M'))
+                              date=datetime.strptime(data['date'],
+                                                     '%Y-%m-%dT%H:%M'))
         db.session.add(new_expense)
         new_expenses.append(new_expense)
 
@@ -101,7 +103,8 @@ def delete_expense():
     expense_id = data.get('id')
 
     # Find the expense belonging to the current user
-    expense = Expense.query.filter_by(id=expense_id, user_id=session['user']['id']).first()
+    expense = Expense.query.filter_by(id=expense_id,
+                                      user_id=session['user']['id']).first()
     if not expense:
         return jsonify({'error': 'Expense not found'}), 404
 
@@ -111,18 +114,19 @@ def delete_expense():
         # --- Bulk share cleanup logic ---
         bulk_shares = SharedExpense.query.filter(
             SharedExpense.is_bulk_share == True,
-            SharedExpense.bulk_expense_ids.like(f'%{expense_id}%')
-        ).all()
+            SharedExpense.bulk_expense_ids.like(f'%{expense_id}%')).all()
         for share in bulk_shares:
-            ids = [int(i) for i in share.bulk_expense_ids.split(',') if i and int(i) != int(expense_id)]
+            ids = [
+                int(i) for i in share.bulk_expense_ids.split(',')
+                if i and int(i) != int(expense_id)
+            ]
             if len(ids) == 0:
                 db.session.delete(share)
             elif len(ids) == 1:
                 existing = SharedExpense.query.filter_by(
                     expense_id=ids[0],
                     shared_with_id=share.shared_with_id,
-                    is_bulk_share=False
-                ).first()
+                    is_bulk_share=False).first()
                 if existing:
                     db.session.delete(share)
                 else:
@@ -164,18 +168,19 @@ def bulk_delete_expenses():
             # --- Bulk share cleanup logic ---
             bulk_shares = SharedExpense.query.filter(
                 SharedExpense.is_bulk_share == True,
-                SharedExpense.bulk_expense_ids.like(f'%{expense.id}%')
-            ).all()
+                SharedExpense.bulk_expense_ids.like(f'%{expense.id}%')).all()
             for share in bulk_shares:
-                ids = [int(i) for i in share.bulk_expense_ids.split(',') if i and int(i) != int(expense.id)]
+                ids = [
+                    int(i) for i in share.bulk_expense_ids.split(',')
+                    if i and int(i) != int(expense.id)
+                ]
                 if len(ids) == 0:
                     db.session.delete(share)
                 elif len(ids) == 1:
                     existing = SharedExpense.query.filter_by(
                         expense_id=ids[0],
                         shared_with_id=share.shared_with_id,
-                        is_bulk_share=False
-                    ).first()
+                        is_bulk_share=False).first()
                     if existing:
                         db.session.delete(share)
                     else:
@@ -193,6 +198,7 @@ def bulk_delete_expenses():
         return jsonify({'error': f'Failed to delete expense: {str(e)}'}), 500
 
 
+@csrf_required
 @expense_bp.route('/api/expenses/by-ocr', methods=['POST'])
 def ocr_receipt():
     if 'user' not in session:
@@ -208,11 +214,14 @@ def ocr_receipt():
     try:
         # Read file directly into memory
         file_stream = file.read()
-        text = ocr_image(file_stream)  # Pass the file stream to the OCR function
+        text = ocr_image(
+            file_stream)  # Pass the file stream to the OCR function
         result = process_receipt(text)
         return jsonify({'result': result})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 @expense_bp.route('/api/expenses/<int:expense_id>/share', methods=['POST'])
 def share_expense(expense_id):
     if 'user' not in session:
@@ -221,7 +230,8 @@ def share_expense(expense_id):
     data = request.get_json()
     shared_with_username = data.get('username')
 
-    shared_with_user = User.query.filter_by(username=shared_with_username).first()
+    shared_with_user = User.query.filter_by(
+        username=shared_with_username).first()
     if not shared_with_user:
         return jsonify({'error': 'User not found'}), 404
 
@@ -231,14 +241,14 @@ def share_expense(expense_id):
 
     # Check if already shared
     existing_share = SharedExpense.query.filter_by(
-        expense_id=expense_id,
-        shared_with_id=shared_with_user.id
-    ).first()
-    
-    if existing_share:
-        return jsonify({'error': 'This expense is already shared with this user'}), 400
+        expense_id=expense_id, shared_with_id=shared_with_user.id).first()
 
-    shared_expense = SharedExpense(expense_id=expense_id, shared_with_id=shared_with_user.id)
+    if existing_share:
+        return jsonify(
+            {'error': 'This expense is already shared with this user'}), 400
+
+    shared_expense = SharedExpense(expense_id=expense_id,
+                                   shared_with_id=shared_with_user.id)
     db.session.add(shared_expense)
     db.session.commit()
 
@@ -257,14 +267,14 @@ def bulk_share_expenses():
     if not expense_ids or not shared_with_username:
         return jsonify({'error': 'Missing expense IDs or username'}), 400
 
-    shared_with_user = User.query.filter_by(username=shared_with_username).first()
+    shared_with_user = User.query.filter_by(
+        username=shared_with_username).first()
     if not shared_with_user:
         return jsonify({'error': 'User not found'}), 404
 
     expenses = Expense.query.filter(
         Expense.id.in_(expense_ids),
-        Expense.user_id == session['user']['id']
-    ).all()
+        Expense.user_id == session['user']['id']).all()
 
     if not expenses:
         return jsonify({'error': 'No matching expenses found'}), 404
@@ -274,12 +284,11 @@ def bulk_share_expenses():
     already_shared = []
     for expense in expenses:
         existing_share = SharedExpense.query.filter_by(
-            expense_id=expense.id,
-            shared_with_id=shared_with_user.id
-        ).first()
-        
+            expense_id=expense.id, shared_with_id=shared_with_user.id).first()
+
         if not existing_share:
-            shared_expense = SharedExpense(expense_id=expense.id, shared_with_id=shared_with_user.id)
+            shared_expense = SharedExpense(expense_id=expense.id,
+                                           shared_with_id=shared_with_user.id)
             db.session.add(shared_expense)
             shared_count += 1
         else:
