@@ -16,10 +16,10 @@ OCR support is also integrated, allowing users to quickly extract expense data f
 
 | UWA ID     | Name           | GitHub Username    |
 | ---------- | -------------- | ------------------ |
-| \24002421 | \Meng Sun   | \MengSunDom    |
-| \23764722  | \Yapei Chen | \Transparencency |
-| \24022534 | \Runzhi Zhao| \Reilkay|
-| \24644535  | \Chowdhury Ramim Bin Azam| \chowdhuryramimbinazam/ramim1813|
+| 24002421 | Meng Sun   | MengSunDom    |
+| 23764722  | Yapei Chen | Transparencency |
+| 24022534 | Runzhi Zhao| Reilkay|
+| 24644535  | Chowdhury Ramim Bin Azam| chowdhuryramimbinazam/ramim1813|
 
 ## 🔧 Features
 
