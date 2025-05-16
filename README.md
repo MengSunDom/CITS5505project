@@ -1,25 +1,48 @@
+以下是根据你的要求修改后的 `README.md` 文件，添加了项目目的、设计说明、组员信息表格、运行及测试说明等内容，符合CITS5505课程的评估要求：
+
+---
+
 # 📦 CITS5505project
 
 ## 📘 Project Overview
 
-This is a web-based expense tracking application developed for the University of Western Australia’s CITS5505 course. The application allows users to register, log in, and record and analyze their daily expenses. It offers powerful chart-based analysis tools to help users understand their spending habits and enables data sharing between users.
+This is a web-based expense tracking application developed as part of the **CITS5505 Software Development** course at the **University of Western Australia**.
+
+### 🎯 Purpose and Design
+
+The primary purpose of this application is to help users **record, manage, and analyze their personal financial data**, including daily expenses and income. It provides tools to **visualize spending patterns**, gain insights, and **share financial data with other users**.
+
+The application is designed with usability and modularity in mind. It uses **Flask** as the web framework, with a clear separation between authentication, data management, and analytics functionality. The interface is simple and intuitive, powered by **Bootstrap** and **Plotly.js** for interactive charts.
+
+OCR support is also integrated, allowing users to quickly extract expense data from receipt images using **EasyOCR** and the **OpenAI API**.
+
+## 👥 Group Members
+
+| UWA ID     | Name           | GitHub Username    |
+| ---------- | -------------- | ------------------ |
+| \24002421 | \Meng Sun   | \MengSunDom    |
+| \23764722  | \Yapei Chen | \Transparencency |
+| \24022534 | \Runzhi Zhao| \Reilkay|
+| \24644535  | \Chowdhury Ramim Bin Azam| \chowdhuryramimbinazam/ramim1813|
 
 ## 🔧 Features
 
-- 🧑‍💻 User registration and login system
-- 💰 Add, manage, and delete expense records
-- 📊 Data visualization and expense insights
-- 🔗 Share expense data with other users
-- 🧾 Add expenses via receipt images using OCR technology
-- 💑 Support for bulk importing expense data
-- 🔍 Expense filtering and search functionality
+* 🧑‍💻 User registration and login system
+* 💰 Add, manage, and delete expense records
+* 📊 Data visualization and expense insights
+* 🔗 Share expense data with other users
+* 🧾 Add expenses via receipt images using OCR technology
+* 📂 Bulk import of expenses
+* 🔍 Expense filtering and search functionality
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Python 3, Flask, SQLAlchemy, OpenAI API  
-- **Frontend:** HTML, CSS, JavaScript, Bootstrap  
-- **Database:** SQLite  
-- **Other Tools:** EasyOCR, Plotly.js
+* **Backend:** Python 3, Flask, SQLAlchemy, OpenAI API
+* **Frontend:** HTML, CSS, JavaScript, Bootstrap
+* **Database:** SQLite
+* **Other Tools:** EasyOCR, Plotly.js
+
+---
 
 ## 🚀 Getting Started
 
@@ -31,7 +54,7 @@ Ensure Python 3 and pip are installed.
 
 ```bash
 # Clone the repository
-git clone https://github.com/reilkay/CITS5505project.git
+git clone https://github.com/your-team-name/CITS5505project.git
 cd CITS5505project
 
 # Create and activate virtual environment
@@ -48,11 +71,10 @@ pip install -r requirements.txt
 
 ### 🔐 Configuration
 
-Copy `config-example.py` to `config.py`, and add your OpenAI API key:
+Copy `config-example.py` to `config.py`, and add your OpenAI API key and Flask secret key:
 
 ```bash
 cp config-example.py config.py
-# Edit config.py to add your OpenAI API key and Flask secret key.
 ```
 
 Generate a secure Flask secret key:
@@ -62,19 +84,48 @@ import secrets
 print(secrets.token_hex(32))
 ```
 
-Copy the generated value and set it as your `SECRET_KEY` in `config.py` to ensure session security.
+Then, paste the generated value into your `config.py` as `SECRET_KEY`.
 
-### ▶️ Running the App
+---
+
+### ▶️ Launching the Application
 
 ```bash
-# Apply database migrations, initializing the database
+# Apply database migrations (initialize the database)
 flask db upgrade
 
 # Run the application
 python app.py
 ```
 
-Open your browser and go to: `http://localhost:5001`
+Open your browser and go to: [http://localhost:5001](http://localhost:5001)
+
+---
+
+## 🧪 Running Tests
+
+### ✅ Unit Tests
+
+Run unit tests for individual modules:
+
+```bash
+pytest tests/
+```
+
+* `tests/conftest.py` sets up a temporary test database and app context for isolated testing.
+
+### ✅ System Tests
+
+Run end-to-end system tests:
+
+```bash
+pytest tests_e2e/
+```
+
+* `tests_e2e/conftest.py` starts the Flask development server before tests and shuts it down afterward.
+* Tests assume the app runs on `http://127.0.0.1:5001`.
+
+---
 
 ## 📁 Project Structure
 
@@ -83,54 +134,28 @@ CITS5505project/
 ├── app.py                   # Application entry point
 ├── config.py                # Configuration file (contains API keys)
 ├── models/                  # Database models
-│   └── models.py            # User, expense and sharing models
-├── routes/                  # Flask route definitions
-│   ├── auth_routes.py       # Authentication-related routes
-│   ├── error_routes.py      # Error testing routes
-│   ├── expense_routes.py    # Expense management routes
-│   ├── income_routes.py     # Income management routes
-│   ├── insights_routes.py   # Data analysis routes
-│   ├── page_routes.py       # Page routes
-│   ├── share_routes.py      # Expense data sharing routes
-│   └── shareIncome_routes.py# Income data sharing routes
-├── static/                  # Static assets
-│   ├── css/                 # CSS stylesheets
-│   └── js/                  # JavaScript files
+│   └── models.py            
+├── routes/                  # Route definitions
+│   ├── auth_routes.py       
+│   ├── error_routes.py      
+│   ├── expense_routes.py    
+│   ├── income_routes.py     
+│   ├── insights_routes.py   
+│   ├── page_routes.py       
+│   ├── share_routes.py      
+│   └── shareIncome_routes.py
+├── static/                  # CSS & JS files
 ├── templates/               # HTML templates
 ├── utils/                   # Utility functions
 ├── tests/                   # Unit tests
-├── tests_e2e/               # System tests
+├── tests_e2e/               # End-to-end tests
 ├── requirements.txt         # Python dependencies
 └── README.md                # Project documentation
 ```
 
-## ✅ Usage Instructions
-
-1. Visit the homepage to learn about the project  
-2. Register a new account or log in  
-3. After logging in, you can add and manage your expenses/income  
-4. View charts and insights to analyze your spending habits  
-5. Share your expense/income data with other users  
-6. Quickly add expenses using receipt photos via OCR  
-
-## 🧪 Running Tests
-
-### 🧰 Unit Tests
-
-```bash
-pytest tests/
-```
-
-The `tests/conftest.py` file contains fixtures for setting up the Flask application and database for testing purposes. It ensures that the database is properly initialized and cleaned up after each test module.
-
-### 🧰 System Tests
-
-```bash
-pytest tests_e2e/
-```
-
-The `tests_e2e/conftest.py` file is responsible for starting the Flask server before the tests and shutting it down afterward. It ensures that the server is running on `http://127.0.0.1:5001` during the tests.
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
