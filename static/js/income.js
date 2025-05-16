@@ -1,88 +1,87 @@
 function getFormattedDateTime() {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
 $(document).ready(function () {
     // Set default date to today
-    document.getElementById('date').value = getFormattedDateTime();
+    document.getElementById("date").value = getFormattedDateTime();
 
     loadData();
 
     // Handle form submission
-    $('#incomeForm').on('submit', async (e) => {
+    $("#incomeForm").on("submit", async (e) => {
         e.preventDefault();
 
         const formData = {
-            amount: document.getElementById('amount').value,
-            category: document.getElementById('category').value,
-            description: document.getElementById('description').value || '',  // Make description optional
-            date: document.getElementById('date').value,
-            csrf_token: $('input[name="csrf_token"]').val()
+            amount: document.getElementById("amount").value,
+            category: document.getElementById("category").value,
+            description: document.getElementById("description").value || "", // Make description optional
+            date: document.getElementById("date").value,
+            csrf_token: $('input[name="csrf_token"]').val(),
         };
 
         try {
             $.ajax({
-                url: '/api/incomes',
-                method: 'POST',
-                contentType: 'application/json',
+                url: "/api/incomes",
+                method: "POST",
+                contentType: "application/json",
                 data: JSON.stringify(formData),
                 success: function (data) {
-                    $('#incomeForm')[0].reset();
-                    document.getElementById('date').value = getFormattedDateTime();
+                    $("#incomeForm")[0].reset();
+                    document.getElementById("date").value = getFormattedDateTime();
                     loadData();
 
-                    const offcanvasElement = document.getElementById('addIncomeCanvas');
+                    const offcanvasElement = document.getElementById("addIncomeCanvas");
                     const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasElement);
                     offcanvasInstance.hide();
                 },
                 error: function (xhr) {
-                    const errorMsg = xhr.responseJSON?.error || 'Failed to add income';
+                    const errorMsg = xhr.responseJSON?.error || "Failed to add income";
                     notifications.error(errorMsg);
-                }
+                },
             });
-
         } catch (error) {
-            notifications.error('An error occurred while adding the income');
+            notifications.error("An error occurred while adding the income");
         }
     });
 
     // Handle share button click
-    $('#shareButton').on('click', function () {
-        const username = $('#shareUsername').val();
-        const incomeId = $('#incomeIdToShare').val();
+    $("#shareButton").on("click", function () {
+        const username = $("#shareUsername").val();
+        const incomeId = $("#incomeIdToShare").val();
 
         if (!username) {
-            notifications.warning('Please select a user to share with');
+            notifications.warning("Please select a user to share with");
             return;
         }
 
         $.ajax({
             url: `/api/share/income/${incomeId}`,
-            method: 'POST',
-            contentType: 'application/json',
+            method: "POST",
+            contentType: "application/json",
             data: JSON.stringify({
-                username: username
+                username: username,
             }),
             success: function (response) {
-                $('#shareModal').modal('hide');
-                notifications.success(response.message || 'Income shared successfully');
+                $("#shareModal").modal("hide");
+                notifications.success(response.message || "Income shared successfully");
             },
             error: function (xhr) {
-                notifications.error(xhr.responseJSON?.error || 'Failed to share income');
-            }
+                notifications.error(xhr.responseJSON?.error || "Failed to share income");
+            },
         });
     });
 });
 
 function loadData() {
-    $.get('/api/incomes', function (incomes) {
+    $.get("/api/incomes", function (incomes) {
         currentincomes = incomes;
         updateIncomeTable(incomes);
         filterAndSearchincomes();
@@ -90,25 +89,31 @@ function loadData() {
 }
 
 function updateIncomeTable(incomes) {
-    const tbody = $('#incomeTableBody');
+    const tbody = $("#incomeTableBody");
     tbody.empty();
 
     // Sort incomes by date in descending order
     incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    incomes.forEach(income => {
+    incomes.forEach((income) => {
         const row = `
             <tr>
                 <td><input type="checkbox" data-id="${income.id}" /></td>
                 <td>${income.date}</td>
                 <td>${income.category}</td>
-                <td><span class="remark-tooltip" data-remark="${income.description || ''}">${getShortRemark(income.description)}</span></td>
+                <td><span class="remark-tooltip" data-remark="${
+                    income.description || ""
+                }">${getShortRemark(income.description)}</span></td>
                 <td>$${income.amount.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm form-action" onclick="openShareModal(${income.id})">
+                    <button class="btn btn-primary btn-sm form-action" onclick="openShareModal(${
+                        income.id
+                    })">
                         <i class="fas fa-share-alt"></i> Share
                     </button>
-                    <button class="btn btn-danger btn-sm form-action" onclick="deleteLine(${income.id})">
+                    <button class="btn btn-danger btn-sm form-action" onclick="deleteLine(${
+                        income.id
+                    })">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </td>
@@ -121,55 +126,55 @@ function updateIncomeTable(incomes) {
 let currentincomes = [];
 
 function openShareModal(incomeId) {
-    $('#incomeIdToShare').val(incomeId);
-    $('#shareModal').modal('show');
+    $("#incomeIdToShare").val(incomeId);
+    $("#shareModal").modal("show");
 }
 
 function deleteLine(incomeId) {
-    notifications.confirmDelete('income', function () {
+    notifications.confirmDelete("income", function () {
         $.ajax({
-            url: '/api/incomes/delete',
-            method: 'POST',
-            contentType: 'application/json',
+            url: "/api/incomes/delete",
+            method: "POST",
+            contentType: "application/json",
             data: JSON.stringify({
-                id: incomeId
+                id: incomeId,
             }),
             success: function (response) {
-                $('#incomeForm')[0].reset();
-                document.getElementById('date').value = getFormattedDateTime();
+                $("#incomeForm")[0].reset();
+                document.getElementById("date").value = getFormattedDateTime();
                 loadData();
-                notifications.success('Income deleted successfully');
+                notifications.success("Income deleted successfully");
             },
             error: function (xhr) {
-                notifications.error(xhr.responseJSON?.error || 'Failed to delete income');
-            }
+                notifications.error(xhr.responseJSON?.error || "Failed to delete income");
+            },
         });
     });
 }
 
-const allowedCategories = ['Food', 'Entertainment', 'Shopping', 'Bills', 'Other'];
+const allowedCategories = ["Salary", "Bonus", "Interest", "Transfer_family", "Gift", "Other"];
 
-document.getElementById('downloadTemplate').addEventListener('click', function () {
+document.getElementById("downloadTemplate").addEventListener("click", function () {
     const ws_data = [
-        ['Date', 'Category', 'Description', 'Amount'],
-        ['2024-01-01', 'Food', 'Example description', 12.50]
+        ["Date", "Category", "Description", "Amount"],
+        ["2024-01-01", "Salary", "Example description", 12.5],
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet(ws_data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
 
-    XLSX.writeFile(workbook, 'income_template.xlsx');
+    XLSX.writeFile(workbook, "income_template.xlsx");
 });
 
-document.getElementById('uploadTemplate').addEventListener('change', function (e) {
+document.getElementById("uploadTemplate").addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = function (e) {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -184,27 +189,43 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 
             let date = row[0]?.toString();
             const category = row[1];
-            const description = row[2] || '';
+            const description = row[2] || "";
             const amount = parseFloat(row[3]);
 
+            // Handle Excel numeric date format
             if (!isNaN(date) && date.length <= 5) {
-                const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-                date = new Date(excelEpoch.getTime() + date * 86400000)
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel epoch starts on 1899-12-30
+                date = new Date(excelEpoch.getTime() + date * 86400000) // Convert days to milliseconds
                     .toISOString()
-                    .split('T')[0];
+                    .split("T")[0]; // Extract YYYY-MM-DD
             }
 
-            if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
-                errors.push(`Row ${i + 1}: Invalid date format "${date}". Use YYYY-MM-DD or YYYY/MM/DD format.`);
+            // Validate date
+            if (!date || !date.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(T\d{2}:\d{2}:\d{2})?$/)) {
+                errors.push(
+                    `Row ${
+                        i + 1
+                    }: Invalid date format "${date}". Use YYYY-MM-DD, YYYY/MM/DD, or YYYY-MM-DDTHH:MM:SS format.`
+                );
                 continue;
             }
 
-            const normalizedDate = date.replace(/\//g, '-');
-            const [year, month, day] = normalizedDate.split('-').map(part => part.padStart(2, '0'));
-            const dateWithTime = `${year}-${month}-${day}T00:00`;
+            // Normalize date to YYYY-MM-DD format
+            const normalizedDate = date.replace(/\//g, "-");
+            const [datePart, timePart] = normalizedDate.split("T");
+            const [year, month, day] = datePart.split("-").map((part) => part.padStart(2, "0"));
+            const dateWithTime = timePart
+                ? `${year}-${month}-${day}T${timePart}`
+                : `${year}-${month}-${day}T00:00`;
 
             if (!allowedCategories.includes(category)) {
-                errors.push(`Row ${i + 1}: Invalid category "${category}". Allowed categories: ${allowedCategories.join(', ')}`);
+                errors.push(
+                    `Row ${
+                        i + 1
+                    }: Invalid category "${category}". Allowed categories: ${allowedCategories.join(
+                        ", "
+                    )}`
+                );
                 continue;
             }
 
@@ -217,25 +238,25 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
         }
 
         if (errors.length > 0) {
-            notifications.error('Upload failed:\n' + errors.join('\n'));
+            notifications.error("Upload failed:\n" + errors.join("\n"));
         } else if (validRows.length > 0) {
             $.ajax({
-                url: '/api/incomes/bulk',
-                method: 'POST',
-                contentType: 'application/json',
+                url: "/api/incomes/bulk",
+                method: "POST",
+                contentType: "application/json",
                 data: JSON.stringify(validRows),
                 success: function (response) {
-                    notifications.success('Upload successful!');
-                    $('#incomeForm')[0].reset();
-                    document.getElementById('date').value = getFormattedDateTime();
+                    notifications.success("Upload successful!");
+                    $("#incomeForm")[0].reset();
+                    document.getElementById("date").value = getFormattedDateTime();
                     loadData();
                 },
                 error: function (xhr) {
-                    notifications.error(xhr.responseJSON?.error || 'Failed to upload incomes');
-                }
+                    notifications.error(xhr.responseJSON?.error || "Failed to upload incomes");
+                },
             });
         } else {
-            notifications.warning('No valid data found in the file.');
+            notifications.warning("No valid data found in the file.");
         }
     };
 
@@ -244,16 +265,16 @@ document.getElementById('uploadTemplate').addEventListener('change', function (e
 
 let loadUsernames = () => {
     return $.ajax({
-        url: '/api/users',
-        method: 'GET',
-        dataType: 'json',
+        url: "/api/users",
+        method: "GET",
+        dataType: "json",
         success: function (data) {
             // Store the full user list for filtering
             window.allUsers = data || [];
 
             // Update user count display
-            $('#shareUserCount').text(`${data.length} users`);
-            $('#bulkShareUserCount').text(`${data.length} users`);
+            $("#shareUserCount").text(`${data.length} users`);
+            $("#bulkShareUserCount").text(`${data.length} users`);
 
             // Populate selects
             populateUserSelects(data);
@@ -262,16 +283,16 @@ let loadUsernames = () => {
             setupUserSearch();
         },
         error: function () {
-            notifications.error('Failed to load usernames. Cannot share.');
-        }
+            notifications.error("Failed to load usernames. Cannot share.");
+        },
     });
-}
+};
 
 // Helper function to populate all user selects
 function populateUserSelects(users) {
-    const selects = ['#shareUsername', '#bulkShareUsername'];
+    const selects = ["#shareUsername", "#bulkShareUsername"];
 
-    selects.forEach(selectId => {
+    selects.forEach((selectId) => {
         const $select = $(selectId);
         $select.empty();
 
@@ -283,7 +304,7 @@ function populateUserSelects(users) {
         // Sort users alphabetically
         users.sort((a, b) => a.username.localeCompare(b.username));
 
-        users.forEach(user => {
+        users.forEach((user) => {
             const option = `<option value="${user.username}">${user.username}</option>`;
             $select.append(option);
         });
@@ -293,26 +314,30 @@ function populateUserSelects(users) {
 // Setup user search functionality
 function setupUserSearch() {
     // For single share modal
-    $('#shareSearch').off('input').on('input', function () {
-        const searchTerm = $(this).val().toLowerCase().trim();
-        filterUsers(searchTerm, '#shareUsername');
-    });
+    $("#shareSearch")
+        .off("input")
+        .on("input", function () {
+            const searchTerm = $(this).val().toLowerCase().trim();
+            filterUsers(searchTerm, "#shareUsername");
+        });
 
     // For bulk share modal
-    $('#bulkShareSearch').off('input').on('input', function () {
-        const searchTerm = $(this).val().toLowerCase().trim();
-        filterUsers(searchTerm, '#bulkShareUsername');
-    });
+    $("#bulkShareSearch")
+        .off("input")
+        .on("input", function () {
+            const searchTerm = $(this).val().toLowerCase().trim();
+            filterUsers(searchTerm, "#bulkShareUsername");
+        });
 
     // Clear search when modals are hidden
-    $('#shareModal').on('hidden.bs.modal', function () {
-        $('#shareSearch').val('');
-        filterUsers('', '#shareUsername');
+    $("#shareModal").on("hidden.bs.modal", function () {
+        $("#shareSearch").val("");
+        filterUsers("", "#shareUsername");
     });
 
-    $('#bulkShareModal').on('hidden.bs.modal', function () {
-        $('#bulkShareSearch').val('');
-        filterUsers('', '#bulkShareUsername');
+    $("#bulkShareModal").on("hidden.bs.modal", function () {
+        $("#bulkShareSearch").val("");
+        filterUsers("", "#bulkShareUsername");
     });
 }
 
@@ -323,13 +348,14 @@ function filterUsers(searchTerm, selectId) {
     if (!searchTerm) {
         // If search is empty, show all users
         populateUserSelects(window.allUsers);
-        $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
-            .text(`${window.allUsers.length} users`);
+        $(selectId === "#shareUsername" ? "#shareUserCount" : "#bulkShareUserCount").text(
+            `${window.allUsers.length} users`
+        );
         return;
     }
 
     // Filter users based on search term
-    const filteredUsers = window.allUsers.filter(user =>
+    const filteredUsers = window.allUsers.filter((user) =>
         user.username.toLowerCase().includes(searchTerm)
     );
 
@@ -341,33 +367,34 @@ function filterUsers(searchTerm, selectId) {
         $select.append('<option value="">No matching users</option>');
     } else {
         filteredUsers.sort((a, b) => a.username.localeCompare(b.username));
-        filteredUsers.forEach(user => {
+        filteredUsers.forEach((user) => {
             const option = `<option value="${user.username}">${user.username}</option>`;
             $select.append(option);
         });
     }
 
     // Update the counter
-    $(selectId === '#shareUsername' ? '#shareUserCount' : '#bulkShareUserCount')
-        .text(`${filteredUsers.length} users`);
+    $(selectId === "#shareUsername" ? "#shareUserCount" : "#bulkShareUserCount").text(
+        `${filteredUsers.length} users`
+    );
 }
 
-$('#shareModal').on('show.bs.modal', function () {
+$("#shareModal").on("show.bs.modal", function () {
     loadUsernames();
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('uploadButton').addEventListener('click', function () {
-        document.getElementById('uploadTemplate').click();
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("uploadButton").addEventListener("click", function () {
+        document.getElementById("uploadTemplate").click();
     });
 });
 
 function filterAndSearchincomes() {
-    const searchValue = $('#searchInput').val().toLowerCase();
-    const selectedCategory = $('#filterCategory').val();
-    const selectedMonth = $('#filterMonth').val();
+    const searchValue = $("#searchInput").val().toLowerCase();
+    const selectedCategory = $("#filterCategory").val();
+    const selectedMonth = $("#filterMonth").val();
 
-    const filteredincomes = currentincomes.filter(income => {
+    const filteredincomes = currentincomes.filter((income) => {
         const matchesSearch = income.description.toLowerCase().includes(searchValue);
         const matchesCategory = !selectedCategory || income.category === selectedCategory;
         const matchesMonth = !selectedMonth || income.date.startsWith(selectedMonth);
@@ -377,127 +404,129 @@ function filterAndSearchincomes() {
     updateIncomeTable(filteredincomes);
 }
 
-$('#searchInput').on('input', filterAndSearchincomes);
-$('#filterCategory').on('change', filterAndSearchincomes);
-$('#filterMonth').on('change', filterAndSearchincomes);
+$("#searchInput").on("input", filterAndSearchincomes);
+$("#filterCategory").on("change", filterAndSearchincomes);
+$("#filterMonth").on("change", filterAndSearchincomes);
 
-$('#selectAll').on('change', function () {
-    const isChecked = $(this).is(':checked');
-    $('#incomeTableBody input[type="checkbox"]').prop('checked', isChecked);
+$("#selectAll").on("change", function () {
+    const isChecked = $(this).is(":checked");
+    $('#incomeTableBody input[type="checkbox"]').prop("checked", isChecked);
 });
 
-$('#deleteSelected').on('click', function () {
+$("#deleteSelected").on("click", function () {
     const selectedIds = $('#incomeTableBody input[type="checkbox"]:checked')
         .map(function () {
-            return $(this).data('id');
+            return $(this).data("id");
         })
         .get();
 
     if (selectedIds.length === 0) {
-        notifications.warning('No incomes selected');
+        notifications.warning("No incomes selected");
         return;
     }
 
-    notifications.confirmDelete('incomes', function () {
+    notifications.confirmDelete("incomes", function () {
         $.ajax({
-            url: '/api/incomes/bulk-delete',
-            method: 'POST',
-            contentType: 'application/json',
+            url: "/api/incomes/bulk-delete",
+            method: "POST",
+            contentType: "application/json",
             data: JSON.stringify({ ids: selectedIds }),
             success: function () {
                 loadData();
-                notifications.success('Selected incomes deleted successfully');
+                notifications.success("Selected incomes deleted successfully");
             },
             error: function (xhr) {
-                notifications.error(xhr.responseJSON?.error || 'Failed to delete incomes');
-            }
+                notifications.error(xhr.responseJSON?.error || "Failed to delete incomes");
+            },
         });
     });
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function () {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    $('#filterMonth').val(`${year}-${month}`);
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    $("#filterMonth").val(`${year}-${month}`);
 });
 
-$('#bulkShareButton').on('click', function () {
+$("#bulkShareButton").on("click", function () {
     const selectedIds = $('#incomeTableBody input[type="checkbox"]:checked')
         .map(function () {
-            return $(this).data('id');
+            return $(this).data("id");
         })
         .get();
 
     if (selectedIds.length === 0) {
-        notifications.warning('No incomes selected');
+        notifications.warning("No incomes selected");
         return;
     }
 
-    const username = $('#bulkShareUsername').val();
+    const username = $("#bulkShareUsername").val();
     if (!username) {
-        notifications.warning('Please select a username to share with');
+        notifications.warning("Please select a username to share with");
         return;
     }
 
     $.ajax({
-        url: '/api/share/income/bulk',
-        method: 'POST',
-        contentType: 'application/json',
+        url: "/api/share/income/bulk",
+        method: "POST",
+        contentType: "application/json",
         data: JSON.stringify({ ids: selectedIds, username: username }),
         success: function () {
-            $('#bulkShareModal').modal('hide');
-            notifications.success('Incomes shared successfully');
+            $("#bulkShareModal").modal("hide");
+            notifications.success("Incomes shared successfully");
             // Clear all checkboxes
-            $('#incomeTableBody input[type="checkbox"]').prop('checked', false);
-            $('#selectAll').prop('checked', false);
+            $('#incomeTableBody input[type="checkbox"]').prop("checked", false);
+            $("#selectAll").prop("checked", false);
             // Reload data to refresh the table
             loadData();
         },
         error: function (xhr) {
-            notifications.error(xhr.responseJSON?.error || 'Failed to share incomes');
-        }
+            notifications.error(xhr.responseJSON?.error || "Failed to share incomes");
+        },
     });
 });
 
-$('#bulkShareModal').on('show.bs.modal', function () {
+$("#bulkShareModal").on("show.bs.modal", function () {
     loadUsernames();
 });
 
 function getShortRemark(desc, maxLen = 20) {
-    if (!desc) return '';
-    return desc.length > maxLen ? desc.slice(0, maxLen) + '...' : desc;
+    if (!desc) return "";
+    return desc.length > maxLen ? desc.slice(0, maxLen) + "..." : desc;
 }
 
 function showCustomTooltip($el, text) {
     if (!text) return;
-    const $tip = $('<div class="custom-tooltip"></div>').text(text).appendTo('body');
+    const $tip = $('<div class="custom-tooltip"></div>').text(text).appendTo("body");
     const offset = $el.offset();
     $tip.css({
         left: offset.left,
         top: offset.top - $tip.outerHeight() - 10,
-        position: 'absolute',
+        position: "absolute",
         zIndex: 9999,
-        background: 'rgba(30,30,40,0.98)',
-        color: '#fff',
-        padding: '10px 18px',
-        borderRadius: '10px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
-        fontSize: '1em',
-        maxWidth: '420px',
-        wordBreak: 'break-all',
-        whiteSpace: 'pre-line',
-        pointerEvents: 'none',
+        background: "rgba(30,30,40,0.98)",
+        color: "#fff",
+        padding: "10px 18px",
+        borderRadius: "10px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.22)",
+        fontSize: "1em",
+        maxWidth: "420px",
+        wordBreak: "break-all",
+        whiteSpace: "pre-line",
+        pointerEvents: "none",
         opacity: 1,
-        fontFamily: 'Segoe UI, Arial, sans-serif',
-        letterSpacing: '0.01em',
-        lineHeight: '1.5'
+        fontFamily: "Segoe UI, Arial, sans-serif",
+        letterSpacing: "0.01em",
+        lineHeight: "1.5",
     });
 }
 
-$(document).off('mouseenter.remark-tooltip mouseleave.remark-tooltip');
-$(document).on('mouseenter.remark-tooltip', '.remark-tooltip', function () {
-    showCustomTooltip($(this), $(this).data('remark'));
-}).on('mouseleave.remark-tooltip', '.remark-tooltip', function () {
-    $('.custom-tooltip').remove();
-});
+$(document).off("mouseenter.remark-tooltip mouseleave.remark-tooltip");
+$(document)
+    .on("mouseenter.remark-tooltip", ".remark-tooltip", function () {
+        showCustomTooltip($(this), $(this).data("remark"));
+    })
+    .on("mouseleave.remark-tooltip", ".remark-tooltip", function () {
+        $(".custom-tooltip").remove();
+    });

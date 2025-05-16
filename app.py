@@ -1,8 +1,8 @@
 import logging
-from flask import Flask, render_template, jsonify, request
 import secrets
-from flask_migrate import Migrate
 import traceback
+from flask import Flask, render_template, jsonify, request
+from flask_migrate import Migrate
 from flask_wtf import CSRFProtect
 
 from models.models import db, init_db
@@ -15,7 +15,7 @@ from routes.income_routes import income_bp
 from routes.shareIncome_routes import shareIncome_bp
 from routes.error_routes import error_bp
 
-import config
+from config import Config
 
 migrate = Migrate()
 csrf = CSRFProtect()
@@ -68,7 +68,7 @@ def register_error_handlers(app):
 
 def create_app(testing=False):
     app = Flask(__name__)
-    app.config.from_object(config)
+    app.config.from_object(Config)
     app.secret_key = app.config.get('SECRET_KEY', secrets.token_hex(32))
 
     if testing:
