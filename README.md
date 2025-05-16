@@ -48,11 +48,11 @@ pip install -r requirements.txt
 
 ### 🔐 Configuration
 
-Copy `config-example.py` to `config.py`, and add your OpenAI API key:
+Copy `.env-example` to `.env`, and add your OpenAI API key:
 
 ```bash
-cp config-example.py config.py
-# Edit config.py to add your OpenAI API key and Flask secret key.
+cp .env-example .env
+# Edit .env to add your OpenAI API key and Flask secret key.
 ```
 
 Generate a secure Flask secret key:
@@ -62,7 +62,7 @@ import secrets
 print(secrets.token_hex(32))
 ```
 
-Copy the generated value and set it as your `SECRET_KEY` in `config.py` to ensure session security.
+Copy the generated value and set it as your `SECRET_KEY` in `.env` to ensure session security.
 
 ### ▶️ Running the App
 
