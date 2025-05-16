@@ -30,4 +30,4 @@ selenium-screenshots/
 *.db
 
 # API keys
-config.py
+.env
