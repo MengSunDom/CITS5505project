@@ -45,7 +45,7 @@ def share_expense(expense_id):
             is_bulk_share=False,
             is_repeat=False
         )
-        
+
         db.session.add(shared_expense)
         db.session.commit()
 
@@ -91,10 +91,8 @@ def bulk_share_expenses():
                 shared_with_id=shared_with_user.id,
                 is_bulk_share=False
             ).first()
-            
             if existing_share:
                 return jsonify({'error': 'This expense is already shared with this user'}), 400
-
             # Create single share record
             shared_expense = SharedExpense(
                 expense_id=expense_ids[0],
@@ -106,24 +104,20 @@ def bulk_share_expenses():
             # Sort expense IDs for consistent comparison
             sorted_expense_ids = sorted(map(int, expense_ids))
             expense_ids_str = ','.join(map(str, sorted_expense_ids))
-
             # Check if the exact same combination of expenses is already shared
             existing_bulk_share = SharedExpense.query.filter(
                 SharedExpense.shared_with_id == shared_with_user.id,
                 SharedExpense.is_bulk_share == True,
                 SharedExpense.bulk_expense_ids == expense_ids_str
             ).first()
-
             if existing_bulk_share:
                 return jsonify({'error': 'These expenses are already shared with this user'}), 400
-
             # Check if any of the expenses are already shared individually
             individually_shared = SharedExpense.query.filter(
                 SharedExpense.expense_id.in_(expense_ids),
                 SharedExpense.shared_with_id == shared_with_user.id,
                 SharedExpense.is_bulk_share == False
             ).all()
-
             # Create bulk share record
             shared_expense = SharedExpense(
                 expense_id=expense_ids[0],
@@ -132,10 +126,8 @@ def bulk_share_expenses():
                 bulk_expense_ids=expense_ids_str,
                 is_repeat=bool(individually_shared)
             )
-        
         db.session.add(shared_expense)
         db.session.commit()
-
         return jsonify({
             'message': f'Successfully shared {len(expenses)} expenses with {shared_with_username}',
             'shared_id': shared_expense.id,
@@ -234,18 +226,15 @@ def get_shared_with_me_expenses():
 
     try:
         user_id = session['user']['id']
-        print(f"Fetching shared expenses for user {user_id}")  # Debug log
 
         # Get all expenses shared with the current user
         shared_expenses = SharedExpense.query.filter_by(shared_with_id=user_id).all()
-        print(f"Found {len(shared_expenses)} shared expenses")  # Debug log
         
         # Group bulk shares
         bulk_shares = {}
         single_shares = []
         
         for share in shared_expenses:
-            print(f"Processing share {share.id}")  # Debug log
             if share.is_bulk_share and share.bulk_expense_ids:
                 # For bulk shares, group by the combination of expenses
                 key = share.bulk_expense_ids
@@ -321,11 +310,9 @@ def get_shared_with_me_expenses():
         
         # Combine bulk and single shares
         result = list(bulk_shares.values()) + single_shares
-        print(f"Returning {len(result)} total shares")  # Debug log
         
         return jsonify(result)
     except Exception as e:
-        print(f"Error in get_shared_with_me_expenses: {str(e)}")  # Debug log
         return jsonify({'error': str(e)}), 500
 
 @share_bp.route('/api/share/cancel', methods=['POST'])

@@ -49,7 +49,6 @@ $(document).ready(function () {
             });
 
         } catch (error) {
-            console.error('Error:', error);
             notifications.error('An error occurred while adding the income');
         }
     });

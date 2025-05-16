@@ -38,7 +38,6 @@ function loadAllSharedData(cacheBuster) {
         },
         error: function(err) {
             $('#sharedByMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-            console.error('Error loading shared by me data:', err);
             notifications.error('Failed to load shared expense data');
         }
     });
@@ -54,7 +53,6 @@ function loadAllSharedData(cacheBuster) {
         },
         error: function(err) {
             $('#sharedByMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-            console.error('Error loading shared income by me data:', err);
             notifications.error('Failed to load shared income data');
         }
     });
@@ -70,7 +68,6 @@ function loadAllSharedData(cacheBuster) {
         },
         error: function(err) {
             $('#sharedWithMeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-            console.error('Error loading shared with me data:', err);
             notifications.error('Failed to load expenses shared with you');
         }
     });
@@ -86,7 +83,6 @@ function loadAllSharedData(cacheBuster) {
         },
         error: function(err) {
             $('#sharedWithMeIncomeTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load data</td></tr>');
-            console.error('Error loading shared income with me data:', err);
             notifications.error('Failed to load income shared with you');
         }
     });
@@ -196,10 +192,10 @@ function renderTable(data, $tableBody, type, isSharedWith) {
                             onclick="cancelShare(this, ${item.shared_id}, '${type}')"
                             title="Cancel Share">
                             <i class="fas fa-times"></i>
-                        </button>
+                </button>
                         ${!isBulk && item.is_repeat ? '<span class="badge bg-warning ms-2">Repeat</span>' : ''}
                     </div>
-                </td>
+            </td>
             </tr>
         `;
 
@@ -273,7 +269,7 @@ function cancelShare(button, sharedId, type) {
     notifications.confirmDelete('share', function() {
         $.ajax({
             url: `/api/share${type ? "/income" : ""}/cancel`,
-            method: 'POST',
+        method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ shared_id: sharedId }),
             success: function(response) {
@@ -283,7 +279,6 @@ function cancelShare(button, sharedId, type) {
             },
             error: function(err) {
                 $(button).prop('disabled', false).html('<i class="fas fa-times"></i>');
-                console.error('Error canceling share:', err);
                 notifications.error('Failed to cancel sharing');
             }
         });

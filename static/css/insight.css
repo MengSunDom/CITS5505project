@@ -4,10 +4,22 @@
     height: 300px;
     width: 100%;
     min-height: 250px;
-    background-color: #fff;
+    background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 10px;
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+canvas.chart-container {
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* Text Overflow Handling */
@@ -208,13 +220,58 @@
     min-height: 38px;
     width: 100%;
     flex-direction: column;
+    background: linear-gradient(to right, #f5f7fa, #f8f9fa);
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 12px;
+    flex-grow: 1;
+    position: relative;
+    padding-bottom: 45px; /* Reserve space for custom date range */
 }
 
 .custom-date-range {
-    display: flex;
+    display: none;
     align-items: center;
     margin-top: 10px !important;
     flex-wrap: nowrap;
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    z-index: 10;
+}
+
+.custom-date-range.show {
+    display: flex !important;
+}
+
+.custom-date-range input[type="date"] {
+    min-width: 130px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    color: #2c3e50;
+    padding: 6px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    font-size: 0.85rem;
+    margin-right: 8px;
+}
+
+.custom-date-range .btn {
+    font-size: 0.85rem;
+    background: #3498db;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+    border: none;
+    padding: 6px 14px;
+    height: 31px;
+    min-width: 70px;
 }
 
 /* Fix shared selector and date range layout issues */
@@ -226,15 +283,50 @@
 
 .shared-user-selector {
     min-width: 350px;
-    background: #f8f9fa;
-    padding: 8px 12px;
-    border-radius: 6px;
+    background: linear-gradient(to right, #f5f7fa, #f8f9fa);
+    border-radius: 10px;
+    padding: 14px 16px;
     border: 1px solid #e9ecef;
-    margin-bottom: 1rem;
+    margin-right: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    height: auto !important;
 }
 
-.custom-date-range input[type="date"] {
-    min-width: 130px;
+.shared-user-selector label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-right: 12px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    margin-right: 8px;
+    margin-bottom: 0;
+    min-width: 95px;
+}
+
+.shared-user-selector select {
+    border-radius: 6px;
+    border-color: #e9ecef;
+    color: #2c3e50;
+    padding: 6px 12px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    font-size: 0.9rem;
+    min-width: 150px;
+    width: auto;
+    flex-grow: 1;
+}
+
+/* Improved shared selector button styles */
+.shared-user-selector .btn-sm {
+    min-width: 60px;
+    height: 31px;
+    vertical-align: middle;
+}
+
+/* Ensure the shared selector has consistent height */
+.shared-user-selector .d-flex.align-items-center {
+    height: 31px;
 }
 
 /* Make sure buttons don't wrap */
@@ -244,121 +336,360 @@
 }
 
 .period-selector-container {
+    width: 100%;
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 5px;
-    margin-bottom: 5px;
 }
 
 .period-selector {
+    white-space: nowrap;
+    display: flex;
     flex-wrap: nowrap !important;
-    margin-right: 0 !important;
+    overflow-x: auto;
+    max-width: 100%;
+    margin-bottom: 5px;
 }
 
-/* Ensure date picker doesn't break layout */
-.custom-date-range.show {
-    display: flex !important;
-    align-items: center;
-    flex-wrap: nowrap;
-    margin-top: 10px;
-    width: 100%;
-}
-
-/* Additional mobile styles */
-@media (max-width: 768px) {
-    .d-flex.flex-wrap.justify-content-between {
-        flex-direction: column;
-    }
-
-    .shared-user-selector,
-    .data-source-selector,
-    .date-range-selector,
-    .export-options {
-        width: 100%;
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
-
-    .custom-date-range input[type="date"] {
-        width: 40%;
-    }
-}
-
-/* Chart Tooltips */
-.chart-tooltip {
-    position: absolute;
-    z-index: 1000;
-    background-color: rgba(255, 255, 255, 0.95);
+.period-selector .btn {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 12px;
     border-radius: 6px;
-    padding: 0.75rem;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-    pointer-events: none;
-    max-width: 250px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin-right: 4px;
+    color: #4a5568;
+    border-color: #e2e8f0;
+    background: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.tooltip-header {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.tooltip-title {
+.period-selector .btn.active {
+    background: #3498db;
+    border-color: #2980b9;
+    color: white;
     font-weight: 600;
-    color: #212529;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
 }
 
-.tooltip-value {
-    font-size: 1.125rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
+.custom-date-range.show {
+    display: flex !important; /* Only display when show class is added */
+    flex-wrap: nowrap;
 }
 
-.tooltip-percentage {
-    font-size: 0.875rem;
-    color: #6c757d;
-}
-
-/* Button Group Styles */
 .btn-group-sm .btn-outline-secondary,
-.btn-group-sm .btn-outline-primary {
-    font-size: 0.8125rem;
+.btn-group-sm .btn-outline-secondary:hover {
+    font-size: 0.8rem;
     padding: 0.25rem 0.5rem;
 }
 
 .btn-outline-secondary:focus,
-.btn-outline-primary:focus {
-    box-shadow: none;
+.btn-outline-secondary:active {
+    box-shadow: none !important;
 }
 
-/* Period Selector */
 .period-selector .btn {
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
 }
 
-/* Media Queries */
+/* Period selectors styling */
+.chart-period-selector, .comparison-period-selector {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.chart-period-selector .btn, .comparison-period-selector .btn {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-right: 4px;
+    color: #4a5568;
+    border-color: #e2e8f0;
+    background: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.chart-period-selector .btn.active, .comparison-period-selector .btn.active {
+    background: #3498db;
+    border-color: #2980b9;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+}
+
+/* Data source selector styling */
+.data-source-selector .btn {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-right: 4px;
+    color: #4a5568;
+    border-color: #e2e8f0;
+    background: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.data-source-selector .btn.active {
+    background: #3498db;
+    border-color: #2980b9;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+}
+
+/* Top categories chart styling */
+.top-categories-type-selector .btn {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+/* Back button styling */
+#backToMyData {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#backToMyData:hover {
+    background-color: #e2e8f0;
+    color: #1a202c;
+}
+
+/* Loading indicator styling */
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #6c757d;
+    text-align: center;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    font-weight: 500;
+    color: #3498db;
+}
+
+.loading-indicator:after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    margin-left: 10px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Chart error styling */
+.chart-error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #6c757d;
+    text-align: center;
+    font-style: italic;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+}
+
+/* Notification styling */
+.notification {
+    position: fixed;
+    z-index: 9999;
+    padding: 12px 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    color: white;
+    font-size: 14px;
+    max-width: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification-info {
+    background-color: #3498db;
+}
+
+.notification-success {
+    background-color: #2ecc71;
+}
+
+.notification-warning {
+    background-color: #f39c12;
+}
+
+.notification-error {
+    background-color: #e74c3c;
+}
+
+.notification-close {
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 0 0 0 10px;
+    margin-left: 10px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+/* Modern UI improvements for insight page */
+.insight-page .card {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.insight-page .card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
+}
+
+/* Card header improvements */
+.insight-page .card-header {
+    background: linear-gradient(to right, #f8f9fa, #ffffff);
+    border-bottom: none;
+    padding: 16px 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1.05rem;
+    color: #2c3e50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Card body improvements */
+.insight-page .card-body {
+    padding: 20px;
+    background: #ffffff;
+}
+
+/* Summary card styling */
+.insight-page .summary-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-left: 4px solid #3498db;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.insight-page .summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.insight-page .summary-card h5 {
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.insight-page .summary-card .summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+/* Income card styling */
+.insight-page .summary-card.income-card {
+    border-left-color: #2ecc71;
+}
+
+.insight-page .summary-card.income-card .summary-value {
+    color: #27ae60;
+}
+
+/* Expense card styling */
+.insight-page .summary-card.expense-card {
+    border-left-color: #e74c3c;
+}
+
+.insight-page .summary-card.expense-card .summary-value {
+    color: #c0392b;
+}
+
+/* Balance card styling */
+.insight-page .summary-card.balance-card {
+    border-left-color: #3498db;
+}
+
+.insight-page .summary-card.balance-card .summary-value {
+    color: #2980b9;
+}
+
+/* Improved layout for consistency */
+.d-flex.flex-wrap.justify-content-between {
+    align-items: flex-start !important;
+}
+
+/* Fix flex layout issues */
+.d-flex.flex-wrap.align-items-center {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Responsive adjustments */
 @media (max-width: 992px) {
     .stats-overview .col-md-3 {
         margin-bottom: 1rem;
     }
 
     .date-range-selector,
-    .data-type-filter,
-    .export-options {
-        margin-bottom: 1rem;
+    .data-source-selector {
+        width: 100%;
+        margin-bottom: 0.5rem;
     }
 
     .d-flex.flex-wrap.justify-content-between {
         flex-direction: column;
-        align-items: flex-start;
     }
 }
 
 @media (max-width: 768px) {
     .chart-container {
-        height: 300px;
+        height: 250px;
     }
 
     .stats-card .card-body {
@@ -370,187 +701,421 @@
         height: 40px;
         font-size: 1rem;
     }
+    
+    .insight-page .card-header {
+        padding: 14px 16px;
+        font-size: 0.95rem;
+    }
+    
+    .insight-page .summary-card .summary-value {
+        font-size: 1.3rem;
+    }
+    
+    .period-selector, .chart-period-selector, .comparison-period-selector {
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    
+    .period-selector .btn, .chart-period-selector .btn, .comparison-period-selector .btn {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+        white-space: nowrap;
+    }
+    
+    .date-range-selector {
+        width: 100%;
+    }
+    
+    .shared-user-selector label {
+        min-width: 80px;
+    }
+    
+    .data-source-selector,
+    .shared-user-selector,
+    .export-options {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .d-flex.flex-wrap.justify-content-between {
+        flex-direction: column;
+    }
 }
 
-/* Average Income and Expense Cards */
 .average-income-card,
 .average-expense-card {
-    background: linear-gradient(135deg, #f0f9ff 0%, #cbebff 100%);
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: background 0.2s;
 }
 
 .average-income-card:hover,
 .average-expense-card:hover {
-    transform: scale(1.05);
+    background-color: #e9ecef;
 }
 
-/* Chart.js Specific Styling */
 canvas.chartjs-render-monitor {
-    background-color: #ffffff !important;
+    display: block;
+    height: 100%;
+    width: 100%;
 }
 
-/* Plotly Specific Styling */
 .js-plotly-plot,
-.plotly,
-.svg-container,
-svg.main-svg {
-    background-color: #ffffff !important;
+.plot-container {
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
 }
 
 .svg-container .main-svg .bg {
-    fill: #ffffff !important;
+    fill: transparent !important;
 }
 
-/* For dark mode, we still need to style the cards */
 @media (prefers-color-scheme: dark) {
-    /* Card backgrounds */
+    /* Dark mode styles */
     .stats-card,
     .chart-card {
-        background-color: #2c2c2c !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background-color: #2d3748;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    /* Text colors */
     .stats-title,
-    .period-label,
-    .percentage-indicator,
-    .top-category-amount {
-        color: #c9c9c9 !important;
+    .period-label {
+        color: #cbd5e0;
     }
 
     .stats-value,
-    #topCategoryName,
     .chart-card .card-title {
-        color: #ffffff !important;
+        color: #edf2f7;
     }
 
-    /* Card headers */
     .chart-card .card-header {
-        background-color: #333333 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background-color: #2d3748;
+        border-bottom-color: #4a5568;
     }
 
-    /* Average cards in dark mode */
     .average-income-card,
     .average-expense-card {
-        background: linear-gradient(135deg, #1e3a5f 0%, #0d2b4d 100%) !important;
+        background-color: #2d3748;
     }
 
-    /* Keep ALL charts with white background */
     .chart-container,
-    .js-plotly-plot,
-    .plotly,
-    .svg-container,
-    svg.main-svg,
-    canvas.chartjs-render-monitor {
-        background-color: #ffffff !important;
-        border: 1px solid #e0e0e0 !important;
+    .js-plotly-plot {
+        background-color: #2d3748;
     }
 }
 
 .card-title {
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
 .chartjs-tooltip {
-    opacity: 1 !important;
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid #ddd !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
-    padding: 10px !important;
-    border-radius: 4px !important;
-    max-width: 300px !important;
-    z-index: 9999 !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
+    opacity: 0;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 3px;
+    transition: all 0.1s ease;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+    padding: 4px 8px;
+    z-index: 1000;
 }
 
 .chart-legend-item {
-    display: flex !important;
-    align-items: center !important;
-    cursor: pointer !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 100% !important;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.chart-legend-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .chart-container span,
-.chart-container text,
-.chart-container tspan {
-    fill: #333 !important;
-    color: #333 !important;
+.chart-legend-item span {
+    display: inline-block;
+    margin-right: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
 }
 
 [data-toggle="tooltip"] {
-    cursor: pointer;
+    cursor: help;
+    position: relative;
 }
 
 .stats-value:hover {
-    overflow: visible !important;
-    white-space: normal !important;
-    z-index: 1 !important;
-    position: relative !important;
+    color: #0056b3;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
 
 canvas.chart-container {
+    width: 100% !important;
     height: 100% !important;
 }
 
 #topCategoriesChart {
     height: 270px !important;
-    width: 100% !important;
+    width: 100%;
 }
 
 .chart-container .chartjs-text {
-    text-decoration: none !important;
-    font-weight: normal !important;
+    fill: #495057;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .chartjs-legend li,
-.chartjs-legend span,
-.chart-legend li,
-.chart-legend span,
-#categoryPieChart span,
-#categoryPieChart li,
-.chart-container span,
-.chart-container li {
-    text-decoration: none !important;
-    border-bottom: none !important;
-    text-decoration-line: none !important;
-    box-shadow: none !important;
+.chartjs-legend ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .data-source-selector {
     margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 #sharedDataBanner {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ffeeba;
+    border-radius: 0.25rem;
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0.25rem;
-    background-color: #cff4fc;
-    border: 1px solid #b6effb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #sharedDataBanner .fas {
-    font-size: 1.5rem;
-    margin-right: 0.75rem;
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
 }
 
 .chart-container text,
 .chart-container tspan {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-        sans-serif !important;
-    font-size: 12px !important;
-    fill: #666 !important;
-    font-weight: normal !important;
-    text-decoration: none !important;
+    fill: #495057;
+}
+
+/* Chart container styles from insight.js */
+.chart-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    min-height: 250px;
+}
+
+canvas.chart-container {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Chart error message styling */
+.chart-error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #6c757d;
+    text-align: center;
+    font-style: italic;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+}
+
+/* Notification styling */
+.notification {
+    position: fixed;
+    z-index: 9999;
+    padding: 12px 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    color: white;
+    font-size: 14px;
+    max-width: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-info {
+    background-color: #3498db;
+}
+
+.notification-success {
+    background-color: #2ecc71;
+}
+
+.notification-warning {
+    background-color: #f39c12;
+}
+
+.notification-error {
+    background-color: #e74c3c;
+}
+
+.notification-close {
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 0 0 0 10px;
+    margin-left: 10px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+/* Chart text styling */
+.chart-container .chartjs-text {
+    fill: #495057;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.chart-container text,
+.chart-container tspan {
+    fill: #495057;
+}
+
+/* Chart legend styling */
+.chartjs-legend li,
+.chartjs-legend ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Chart tooltip styling */
+.chartjs-tooltip {
+    opacity: 0;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 3px;
+    transition: all 0.1s ease;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+    padding: 4px 8px;
+    z-index: 1000;
+}
+
+/* Chart legend item styling */
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.chart-legend-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.chart-container span,
+.chart-legend-item span {
+    display: inline-block;
+    margin-right: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Tooltip styling */
+[data-toggle="tooltip"] {
+    cursor: help;
+    position: relative;
+}
+
+/* Stats value hover effect */
+.stats-value:hover {
+    color: #0056b3;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+/* Top categories chart specific height */
+#topCategoriesChart {
+    height: 270px !important;
+    width: 100%;
+}
+
+/* Data source selector margin */
+.data-source-selector {
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Shared data banner styling */
+#sharedDataBanner {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ffeeba;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#sharedDataBanner .fas {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+}
+
+
+.average-income-card {
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    border-left: 4px solid #26c6da;
+    color: #00796b;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(38, 198, 218, 0.08);
+    transition: background 0.2s;
+}
+.average-income-card:hover {
+    background: linear-gradient(135deg, #b2ebf2 0%, #e0f7fa 100%);
+}
+
+/* 平均支出卡片样式 */
+.average-expense-card {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border-left: 4px solid #e57373;
+    color: #b71c1c;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(229, 115, 115, 0.08);
+    transition: background 0.2s;
+}
+.average-expense-card:hover {
+    background: linear-gradient(135deg, #ffcdd2 0%, #ffebee 100%);
 }

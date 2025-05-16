@@ -234,18 +234,15 @@ def get_shared_with_me_Incomes():
 
     try:
         user_id = session['user']['id']
-        print(f"Fetching shared Incomes for user {user_id}")  # Debug log
 
         # Get all Incomes shared with the current user
         shared_Incomes = SharedIncome.query.filter_by(shared_with_id=user_id).all()
-        print(f"Found {len(shared_Incomes)} shared Incomes")  # Debug log
         
         # Group bulk shares
         bulk_shares = {}
         single_shares = []
         
         for share in shared_Incomes:
-            print(f"Processing share {share.id}")  # Debug log
             if share.is_bulk_share and share.bulk_income_ids:
                 # For bulk shares, group by the combination of Incomes
                 key = share.bulk_income_ids
@@ -321,11 +318,9 @@ def get_shared_with_me_Incomes():
         
         # Combine bulk and single shares
         result = list(bulk_shares.values()) + single_shares
-        print(f"Returning {len(result)} total shares")  # Debug log
         
         return jsonify(result)
     except Exception as e:
-        print(f"Error in get_shared_with_me_Incomes: {str(e)}")  # Debug log
         return jsonify({'error': str(e)}), 500
 
 @shareIncome_bp.route('/api/share/income/cancel', methods=['POST'])

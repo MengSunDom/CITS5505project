@@ -58,7 +58,6 @@ $(document).ready(function () {
 
     // Handle "select all" checkbox with event delegation
     $(document).on('change', '#selectAll', function () {
-        console.log('Select all changed:', this.checked);
         $('#expenseTableBody input[type="checkbox"]').prop('checked', this.checked);
     });
 
@@ -96,7 +95,6 @@ $(document).ready(function () {
             });
 
         } catch (error) {
-            console.error('Error:', error);
             notifications.error('An error occurred while adding the expense');
         }
     });
@@ -128,7 +126,6 @@ $(document).ready(function () {
                 }
             },
             error: function (xhr, status, error) {
-                console.error('Error:', error);
                 notifications.error('Failed to share expense. Please try again.');
             }
         });
@@ -249,7 +246,6 @@ function loadUsernames() {
             setupUserSearch();
         },
         error: function (xhr, status, error) {
-            console.error('Failed to load usernames:', error);
             notifications.error('Failed to load usernames.');
         }
     });
@@ -543,12 +539,10 @@ document.getElementById('uploadPicture').addEventListener('change', function (e)
                 data = JSON.parse(response.result);
                 addExpense(data);
             } catch (e) {
-                console.error('Error parsing response:', e);
                 alert('An unexpected error occurred. Please try again.');
             }
         },
         error: function (xhr) {
-            console.error('Error:', xhr);
             alert('An error occurred while processing the Picture.');
         },
         complete: function () {

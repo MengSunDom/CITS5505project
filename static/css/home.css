@@ -14,19 +14,385 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Feature cards */
-.feature-card {
-    transition: transform 0.3s;
-    margin-bottom: 30px;
-    border-radius: 10px;
+/* Intro list */
+.intro-list {
+    list-style: none;
+    padding-left: 0;
+    font-size: 1.1rem;
+}
+.intro-list li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5em;
+    position: relative;
+}
+.intro-list li:before {
+    content: '•';
+    color: #2196f3;
+    position: absolute;
+    left: 0;
+    font-size: 1.3em;
+    top: 0.1em;
 }
 
+/* Feature cards */
+.feature-card {
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(33, 150, 243, 0.08);
+    cursor: pointer;
+}
 .feature-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(33, 150, 243, 0.18);
+    z-index: 2;
 }
 
 .feature-icon {
     font-size: 2.5rem;
     margin-bottom: 20px;
     color: #4caf50;
+    transition: color 0.2s;
+}
+.feature-card:hover .feature-icon {
+    color: #2196f3;
+}
+
+/* Carousel controls */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: #2196f3;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+}
+.carousel-control-prev,
+.carousel-control-next {
+    filter: drop-shadow(0 2px 8px rgba(33,150,243,0.10));
+}
+
+/* Carousel indicators */
+.carousel-indicators [data-bs-target] {
+    background-color: #4caf50;
+}
+
+/* Scroll down button */
+#scrollToFeatures {
+    box-shadow: 0 2px 8px rgba(33,150,243,0.15);
+    transition: background 0.2s, transform 0.2s;
+}
+#scrollToFeatures:hover {
+    background: #2196f3;
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Mouse pointer for interactive elements */
+.btn, .feature-card, #scrollToFeatures {
+    cursor: pointer;
+}
+
+/* --- Hero Section --- */
+.hero-bg {
+    background: linear-gradient(120deg, #2196f3 0%, #4caf50 100%);
+    position: relative;
+    overflow: hidden;
+    min-height: 480px;
+    border-radius: 0 0 48px 48px/0 0 32px 32px;
+}
+.hero-title {
+    font-size: 3.2rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    text-shadow: 0 4px 32px #2196f355;
+}
+.hero-subtitle {
+    font-size: 1.5rem;
+    font-style: italic;
+    color: #e3f2fd;
+    text-shadow: 0 2px 8px #2196f355;
+}
+.hero-intro {
+    color: #e3f2fd;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    text-shadow: 0 1px 8px #2196f355;
+}
+.hero-illustration {
+    margin-top: 32px;
+    filter: drop-shadow(0 8px 32px #2196f3aa);
+}
+
+/* Decorative blurred circles */
+.hero-blur-circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(48px);
+    opacity: 0.25;
+    z-index: 1;
+}
+.hero-blur-1 {
+    width: 320px; height: 320px;
+    background: #4caf50;
+    top: 10%; left: 60%;
+}
+.hero-blur-2 {
+    width: 200px; height: 200px;
+    background: #2196f3;
+    bottom: 0; right: 10%;
+}
+
+/* Floating scroll button */
+.scroll-fab {
+    position: absolute;
+    left: 50%;
+    bottom: -32px;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2196f3 0%, #4caf50 100%);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    font-size: 2.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px #2196f355;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    animation: fab-bounce 2.5s infinite;
+    z-index: 10;
+    cursor: pointer;
+}
+.scroll-fab:hover {
+    background: linear-gradient(135deg, #4caf50 0%, #2196f3 100%);
+    transform: translateX(-50%) scale(1.08);
+    box-shadow: 0 12px 48px #2196f3aa;
+}
+@keyframes fab-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-10px); }
+}
+
+/* --- Article-style prose --- */
+.article-intro {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.15rem;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 2px 16px #2196f322;
+    line-height: 1.8;
+}
+.article-intro h3 {
+    font-family: 'Montserrat', 'Arial', sans-serif;
+    font-weight: 700;
+    color: #2196f3;
+}
+.article-intro ul {
+    padding-left: 1.2em;
+}
+.article-intro li {
+    margin-bottom: 0.7em;
+}
+.blockquote {
+    border-left: 4px solid #4caf50;
+    padding-left: 1em;
+    color: #2196f3;
+    font-style: italic;
+    background: #e3f2fd33;
+    border-radius: 8px;
+}
+
+/* --- Glassmorphism Feature Cards --- */
+.glass-card {
+    background: rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    box-shadow: 0 8px 32px 0 rgba(33,150,243,0.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 24px;
+    transition: box-shadow 0.3s, transform 0.3s, background 0.3s;
+}
+.feature-card {
+    margin-bottom: 30px;
+    cursor: pointer;
+    transition: box-shadow 0.3s, transform 0.3s, background 0.3s;
+}
+.feature-card:hover {
+    box-shadow: 0 16px 48px 0 #2196f355;
+    background: rgba(255,255,255,0.28);
+    transform: translateY(-10px) scale(1.04);
+    z-index: 2;
+}
+.feature-icon {
+    font-size: 2.8rem;
+    margin-bottom: 18px;
+    color: #2196f3;
+    filter: drop-shadow(0 2px 8px #4caf5055);
+    transition: color 0.2s, filter 0.2s;
+}
+.feature-card:hover .feature-icon {
+    color: #4caf50;
+    filter: drop-shadow(0 4px 16px #2196f3aa);
+}
+.feature-quote {
+    font-size: 1.05rem;
+    color: #4caf50;
+    font-style: italic;
+    margin-top: 1.2em;
+    opacity: 0.85;
+}
+
+/* --- Carousel --- */
+.carousel-fade .carousel-item {
+    opacity: 0;
+    transition: opacity 0.7s ease-in-out;
+}
+.carousel-fade .carousel-item.active {
+    opacity: 1;
+    z-index: 2;
+}
+.carousel-inner {
+    border-radius: 24px;
+}
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: #fff;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    box-shadow: 0 2px 8px #2196f355;
+    background-size: 60% 60%;
+}
+.carousel-control-prev,
+.carousel-control-next {
+    filter: drop-shadow(0 2px 8px #2196f355);
+}
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    background: rgba(33,150,243,0.08);
+}
+.carousel-indicators [data-bs-target] {
+    background-color: #4caf50;
+}
+
+/* --- General --- */
+.btn-gradient {
+    background: linear-gradient(90deg, #2196f3 0%, #4caf50 100%);
+    color: #fff;
+    border: none;
+    border-radius: 32px;
+    font-weight: 600;
+    box-shadow: 0 2px 12px #2196f355;
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.btn-gradient:hover {
+    background: linear-gradient(90deg, #4caf50 0%, #2196f3 100%);
+    color: #fff;
+    box-shadow: 0 4px 24px #2196f3aa;
+}
+
+/* --- Carousel Indicators: Modern Line/Pill Style --- */
+.carousel-indicators {
+    bottom: -48px;
+}
+.carousel-indicators [data-bs-target] {
+    width: 16px;
+    height: 6px;
+    border-radius: 3px;
+    background: #cfd8dc;
+    border: none;
+    margin: 0 4px;
+    box-shadow: none;
+    opacity: 0.6;
+    transition: width 0.25s, background 0.25s, opacity 0.2s;
+    cursor: pointer;
+}
+.carousel-indicators .active {
+    width: 32px;
+    height: 6px;
+    background: linear-gradient(90deg, #2196f3 0%, #4caf50 100%);
+    opacity: 1;
+    border-radius: 3px;
+}
+/* Only non-active indicators change opacity on hover/focus, not background */
+.carousel-indicators [data-bs-target]:not(.active):hover,
+.carousel-indicators [data-bs-target]:not(.active):focus {
+    opacity: 0.85;
+}
+
+/* Add extra space below carousel to prevent overlap with dots */
+#featuresSection {
+    margin-bottom: 60px;
+}
+
+/* --- Hero Main Button --- */
+.hero-main-btn {
+    font-size: 1.35rem;
+    padding: 0.9em 2.5em;
+    border-radius: 40px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 4px 24px #2196f3aa, 0 0 0 4px #fff2 inset;
+    position: relative;
+    z-index: 2;
+    transition: box-shadow 0.2s, border 0.2s, background 0.2s, color 0.2s;
+    cursor: pointer;
+}
+.hero-main-btn:hover, .hero-main-btn:focus {
+    border: 3px solid #4caf50;
+    box-shadow: 0 8px 32px #4caf50aa, 0 0 0 6px #2196f322 inset;
+    background: linear-gradient(90deg, #4caf50 0%, #2196f3 100%);
+    color: #fff;
+}
+.hero-main-btn i {
+    font-size: 1.3em;
+    vertical-align: middle;
+    margin-right: 0.5em;
+}
+
+/* --- Carousel Controls --- */
+.carousel-control-prev, .carousel-control-next {
+    cursor: pointer;
+    transition: filter 0.2s, background 0.2s;
+}
+.carousel-control-prev:hover, .carousel-control-next:hover {
+    filter: brightness(1.15) drop-shadow(0 2px 12px #4caf50aa);
+    background: rgba(33,150,243,0.10);
+}
+
+/* --- Article Money Icon --- */
+.article-intro-img {
+    max-width: 80px;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 12px auto;
+    display: block;
+    object-fit: contain;
+    box-shadow: 0 2px 12px #2196f355;
+    border-radius: 18px;
+}
+@media (max-width: 768px) {
+    .article-intro-img {
+        max-width: 56px;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 8px;
+    }
+}
+
+/* --- Carousel Consistent Card Size --- */
+#featureCarousel .carousel-item {
+    min-height: 340px;
+    height: 340px;
+    display: flex;
+    align-items: center;
+}
+#featureCarousel .feature-card.glass-card {
+    min-height: 320px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
