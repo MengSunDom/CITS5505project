@@ -648,7 +648,6 @@ def date_diagnostic():
 def get_income_by_month():
     """
     Get income data aggregated by month.
-    This endpoint provides real monthly income data for charts.
     """
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
@@ -657,39 +656,37 @@ def get_income_by_month():
         start_date, end_date = parse_date_range()
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-
+    
     user_id = session['user']['id']
     
-    # Extract month and year from income dates
-    # Use date_trunc to ensure correct month assignment
+    # Query to get income by month
     income_by_month = db.session.query(
-        func.extract('year', Income.date).label('year'),
-        func.extract('month', Income.date).label('month'),
+        func.strftime('%Y-%m', Income.date).label('month'),
         func.sum(Income.amount).label('total')
     ).filter(
         Income.user_id == user_id,
         Income.date >= start_date,
         Income.date < end_date
     ).group_by(
-        func.extract('year', Income.date),
-        func.extract('month', Income.date)
+        func.strftime('%Y-%m', Income.date)
     ).order_by(
-        func.extract('year', Income.date),
-        func.extract('month', Income.date)
+        func.strftime('%Y-%m', Income.date)
     ).all()
     
     # Format the results
-    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     labels = []
     values = []
     
-    for year, month, total in income_by_month:
-        # Month from SQL is 1-indexed
-        month_idx = int(month) - 1  # Convert to 0-indexed for our array
-        if 0 <= month_idx < 12:
-            month_name = month_names[month_idx]
-            labels.append(f"{month_name} {int(year)}")
-            values.append(float(total))
+    for month, total in income_by_month:
+        # Format month as "Mon YYYY"
+        try:
+            date_obj = datetime.strptime(month, '%Y-%m')
+            month_label = date_obj.strftime('%b %Y')
+        except:
+            month_label = month
+            
+        labels.append(month_label)
+        values.append(float(total))
     
     # Log for debugging
     logging.debug(f"Income by month: {list(zip(labels, values))}")
